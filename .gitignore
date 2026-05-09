@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+dist-electron/
+build-resources/
+release/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# Electron app builds
+out/
+*.dmg
+*.exe
+*.zip
+
+# Cache
+.eslintcache
+.tsbuildinfo
+dist/
+dist-electron/
+release/
+.env
+.env.local
+build-resources/config.json
+*.log

@@ -1,0 +1,28 @@
+# Enforce consistent line endings across the repository
+# Treat all files as text by default and normalize to LF in the repo
+* text=auto eol=lf
+
+# Explicitly mark binary files to avoid line-ending conversions
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+
+# Node lockfiles
+package-lock.json binary
+pnpm-lock.yaml binary
+
+# Keep Windows executables binary
+*.exe binary
+*.dll binary
+
+# Don't try to normalize files in release or build outputs
+/dist/* -text
+/dist-electron/* -text
+/release/* -text
+/build-resources/* -text
+/templates/** -text
