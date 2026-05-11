@@ -3,14 +3,15 @@ import { fileURLToPath } from "node:url";
 import { URLSearchParams } from "node:url";
 import fs from "node:fs";
 import dotenv from "dotenv";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
 import isDev from "electron-is-dev";
 import { createNativeMenu } from "./menu.js";
 import { createVoucherServer } from "./server.js";
-import { getAccountProfile, getAuthState, resetPassword, signIn, signOut, signUp } from "./lib/auth.js";
+import { getAccountProfile, getAuthState, resetPassword, signIn, signOut, signUp, updateProfile } from "./lib/auth.js";
 import type { AuthCredentials } from "../shared/types.js";
 import type { DocumentFormat, HotelRateRecord, VoucherPayload } from "../shared/types.js";
 import { selectToursFolder, getToursFolder, getToursFolderTree, revealInExplorer, migrateVouchersToTours } from "./lib/toursFolder.js";
+import { getAllSettings, updateSettings } from "./config.js";
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl = "";
@@ -136,6 +137,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("auth:reset-password", async (_event, email: string) => resetPassword(email));
   ipcMain.handle("auth:sign-out", async () => signOut());
   ipcMain.handle("auth:state", async () => getAuthState());
+  ipcMain.handle("auth:update-profile", async (_event, updates: { employeeName?: string; employeeEmail?: string }) => updateProfile(updates));
 
   ipcMain.handle("voucher:save", async (_event, voucher: VoucherPayload) => {
     const response = await fetch(`${serverUrl}/api/vouchers`, {
@@ -339,6 +341,25 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("tours-folder:migrate", async () => {
     return migrateVouchersToTours();
+  });
+
+  /* ---------- Settings IPC handlers ---------- */
+
+  ipcMain.handle("settings:get", async () => {
+    return getAllSettings();
+  });
+
+  ipcMain.handle("settings:set", async (_event, settings: Record<string, any>) => {
+    return updateSettings(settings);
+  });
+
+  ipcMain.handle("dialog:select-folder", async (_event, options: { title?: string; defaultPath?: string }) => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: options.title || "Select Folder",
+      defaultPath: options.defaultPath || app.getPath("home"),
+      properties: ["openDirectory"]
+    });
+    return result.canceled ? null : result.filePaths[0] || null;
   });
 
   await createWindow();

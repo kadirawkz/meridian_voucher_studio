@@ -318,3 +318,28 @@ export async function getCurrentEmployeeProfile(user?: User): Promise<AccountPro
 export function getAuthenticatedSupabaseClient(): SupabaseClient | null {
   return getSupabaseClient();
 }
+
+export async function updateProfile(updates: { employeeName?: string; employeeEmail?: string }): Promise<AccountProfile> {
+  const client = getSupabaseClient();
+  const user = await getCurrentUser();
+
+  if (!client || !user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await client
+    .from("employee_profiles")
+    .update({
+      employee_name: updates.employeeName,
+      email: updates.employeeEmail
+    })
+    .eq("id", user.id)
+    .select("id, employee_name, email, role, is_active")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return profileFromRow(data);
+}

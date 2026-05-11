@@ -39,6 +39,33 @@
     background-size: 1.25rem;
   }
 
+  .app-select-shell {
+    @apply relative;
+  }
+
+  .app-select-with-chevron {
+    background-image: none;
+  }
+
+  .app-select-compact {
+    @apply py-0 leading-[2.25rem];
+  }
+
+  .app-select-chevron {
+    @apply pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-steel;
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+
+  .app-select-shell:has(select:open) .app-select-chevron {
+    transform: translateY(-50%) rotate(180deg);
+    color: #12345a;
+  }
+
+  .app-select-shell[data-open="true"] .app-select-chevron {
+    transform: translateY(-50%) rotate(180deg);
+    color: #12345a;
+  }
+
   .app-textarea {
     @apply app-input min-h-24 resize-y;
   }
@@ -278,7 +305,7 @@ button, [role="button"], .drag {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0d1b2e 0%, #12345a 40%, #1a4a7a 100%);
+  background: #000000;
 }
 
 /* (rest of the file remains similar but ensures flex compatibility) */
@@ -303,16 +330,16 @@ button, [role="button"], .drag {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: linear-gradient(135deg, #2563eb 0%, #12345a 100%);
+  background: #1a1a1a;
   color: #ffffff;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
 }
 
 .app-loading-spinner {
   width: 28px;
   height: 28px;
   border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: #60a5fa;
+  border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

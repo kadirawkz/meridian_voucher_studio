@@ -9,6 +9,8 @@ export const voucherLineItemSchema = z.object({
   doubleRooms: z.coerce.number().int().min(0).default(0),
   twinRooms: z.coerce.number().int().min(0).default(0),
   tripleRooms: z.coerce.number().int().min(0).default(0),
+  guide: z.coerce.number().int().min(0).default(0),
+  guideBasis: z.string().optional().default(""),
   arrivingFor: z.string().optional().default("")
 });
 

@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Circle,
-  ChevronDown,
   Plus,
   RotateCcw,
   Save,
@@ -15,6 +14,7 @@ import type { HotelRateRecord, HotelRateRecordSummary, SectionStatus } from "../
 import { hotels as referenceHotels, markets, roomCategories, mealBasisOptions } from "../domain/referenceData";
 import { Button } from "./ui-kit/Button";
 import { Field as UiField } from "./ui-kit/Field";
+import { Select } from "./ui-kit/Inputs";
 import { Panel } from "./ui-kit/Panel";
 
 /* ---------- shared design tokens ---------- */
@@ -527,7 +527,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   return (
     <div className="mx-auto max-w-[1400px] p-8">
       {/* Page header */}
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
             Operations / Data Management
@@ -539,24 +539,22 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             Create or update one hotel + one market + one contract record in `hotel_rates`.
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           {onManageRates && (
-            <Button variant="secondary" onClick={onManageRates}>
-              Manage Existing Rates
+            <Button variant="secondary" onClick={onManageRates} className="h-10 shrink-0 whitespace-nowrap px-4">
+              Manage Rates
             </Button>
           )}
-          {saveNotice && (
-            <span className="text-sm font-medium text-steel">{saveNotice}</span>
-          )}
-          <Button type="button" variant="primary" disabled={isSaving || !canSave} onClick={handleSave}>
-            <Save size={17} /> {isSaving ? "Saving..." : "Save Master Data"}
+          <Button type="button" variant="primary" disabled={isSaving || !canSave} onClick={handleSave} className="h-10 shrink-0 whitespace-nowrap px-4">
+            <Save size={17} /> {isSaving ? "Saving..." : "Save Data"}
           </Button>
-          <Button type="button" variant="secondary" disabled={isSaving} onClick={clearAll}>
-            <RotateCcw size={17} /> Clear
+          <Button type="button" variant="secondary" disabled={isSaving} onClick={clearAll} className="h-10 shrink-0 whitespace-nowrap px-4">
+            <RotateCcw size={17} /> Clear Form
           </Button>
           <Button
             type="button"
             variant="secondary"
+            className="h-10 shrink-0 whitespace-nowrap px-4"
             disabled={isSaving}
             onClick={async () => {
               if (!window.meridian?.seedRateMaster) {
@@ -579,8 +577,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               }
             }}
           >
-            Seed All Hotels
+            Seed Hotels
           </Button>
+          {saveNotice && (
+            <span className="w-full text-right text-sm font-medium text-steel">{saveNotice}</span>
+          )}
         </div>
       </div>
 
@@ -630,25 +631,22 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {/* Select mode */}
                 {hotelMode === "select" && (
-                  <div className="relative">
-                    <select
-                      className={selectClass}
-                      aria-label="Select hotel"
-                      value={hotelSelectValue}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setHotelSelectValue(value);
-                        setSelectedHotelName(value);
-                        setContract((cur) => ({ ...cur, hotelName: value }));
-                      }}
-                    >
-                      <option value="">— select a hotel —</option>
-                      {hotels.map((h) => (
-                        <option value={h} key={h}>{h}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-steel" />
-                  </div>
+                  <Select
+                    className="w-full"
+                    aria-label="Select hotel"
+                    value={hotelSelectValue}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setHotelSelectValue(value);
+                      setSelectedHotelName(value);
+                      setContract((cur) => ({ ...cur, hotelName: value }));
+                    }}
+                  >
+                    <option value="">— select a hotel —</option>
+                    {hotels.map((h) => (
+                      <option value={h} key={h}>{h}</option>
+                    ))}
+                  </Select>
                 )}
 
                 {/* Create mode */}
@@ -703,39 +701,36 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             {/* Row 2: Market/Contract Selection */}
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-steel">Market & Contract</p>
-              <div className="relative">
-                <select
-                  className={selectClass}
-                  aria-label="Select market/contract record"
-                  value={selectedHotelRateId}
-                  disabled={!selectedHotelName}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setSelectedHotelRateId(id);
-                    if (id) {
-                      void loadSelectedRateRecord(id);
-                    } else {
-                      setSkippedSections([]);
-                      setRates([]);
-                      setSeasonalSurcharges([]);
-                      setEvents([]);
-                      setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "HB" });
-                      setBillingText("");
-                      setCancellationRules([]);
-                      setVoucherRules([]);
-                      setContract((cur) => ({ ...cur, market: "", currency: "", contractName: "", validFrom: "", validTo: "" }));
-                    }
-                  }}
-                >
-                  <option value="">+ New market / contract</option>
-                  {hotelRateSummaries.map((s) => (
-                    <option value={s.id} key={s.id}>
-                      {s.market} — {s.contract_name} ({s.valid_from} → {s.valid_to})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-steel" />
-              </div>
+              <Select
+                className="w-full"
+                aria-label="Select market/contract record"
+                value={selectedHotelRateId}
+                disabled={!selectedHotelName}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedHotelRateId(id);
+                  if (id) {
+                    void loadSelectedRateRecord(id);
+                  } else {
+                    setSkippedSections([]);
+                    setRates([]);
+                    setSeasonalSurcharges([]);
+                    setEvents([]);
+                    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "HB" });
+                    setBillingText("");
+                    setCancellationRules([]);
+                    setVoucherRules([]);
+                    setContract((cur) => ({ ...cur, market: "", currency: "", contractName: "", validFrom: "", validTo: "" }));
+                  }
+                }}
+              >
+                <option value="">+ New market / contract</option>
+                {hotelRateSummaries.map((s) => (
+                  <option value={s.id} key={s.id}>
+                    {s.market} — {s.contract_name} ({s.valid_from} → {s.valid_to})
+                  </option>
+                ))}
+              </Select>
               <div className="mt-2 flex gap-3 text-xs text-steel">
                 {!selectedHotelName && (
                   <p>Select a hotel first</p>
@@ -801,27 +796,27 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
           )}
           <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
             <Field label="Hotel Name">
-              <select className={selectClass} title="Hotel Name" value={contract.hotelName} onChange={(e) => updateContract("hotelName", e.target.value)}>
+              <Select className="w-full" title="Hotel Name" value={contract.hotelName} onChange={(e) => updateContract("hotelName", e.target.value)}>
                 <option value="">Select Hotel Name</option>
                 {referenceHotels.map((hotel) => (
                   <option value={hotel} key={hotel}>{hotel}</option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field label="Market">
-              <select className={selectClass} title="Market" value={contract.market} onChange={(e) => updateContract("market", e.target.value)}>
+              <Select className="w-full" title="Market" value={contract.market} onChange={(e) => updateContract("market", e.target.value)}>
                 <option value="">Select Market</option>
                 {markets.map((m) => (
                   <option value={m} key={m}>{m}</option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field label="Currency">
-              <select className={selectClass} title="Currency" value={contract.currency} onChange={(e) => updateContract("currency", e.target.value)}>
+              <Select className="w-full" title="Currency" value={contract.currency} onChange={(e) => updateContract("currency", e.target.value)}>
                 <option value="">Select Currency</option>
                 <option value="USD">USD</option>
                 <option value="LKR">LKR</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Contract Name">
               <input className={controlClass} title="Contract Name" value={contract.contractName} onChange={(e) => updateContract("contractName", e.target.value)} placeholder="Winter 25/26" />
@@ -878,8 +873,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 {rates.map((rate, i) => (
                   <tr key={i}>
                     <td className="px-4 py-2">
-                      <select
-                        className={selectClass}
+                      <Select
+                        className="w-full"
                         aria-label="Room category"
                         title="Room category"
                         value={rate.roomCategory}
@@ -891,11 +886,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                             {cat}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </td>
                     <td className="px-2 py-2">
-                      <select
-                        className={selectClass}
+                      <Select
+                        className="w-full"
                         aria-label="Meal basis"
                         title="Meal basis"
                         value={rate.basis}
@@ -907,7 +902,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                             {opt}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="Single rate" title="Single rate" value={rate.sgl} onChange={(e) => updateRate(i, "sgl", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="Double rate" title="Double rate" value={rate.dbl} onChange={(e) => updateRate(i, "dbl", e.target.value)} /></td>
@@ -1004,9 +999,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     <td className="px-2 py-2"><input className={cellControl} aria-label="BB rate" title="BB rate" value={ev.bb} onChange={(e) => updateEvent(i, "bb", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="HB/FB rate" title="HB/FB rate" value={ev.hbfb} onChange={(e) => updateEvent(i, "hbfb", e.target.value)} /></td>
                     <td className="px-2 py-2">
-                      <select className={cellSelect} aria-label="Event per" title="Event per" value={ev.per} onChange={(e) => updateEvent(i, "per", e.target.value)}>
+                      <Select className={cellSelect} aria-label="Event per" title="Event per" value={ev.per} onChange={(e) => updateEvent(i, "per", e.target.value)}>
                         <option>Person</option><option>Room</option>
-                      </select>
+                      </Select>
                     </td>
                     <td className="px-2 py-2 text-center">
                       <input type="checkbox" aria-label="Event mandatory" title="Event mandatory" checked={ev.mandatory} onChange={(e) => updateEvent(i, "mandatory", e.target.checked)} className="h-5 w-5 rounded border-line accent-navy" />

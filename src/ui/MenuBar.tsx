@@ -110,7 +110,9 @@ export function MenuBar({
         { label: "Reload", shortcut: "Ctrl+R", action: () => window.location.reload() },
         { label: "Toggle DevTools", shortcut: "F12" },
         { type: "separator" },
-        { label: "Dashboard", shortcut: "Ctrl+D", action: () => onNavigate("dashboard") }
+        { label: "Dashboard", shortcut: "Ctrl+D", action: () => onNavigate("dashboard") },
+        { label: "Profile", shortcut: "Ctrl+P", action: () => onNavigate("profile") },
+        { label: "Settings", shortcut: "Ctrl+,", action: () => onNavigate("settings") }
       ] 
     },
     { 
@@ -127,56 +129,75 @@ export function MenuBar({
   ];
 
   return (
-    <div className="app-menu-bar drag" ref={menuBarRef}>
+    <div className="app-menu-bar drag relative" ref={menuBarRef}>
       {/* Left: Logo and Menus */}
-      <div className="flex items-center gap-1 no-drag">
+      <div className="flex items-center gap-1 no-drag z-10">
         <div className="flex h-7 w-7 items-center justify-center rounded overflow-hidden ml-2 bg-white">
           <img src={logo} alt="Logo" className="h-full w-full object-contain" />
         </div>
-        
+
         <div className="flex items-center ml-1">
           {menuItems.map((menu) => (
-            <div key={menu.label} className="relative">
-              <button 
-                onClick={() => handleMenuClick(menu.label)}
-                onMouseEnter={() => handleMenuMouseEnter(menu.label)}
-                className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
-                  activeMenu === menu.label ? "bg-cloud text-navy" : "text-steel hover:bg-cloud hover:text-navy"
-                }`}
-              >
-                {menu.label}
-              </button>
-              
-              {isMenuOpen && activeMenu === menu.label && (
-                <div className="absolute left-0 top-full z-[1001] mt-1 min-w-[220px] rounded-lg border border-line bg-white p-1 shadow-xl animate-in fade-in zoom-in-95 duration-75">
-                  {menu.items.map((item, idx) => (
-                    item.type === "separator" ? (
-                      <div key={idx} className="my-1 border-t border-line" />
-                    ) : (
-                      <button
-                        key={item.label}
-                        onClick={() => handleItemClick(item.action)}
-                        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-cloud hover:text-navy transition-colors"
-                      >
-                        <span className="flex items-center gap-2">
-                          {item.label}
-                        </span>
-                        {item.shortcut && (
-                          <span className="ml-4 text-[10px] text-steel/60">{item.shortcut}</span>
-                        )}
-                      </button>
-                    )
-                  ))}
-                </div>
-              )}
-            </div>
+            <React.Fragment key={menu.label}>
+              <div className="relative">
+                <button 
+                  onClick={() => handleMenuClick(menu.label)}
+                  onMouseEnter={() => handleMenuMouseEnter(menu.label)}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
+                    activeMenu === menu.label ? "bg-cloud text-navy" : "text-steel hover:bg-cloud hover:text-navy"
+                  }`}
+                >
+                  {menu.label}
+                </button>
+                
+                {isMenuOpen && activeMenu === menu.label && (
+                  <div className="absolute left-0 top-full z-[1001] mt-1 min-w-[220px] rounded-lg border border-line bg-white p-1 shadow-xl animate-in fade-in zoom-in-95 duration-75">
+                    {menu.items.map((item, idx) => (
+                      item.type === "separator" ? (
+                        <div key={idx} className="my-1 border-t border-line" />
+                      ) : (
+                        <button
+                          key={item.label}
+                          onClick={() => handleItemClick(item.action)}
+                          className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-cloud hover:text-navy transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            {item.label}
+                          </span>
+                          {item.shortcut && (
+                            <span className="ml-4 text-[10px] text-steel/60">{item.shortcut}</span>
+                          )}
+                        </button>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            </React.Fragment>
           ))}
+          
+          <div className="ml-2 flex items-center gap-0.5 border-l border-line pl-2">
+            <button 
+              onClick={() => window.meridian?.navigateBack()}
+              className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
+              title="Back"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button 
+              onClick={() => window.meridian?.navigateForward()}
+              className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
+              title="Forward"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Center: Search */}
-      <div className="flex flex-1 justify-center no-drag px-10">
-        <div className="relative w-full max-w-lg">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 px-4 no-drag">
+        <div className="relative pointer-events-auto mx-auto w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" size={13} />
           <input
             ref={searchInputRef}
@@ -189,25 +210,8 @@ export function MenuBar({
         </div>
       </div>
 
-      {/* Right: Navigation, Feedback & Controls */}
-      <div className="flex items-center gap-2 no-drag pr-2">
-        <div className="flex items-center gap-0.5 border-r border-line pr-2">
-          <button 
-            onClick={() => window.meridian?.navigateBack()}
-            className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
-            title="Back"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button 
-            onClick={() => window.meridian?.navigateForward()}
-            className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
-            title="Forward"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
+      {/* Right: Feedback & Controls */}
+      <div className="ml-auto flex items-center gap-2 no-drag pr-2 z-10">
         <div className="flex items-center gap-2 rounded-full border border-line bg-cloud px-3 py-1 mr-2">
           <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[10px] font-bold text-steel truncate max-w-[120px]" title={notice}>

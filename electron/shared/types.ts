@@ -235,6 +235,7 @@ export interface AppApi {
   resetPassword: (email: string) => Promise<{ message: string }>;
   signOut: () => Promise<AuthState>;
   getAuthState: () => Promise<AuthState>;
+  updateProfile: (updates: { employeeName?: string; employeeEmail?: string }) => Promise<AccountProfile>;
   saveVoucher: (voucher: VoucherPayload) => Promise<{ id: string; status: VoucherStatus }>;
   generateDocuments?: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
   generateDocx: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
@@ -273,4 +274,7 @@ export interface AppApi {
   closeWindow: () => void;
   navigateBack: () => void;
   navigateForward: () => void;
+  getSettings: () => Promise<Record<string, any>>;
+  saveSettings: (settings: Record<string, any>) => Promise<Record<string, any>>;
+  selectFolder: (options: { title?: string; defaultPath?: string }) => Promise<string | null>;
 }

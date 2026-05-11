@@ -9,6 +9,7 @@ const api: AppApi = {
   resetPassword: (email: string) => ipcRenderer.invoke("auth:reset-password", email),
   signOut: () => ipcRenderer.invoke("auth:sign-out"),
   getAuthState: () => ipcRenderer.invoke("auth:state"),
+  updateProfile: (updates: { employeeName?: string; employeeEmail?: string }) => ipcRenderer.invoke("auth:update-profile", updates),
   saveVoucher: (voucher: VoucherPayload) => ipcRenderer.invoke("voucher:save", voucher),
   generateDocuments: (voucher: VoucherPayload) => ipcRenderer.invoke("voucher:generate", { voucher, format: "pdf" }),
   generateDocx: (voucher: VoucherPayload) => ipcRenderer.invoke("voucher:generate", { voucher, format: "docx" }),
@@ -75,6 +76,9 @@ const api: AppApi = {
   closeWindow: () => ipcRenderer.send("window:close"),
   navigateBack: () => ipcRenderer.send("window:back"),
   navigateForward: () => ipcRenderer.send("window:forward"),
+  getSettings: () => ipcRenderer.invoke("settings:get"),
+  saveSettings: (settings: Record<string, any>) => ipcRenderer.invoke("settings:set", settings),
+  selectFolder: (options: { title?: string; defaultPath?: string }) => ipcRenderer.invoke("dialog:select-folder", options),
 };
 
 contextBridge.exposeInMainWorld("meridian", api);

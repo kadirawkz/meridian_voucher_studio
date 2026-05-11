@@ -18,6 +18,7 @@ export function getOutputDirectory(): string {
 
 interface AppSettings {
   toursFolderRoot?: string;
+  exportDirectory?: string;
 }
 
 function getSettingsPath(): string {
@@ -72,4 +73,15 @@ export function resolveVoucherOutputDirectory(tourType: string, hotelName: strin
   }
 
   return getOutputDirectory();
+}
+
+export function getAllSettings(): AppSettings {
+  return readSettings();
+}
+
+export function updateSettings(updates: Partial<AppSettings>): AppSettings {
+  const current = readSettings();
+  const updated = { ...current, ...updates };
+  writeSettings(updated);
+  return updated;
 }

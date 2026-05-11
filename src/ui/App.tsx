@@ -1,5 +1,4 @@
 import {
-  ChevronDown,
   FileDown,
   FileText,
   History,
@@ -15,7 +14,7 @@ import {
   Settings,
   Trash2,
   UserCircle,
-  Bell
+  ChevronLeft
 } from "lucide-react";
 import React, { useDeferredValue, useEffect, useMemo, useState, useRef } from "react";
 import logo from "../assets/logo.png";
@@ -29,10 +28,13 @@ import { DocumentHistoryPanel, GeneratedFilesPanel, LifecyclePanel, RevisionHist
 import { HotelRateMasterScreen } from "./HotelRateMasterScreen";
 import { ManageRatesScreen } from "./ManageRatesScreen";
 import { DashboardScreen } from "./DashboardScreen";
+import { SettingsScreen } from "./SettingsScreen";
+import { ProfileScreen } from "./ProfileScreen";
 import { TourExplorerPanel } from "./TourExplorerPanel";
 import { MenuBar } from "./MenuBar";
 import { Button } from "./ui-kit/Button";
 import { Field } from "./ui-kit/Field";
+import { Select } from "./ui-kit/Inputs";
 import { Panel } from "./ui-kit/Panel";
 import type {
   AccountProfile,
@@ -49,7 +51,7 @@ import type {
 } from "../../electron/shared/types";
 
 type ActionState = "idle" | "saving" | "generating-docx" | "generating-pdf";
-type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings";
+type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings" | "profile";
 
 function friendlyErrorMessage(error: unknown, fallback: string): string {
   if (!(error instanceof Error)) {
@@ -125,14 +127,16 @@ const lineItemColumns = [
   { name: "doubleRooms", type: "number", className: "min-w-[76px]" },
   { name: "twinRooms", type: "number", className: "min-w-[76px]" },
   { name: "tripleRooms", type: "number", className: "min-w-[76px]" },
+  { name: "guide", type: "number", className: "min-w-[76px]" },
+  { name: "guideBasis", type: "select-basis", className: "min-w-[96px]" },
   { name: "arrivingFor", type: "text", className: "min-w-[150px]" }
 ] as const;
 
 const tableControlClass = "app-table-control";
-const roomCountFields = new Set(["singleRooms", "doubleRooms", "twinRooms", "tripleRooms"]);
+const roomCountFields = new Set(["singleRooms", "doubleRooms", "twinRooms", "tripleRooms", "guide"]);
 
 export function App() {
-  const [activeView, setActiveView] = useState<ActiveView>("entry");
+  const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [generated, setGenerated] = useState<GeneratedDocument | null>(null);
   const [documentHistory, setDocumentHistory] = useState<VoucherDocumentRecord[]>([]);
@@ -149,7 +153,6 @@ export function App() {
   const [notice, setNotice] = useState("Draft ready");
   const accountMenuRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [showReportIssue, setShowReportIssue] = useState(false);
-  const [openSelect, setOpenSelect] = useState<"tourType" | "hotelName" | null>(null);
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   const [authState, setAuthState] = useState<AuthState>({ isAuthenticated: false, profile: null });
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -780,11 +783,14 @@ export function App() {
                   <div className="px-3 py-2 border-b border-line mb-1">
                     <p className="text-xs font-bold text-navy">Account Actions</p>
                   </div>
-                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cloud transition-colors">
+                  <button 
+                    onClick={() => {
+                      setActiveView("profile" as ActiveView);
+                      setShowAccountMenu(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cloud transition-colors"
+                  >
                     <UserCircle size={16} /> Profile
-                  </button>
-                  <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cloud transition-colors">
-                    <Bell size={16} /> App Preferences
                   </button>
                   <div className="my-1 border-t border-line" />
                   <button 
@@ -849,83 +855,59 @@ export function App() {
                   <h3 className="mb-5 app-section-title">Primary Configuration</h3>
                   <div className="grid grid-cols-2 gap-5">
                     <Field label="Tour Type">
-                      <div className="relative">
-                        <select
-                          className="app-select"
-                          {...form.register("tourType")}
-                          onFocus={() => setOpenSelect("tourType")}
-                          onBlur={() => setOpenSelect(null)}
-                          onMouseDown={() => setOpenSelect((current) => (current === "tourType" ? null : "tourType"))}
-                          onChange={(event) => {
-                            form.setValue("tourType", event.target.value as VoucherFormValues["tourType"], {
-                              shouldValidate: true
-                            });
-                            setOpenSelect(null);
-                          }}
-                        >
-                          <option value="">Select Tour Type</option>
-                          {tourTypes.map((type) => (
-                            <option value={type} key={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown
-                          size={18}
-                          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-steel transition-transform ${
-                            openSelect === "tourType" ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
+                      <Select
+                        className="w-full"
+                        {...form.register("tourType")}
+                        onChange={(event) => {
+                          form.setValue("tourType", event.target.value as VoucherFormValues["tourType"], {
+                            shouldValidate: true
+                          });
+                        }}
+                      >
+                        <option value="">Select Tour Type</option>
+                        {tourTypes.map((type) => (
+                          <option value={type} key={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </Select>
                     </Field>
                     <Field label="Hotel Name">
-                      <div className="relative">
-                        <select
-                          className="app-select"
-                          {...form.register("hotelName")}
-                          onFocus={() => setOpenSelect("hotelName")}
-                          onBlur={() => setOpenSelect(null)}
-                          onMouseDown={() => setOpenSelect((current) => (current === "hotelName" ? null : "hotelName"))}
-                          onChange={(event) => {
-                            form.setValue("hotelName", event.target.value, { shouldValidate: true });
-                            setOpenSelect(null);
-                          }}
-                        >
-                          <option value="">Select Hotel Name</option>
-                          {hotelOptions.map((hotel) => (
-                            <option value={hotel} key={hotel}>
-                              {hotel}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown
-                          size={18}
-                          className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-steel transition-transform ${
-                            openSelect === "hotelName" ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
+                      <Select
+                        className="w-full"
+                        {...form.register("hotelName")}
+                        onChange={(event) => {
+                          form.setValue("hotelName", event.target.value, { shouldValidate: true });
+                        }}
+                      >
+                        <option value="">Select Hotel Name</option>
+                        {hotelOptions.map((hotel) => (
+                          <option value={hotel} key={hotel}>
+                            {hotel}
+                          </option>
+                        ))}
+                      </Select>
                       <FieldError message={form.formState.errors.hotelName?.message} />
                     </Field>
                     <Field label="Market">
-                      <select className="app-select" {...form.register("market")}>
+                      <Select className="w-full" {...form.register("market")}>
                         <option value="">Select Market</option>
                         {markets.map((m) => (
                           <option value={m} key={m}>
                             {m}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </Field>
                     <Field label="Rate Period">
-                      <select className={`app-select ${form.formState.errors.ratePeriod ? "border-red-500" : ""}`} {...form.register("ratePeriod")}>
+                      <Select className={`w-full ${form.formState.errors.ratePeriod ? "border-red-500" : ""}`} {...form.register("ratePeriod")}>
                         <option value="">Select Rate Period</option>
                         {uniqueContractNames.map((name) => (
                           <option value={name} key={name}>
                             {name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <FieldError message={form.formState.errors.ratePeriod?.message} />
                     </Field>
                   </div>
@@ -1011,6 +993,8 @@ export function App() {
                           doubleRooms: 0,
                           twinRooms: 0,
                           tripleRooms: 0,
+                          guide: 0,
+                          guideBasis: "",
                           arrivingFor: ""
                         })
                       }
@@ -1030,6 +1014,8 @@ export function App() {
                             ["DBL", "w-[76px]"],
                             ["TWN", "w-[76px]"],
                             ["TPL", "w-[76px]"],
+                            ["Guide", "w-[76px]"],
+                            ["Basis (Guide)", "w-[96px]"],
                             ["Arriving For", "w-[150px]"],
                             ["", "w-[56px]"]
                           ].map(([header, width]) => (
@@ -1043,7 +1029,7 @@ export function App() {
                             {lineItemColumns.map((column) => (
                               <td className={`px-2 py-2 ${column.className}`} key={column.name}>
                                 {column.type === "select-room-category" && (
-                                  <select
+                                  <Select
                                     className={tableControlClass}
                                     {...form.register(`lineItems.${index}.${column.name}`)}
                                   >
@@ -1053,10 +1039,10 @@ export function App() {
                                         {category}
                                       </option>
                                     ))}
-                                  </select>
+                                  </Select>
                                 )}
                                 {column.type === "select-basis" && (
-                                  <select
+                                  <Select
                                     className={tableControlClass}
                                     {...form.register(`lineItems.${index}.${column.name}`)}
                                   >
@@ -1066,7 +1052,7 @@ export function App() {
                                         {basis}
                                       </option>
                                     ))}
-                                  </select>
+                                  </Select>
                                 )}
                                 {column.type !== "select-room-category" && column.type !== "select-basis" && (
                                   <input
@@ -1247,20 +1233,37 @@ export function App() {
               setActiveView("rate-master");
             }}
           />
+        ) : activeView === "settings" ? (
+          <SettingsScreen
+          />
+        ) : activeView === "profile" ? (
+          <ProfileScreen
+            accountProfile={accountProfile}
+            onProfileUpdated={(profile) => setAccountProfile(profile)}
+          />
         ) : (
           <div className="mx-auto max-w-[1400px] p-8">
-            <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">Operations / Finance</p>
-              <h2 className="mt-1 font-display text-3xl font-bold text-navy">Saved Vouchers</h2>
-              <p className="mt-2 text-sm text-steel">Browse and manage all saved vouchers and their revisions.</p>
+            <div className="mb-8 flex items-start gap-4">
+              <button 
+                onClick={() => setActiveView("dashboard")}
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm"
+                title="Go to Dashboard"
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">Operations / Data Management</p>
+                <h2 className="mt-1 font-display text-3xl font-bold text-navy">Saved Vouchers</h2>
+                <p className="mt-2 text-sm text-steel">Browse and manage all saved vouchers and their revisions.</p>
+              </div>
             </div>
 
             <div className="app-panel app-panel-body-lg">
               <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
                 <label className="space-y-2">
                   <span className="app-label">Status</span>
-                  <select
-                    className="app-select"
+                  <Select
+                    className="w-full"
                     value={voucherFilters.status || "all"}
                     onChange={(event) => {
                       const nextFilters = { ...voucherFilters, status: event.target.value as VoucherStatus | "all" };
@@ -1273,7 +1276,7 @@ export function App() {
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <label className="space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wide text-steel">From</span>
@@ -1333,7 +1336,7 @@ export function App() {
                         <th className="px-4 py-3">Hotel</th>
                         <th className="px-4 py-3">Customer</th>
                         <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 w-[160px]">Status</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
                     </thead>
@@ -1348,7 +1351,7 @@ export function App() {
                             <label className="sr-only" htmlFor={`voucher-status-${voucher.id}`}>
                               Update voucher status for {voucher.requisitionNo || voucher.tourNo || voucher.id}
                             </label>
-                            <select
+                            <Select
                               id={`voucher-status-${voucher.id}`}
                               disabled={statusUpdatingId === voucher.id}
                               value={voucher.status}
@@ -1364,7 +1367,7 @@ export function App() {
                                     {option.label}
                                   </option>
                                 ))}
-                            </select>
+                              </Select>
                           </td>
                           <td className="px-4 py-3">
                             <button

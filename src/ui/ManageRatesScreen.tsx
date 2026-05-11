@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Edit2, Trash2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Edit2, Trash2, ChevronLeft, AlertTriangle } from "lucide-react";
 import type { HotelRateRecord } from "../../electron/shared/types";
 
 type Props = {
@@ -51,8 +51,13 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
   return (
     <div className="flex h-screen flex-col bg-sand text-ink">
       <header className="flex shrink-0 items-center gap-4 border-b border-line bg-white px-6 py-4">
-        <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded hover:bg-cloud text-steel transition-colors" aria-label="Go back" title="Go back">
-          <ArrowLeft size={18} />
+        <button 
+          onClick={onBack} 
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm" 
+          aria-label="Go back" 
+          title="Go back"
+        >
+          <ChevronLeft size={22} />
         </button>
         <div>
           <h1 className="text-lg font-black tracking-tight text-navy">Manage Existing Rates</h1>
