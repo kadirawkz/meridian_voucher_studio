@@ -44,6 +44,17 @@ interface RateRow {
   tpl: string;
 }
 
+interface ChildRateRow {
+  from: string;
+  to: string;
+  roomCategory: string;
+  basis: string;
+  age2_6: string;
+  age6_12: string;
+  extraBed: string;
+  ownRoom: string;
+}
+
 
 
 interface EventRow {
@@ -157,6 +168,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   });
 
   const [rates, setRates] = useState<RateRow[]>([]);
+  const [childRates, setChildRates] = useState<ChildRateRow[]>([]);
   const [guideRates, setGuideRates] = useState<GuideRateRow[]>([]);
 
   const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string }>>([]);
@@ -248,6 +260,19 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       }))
     );
 
+    setChildRates(
+      (record.child_rates ?? []).map((r) => ({
+        from: r.from || "",
+        to: r.to || "",
+        roomCategory: r.room_category || "",
+        basis: r.basis || "",
+        age2_6: r.age2_6 == null ? "" : String(r.age2_6),
+        age6_12: r.age6_12 == null ? "" : String(r.age6_12),
+        extraBed: r.extra_bed == null ? "" : String(r.extra_bed),
+        ownRoom: r.own_room == null ? "" : String(r.own_room),
+      }))
+    );
+
     setGuideRates(
       Object.entries(record.guide_rates ?? {}).map(([basis, amount]) => ({
         basis,
@@ -306,6 +331,17 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
   const removeRate = (i: number) => setRates(rates.filter((_, idx) => idx !== i));
 
+  const addChildRate = () =>
+    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age2_6: "", age6_12: "", extraBed: "", ownRoom: "" }]);
+
+  const updateChildRate = (i: number, field: keyof ChildRateRow, value: string) => {
+    const copy = [...childRates];
+    copy[i] = { ...copy[i], [field]: value };
+    setChildRates(copy);
+  };
+
+  const removeChildRate = (i: number) => setChildRates(childRates.filter((_, idx) => idx !== i));
+
   const addGuideRate = () =>
     setGuideRates([...guideRates, { basis: "", amount: "" }]);
 
@@ -357,6 +393,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     setSelectedHotelRateId("");
     setContract({ hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" });
     setRates([]);
+    setChildRates([]);
     setGuideRates([]);
     setSeasonalSurcharges([]);
     setEvents([]);
@@ -381,6 +418,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       !contract.validTo;
 
     const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis || !r.sgl || !r.dbl || !r.twn || !r.tpl);
+    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age2_6 || !r.age6_12 || !r.extraBed || !r.ownRoom);
     const guideRatesEmpty = guideRates.length === 0 || guideRates.some((r) => !r.basis.trim() || !r.amount.trim());
     const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.some((s) => !s.name || !s.amount || !s.from || !s.to || !s.appliesTo);
     const eventsEmpty = events.length === 0 || events.some((e) => !e.date || !e.event || !e.bb || !e.hb || !e.fb);
@@ -390,6 +428,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     return [
       { name: "Basic Information", status: sectionStatus("Basic Information", basicEmpty), empty: basicEmpty },
       { name: "Room Rates", status: sectionStatus("Room Rates", roomRatesEmpty), empty: roomRatesEmpty },
+      { name: "Child Rates", status: sectionStatus("Child Rates", childRatesEmpty), empty: childRatesEmpty },
       { name: "Guide Rates", status: sectionStatus("Guide Rates", guideRatesEmpty), empty: guideRatesEmpty },
       { name: "Seasonal Surcharges", status: sectionStatus("Seasonal Surcharges", seasonalEmpty), empty: seasonalEmpty },
       { name: "Compulsory Events", status: sectionStatus("Compulsory Events", eventsEmpty), empty: eventsEmpty },
@@ -434,6 +473,16 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               dbl: r.dbl ? Number(r.dbl) : null,
               twn: r.twn ? Number(r.twn) : null,
               tpl: r.tpl ? Number(r.tpl) : null,
+            })),
+        child_rates: childRates.map((r) => ({
+              from: r.from,
+              to: r.to,
+              room_category: r.roomCategory,
+              basis: r.basis,
+              age2_6: r.age2_6 ? Number(r.age2_6) : null,
+              age6_12: r.age6_12 ? Number(r.age6_12) : null,
+              extra_bed: r.extraBed ? Number(r.extraBed) : null,
+              own_room: r.ownRoom ? Number(r.ownRoom) : null,
             })),
         guide_rates: Object.fromEntries(
               guideRates
@@ -873,7 +922,80 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             <Plus size={16} /> Add Rate Row
           </button>
         </Section>
-        <Section title="3. Guide Rates">
+        {/* 3. Child Rates */}
+        <Section title="3. Child Rates">
+          <div className="mb-5 flex items-center justify-between">
+            <StatusPill status={sectionStates[2].status} />
+          </div>
+          {sectionStates[2].status === "Empty" && (
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <AlertTriangle size={16} /> This section is empty
+            </p>
+          )}
+          <div className="thin-scrollbar overflow-x-auto">
+            <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
+              <thead>
+                <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
+                  <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px]">Room Category</th>
+                  {["Basis", "Age 2-6", "Age 6-12", "Extra Bed", "Own Room", ""].map((h) => (
+                    <th className="px-2 py-3" key={h || "action"}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {childRates.map((rate, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2">
+                      <Select
+                        className="w-full"
+                        aria-label="Room category"
+                        title="Room category"
+                        value={rate.roomCategory}
+                        onChange={(e) => updateChildRate(i, "roomCategory", e.target.value)}
+                      >
+                        <option value="">Select</option>
+                        {roomCategories.map((cat) => (
+                          <option value={cat} key={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                    <td className="px-2 py-2">
+                      <Select
+                        className="w-full"
+                        aria-label="Meal basis"
+                        title="Meal basis"
+                        value={rate.basis}
+                        onChange={(e) => updateChildRate(i, "basis", e.target.value)}
+                      >
+                        <option value="">Select Basis</option>
+                        {mealBasisOptions.map((opt) => (
+                          <option value={opt} key={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 2-6 rate" title="Age 2-6 rate" value={rate.age2_6} onChange={(e) => updateChildRate(i, "age2_6", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 6-12 rate" title="Age 6-12 rate" value={rate.age6_12} onChange={(e) => updateChildRate(i, "age6_12", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Extra bed rate" title="Extra bed rate" value={rate.extraBed} onChange={(e) => updateChildRate(i, "extraBed", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Own room rate" title="Own room rate" value={rate.ownRoom} onChange={(e) => updateChildRate(i, "ownRoom", e.target.value)} /></td>
+                    <td className="px-2 py-2">
+                      <button type="button" onClick={() => removeChildRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove row">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" onClick={addChildRate} className="mt-4 flex items-center gap-2 rounded-app border border-line px-3 py-2 text-sm font-bold text-navy">
+            <Plus size={16} /> Add Child Rate Row
+          </button>
+        </Section>
+        <Section title="4. Guide Rates">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[2].status} />
           </div>
@@ -922,7 +1044,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
           </button>
         </Section>
 
-        <Section title="4. Seasonal Surcharges">
+        <Section title="5. Seasonal Surcharges">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[3].status} />
           </div>
@@ -968,7 +1090,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
 
         {/* 4. Compulsory Events */}
-        <Section title="5. Compulsory Events / Gala Dinner">
+        <Section title="6. Compulsory Events / Gala Dinner">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[4].status} />
           </div>
@@ -1018,7 +1140,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </Section>
 
         {/* 5. FOC Rules */}
-        <Section title="6. FOC Rules">
+        <Section title="7. FOC Rules">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[5].status} />
           </div>
@@ -1063,7 +1185,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </Section>
 
         {/* 6. Billing Instructions */}
-        <Section title="7. Billing Instructions">
+        <Section title="8. Billing Instructions">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[6].status} />
           </div>

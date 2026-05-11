@@ -143,6 +143,17 @@ export type HotelRateRoomRate = {
   tpl?: number | null;
 };
 
+export type HotelRateChildRate = {
+  from: string;
+  to: string;
+  room_category: string;
+  basis: string;
+  age2_6?: number | null;
+  age6_12?: number | null;
+  extra_bed?: number | null;
+  own_room?: number | null;
+};
+
 
 
 export type HotelRateSeasonalSurcharge = {
@@ -185,6 +196,7 @@ export interface HotelRateRecord {
   valid_from: string;
   valid_to: string;
   room_rates: HotelRateRoomRate[];
+  child_rates?: HotelRateChildRate[];
   seasonal_surcharges: HotelRateSeasonalSurcharge[];
   compulsory_events: HotelRateCompulsoryEvent[];
   foc_rules: HotelRateFocRules;

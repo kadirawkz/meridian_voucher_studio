@@ -1250,7 +1250,7 @@ export function App() {
                 accountProfile={accountProfile}
                 onProfileUpdated={(profile) => setAccountProfile(profile)}
               />
-            ) : (
+            ) : activeView === "register" ? (
           <div className="mx-auto max-w-[1400px] p-8">
             <div className="mb-8 flex items-start gap-4">
               <button 
@@ -1396,7 +1396,7 @@ export function App() {
               )}
             </div>
           </div>
-        )}
+        ) : null}
       </>
     )}
 
