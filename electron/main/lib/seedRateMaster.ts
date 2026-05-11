@@ -104,8 +104,8 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
       },
     ],
     compulsory_events: [
-      { event_date: "2026-12-24", event_name: "Christmas Eve Gala Dinner", bb_rate: Math.round(base * 0.55), hbfb_rate: Math.round(base * 0.45), per: "Person", mandatory: true },
-      { event_date: "2026-12-31", event_name: "New Year's Eve Gala Dinner", bb_rate: Math.round(base * 0.55), hbfb_rate: Math.round(base * 0.45), per: "Person", mandatory: true },
+      { event_date: "2026-12-24", event_name: "Christmas Eve Gala Dinner", bb_rate: Math.round(base * 0.55), hb_rate: Math.round(base * 0.45), fb_rate: Math.round(base * 0.50), per: "Person", mandatory: true },
+      { event_date: "2026-12-31", event_name: "New Year's Eve Gala Dinner", bb_rate: Math.round(base * 0.55), hb_rate: Math.round(base * 0.45), fb_rate: Math.round(base * 0.50), per: "Person", mandatory: true },
     ],
     foc_rules: {
       enabled: true,

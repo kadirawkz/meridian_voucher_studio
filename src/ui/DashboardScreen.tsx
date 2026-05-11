@@ -10,7 +10,6 @@ import {
   RefreshCw,
   TrendingUp,
 } from "lucide-react";
-import logo from "../assets/logo.png";
 import { useEffect, useState, type ElementType } from "react";
 import { hotels as referenceHotels } from "../domain/referenceData";
 import type { HotelRateRecordSummary, VoucherRecord, VoucherStatus } from "../../electron/shared/types";
@@ -266,9 +265,6 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
             </div>
           ) : recentVouchers.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <div className="size-16 overflow-hidden rounded-2xl bg-white p-2">
-                <img src={logo} alt="Logo" className="h-full w-full object-contain" />
-              </div>
               <p className="text-sm font-semibold text-steel">No vouchers yet</p>
               <button
                 type="button"

@@ -814,37 +814,41 @@ export function App() {
                 <h2 className="mt-1 font-display text-3xl font-bold text-navy">Voucher Entry</h2>
                 <p className="mt-2 text-sm text-steel">Create reservation, amendment, and PPTP documents from one controlled template.</p>
               </div>
-              <div className="flex gap-3">
-                <button
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+                <Button
                   type="button"
                   disabled={actionState !== "idle"}
                   onClick={handleClearForm}
-                  className="app-button-secondary"
+                  variant="secondary"
+                  className="h-10 shrink-0 whitespace-nowrap px-4"
                 >
-                  <RotateCcw size={17} /> Clear
-                </button>
+                  <RotateCcw size={17} /> Clear Form
+                </Button>
                 <Button
                   type="submit"
                   disabled={actionState !== "idle"}
-                  variant="secondary"
+                  variant="primary"
+                  className="h-10 shrink-0 whitespace-nowrap px-4"
                 >
-                  <Save size={17} /> {actionState === "saving" ? "Saving" : "Save"}
+                  <Save size={17} /> {actionState === "saving" ? "Saving..." : "Save Voucher"}
                 </Button>
                 <Button
                   type="button"
                   disabled={actionState !== "idle"}
                   onClick={form.handleSubmit(handleGenerateDocx)}
-                  variant="primary"
+                  variant="secondary"
+                  className="h-10 shrink-0 whitespace-nowrap px-4"
                 >
-                  <FileText size={17} /> {actionState === "generating-docx" ? "Generating" : "Generate DOCX"}
+                  <FileText size={17} /> {actionState === "generating-docx" ? "Generating..." : "Generate DOCX"}
                 </Button>
                 <Button
                   type="button"
                   disabled={actionState !== "idle"}
                   onClick={form.handleSubmit(handleGeneratePdf)}
-                  variant="primary"
+                  variant="secondary"
+                  className="h-10 shrink-0 whitespace-nowrap px-4"
                 >
-                  <FileDown size={17} /> {actionState === "generating-pdf" ? "Generating" : "Generate PDF"}
+                  <FileDown size={17} /> {actionState === "generating-pdf" ? "Generating..." : "Generate PDF"}
                 </Button>
               </div>
             </div>

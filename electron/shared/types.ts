@@ -158,7 +158,8 @@ export type HotelRateCompulsoryEvent = {
   event_date: string;
   event_name: string;
   bb_rate?: number | null;
-  hbfb_rate?: number | null;
+  hb_rate?: number | null;
+  fb_rate?: number | null;
   per?: string | null;
   mandatory?: boolean | null;
 };

@@ -3,9 +3,7 @@ import {
   Search, 
   Minus, 
   Square, 
-  X, 
-  ChevronLeft,
-  ChevronRight
+  X
 } from "lucide-react";
 import logo from "../assets/logo.png";
 
@@ -176,22 +174,6 @@ export function MenuBar({
             </React.Fragment>
           ))}
           
-          <div className="ml-2 flex items-center gap-0.5 border-l border-line pl-2">
-            <button 
-              onClick={() => window.meridian?.navigateBack()}
-              className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
-              title="Back"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button 
-              onClick={() => window.meridian?.navigateForward()}
-              className="p-1.5 text-steel hover:bg-cloud rounded transition-colors" 
-              title="Forward"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
         </div>
       </div>
 

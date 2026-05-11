@@ -50,7 +50,8 @@ interface EventRow {
   date: string;
   event: string;
   bb: string;
-  hbfb: string;
+  hb: string;
+  fb: string;
   per: string;
   mandatory: boolean;
 }
@@ -262,7 +263,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         date: e.event_date ?? "",
         event: e.event_name ?? "",
         bb: e.bb_rate == null ? "" : String(e.bb_rate),
-        hbfb: e.hbfb_rate == null ? "" : String(e.hbfb_rate),
+        hb: e.hb_rate == null ? ((e as any).hbfb_rate == null ? "" : String((e as any).hbfb_rate)) : String(e.hb_rate),
+        fb: e.fb_rate == null ? ((e as any).hbfb_rate == null ? "" : String((e as any).hbfb_rate)) : String(e.fb_rate),
         per: String(e.per ?? "Person"),
         mandatory: Boolean(e.mandatory ?? true),
       }))
@@ -329,7 +331,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
 
   const addEvent = () =>
-    setEvents([...events, { date: "", event: "", bb: "", hbfb: "", per: "Person", mandatory: true }]);
+    setEvents([...events, { date: "", event: "", bb: "", hb: "", fb: "", per: "Person", mandatory: true }]);
 
   const updateEvent = (i: number, field: keyof EventRow, value: string | boolean) => {
     const copy = [...events];
@@ -404,7 +406,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
     const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis);
     const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.every((s) => !s.name && !s.amount && !s.from && !s.to);
-    const eventsEmpty = events.length === 0 || events.every((e) => !e.date && !e.event && !e.bb && !e.hbfb);
+    const eventsEmpty = events.length === 0 || events.every((e) => !e.date && !e.event && !e.bb && !e.hb && !e.fb);
     const focEmpty = !focRules.enabled;
     const billingEmpty = !billingText.trim();
     const cancellationEmpty = cancellationRules.length === 0 || cancellationRules.some(r => !r.title.trim() || !r.content.trim());
@@ -478,7 +480,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               event_date: e.date,
               event_name: e.event,
               bb_rate: e.bb ? Number(e.bb) : null,
-              hbfb_rate: e.hbfb ? Number(e.hbfb) : null,
+              hb_rate: e.hb ? Number(e.hb) : null,
+              fb_rate: e.fb ? Number(e.fb) : null,
               per: e.per,
               mandatory: e.mandatory,
             })),
@@ -527,7 +530,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   return (
     <div className="mx-auto max-w-[1400px] p-8">
       {/* Page header */}
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
             Operations / Data Management
@@ -983,10 +986,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             </p>
           )}
           <div className="thin-scrollbar overflow-x-auto">
-            <table className="w-full min-w-[850px] table-fixed border-collapse text-sm">
+            <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
-                  {["Date", "Event", "BB Rate", "HB/FB Rate", "Per", "Mandatory", ""].map((h) => (
+                  {["Date", "Event", "BB Rate", "HB Rate", "FB Rate", "Per", "Mandatory", ""].map((h) => (
                     <th className="px-2 py-3" key={h || "action"}>{h}</th>
                   ))}
                 </tr>
@@ -997,7 +1000,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     <td className="px-2 py-2"><input type="date" className={cellControl} aria-label="Event date" title="Event date" value={ev.date} onChange={(e) => updateEvent(i, "date", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="Event name" title="Event name" value={ev.event} onChange={(e) => updateEvent(i, "event", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="BB rate" title="BB rate" value={ev.bb} onChange={(e) => updateEvent(i, "bb", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="HB/FB rate" title="HB/FB rate" value={ev.hbfb} onChange={(e) => updateEvent(i, "hbfb", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="HB rate" title="HB rate" value={ev.hb} onChange={(e) => updateEvent(i, "hb", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="FB rate" title="FB rate" value={ev.fb} onChange={(e) => updateEvent(i, "fb", e.target.value)} /></td>
                     <td className="px-2 py-2">
                       <Select className={cellSelect} aria-label="Event per" title="Event per" value={ev.per} onChange={(e) => updateEvent(i, "per", e.target.value)}>
                         <option>Person</option><option>Room</option>
