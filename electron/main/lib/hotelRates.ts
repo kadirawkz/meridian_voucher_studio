@@ -92,8 +92,6 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
     guide_rates: record.guide_rates ?? {},
     foc_rules: record.foc_rules ?? { enabled: false },
     billing_instruction: record.billing_instruction ?? "",
-    cancellation_policy: record.cancellation_policy ?? {},
-    voucher_text_rules: record.voucher_text_rules ?? {},
     skipped_sections: record.skipped_sections ?? [],
     created_by: userId,
   };
@@ -299,8 +297,6 @@ export async function autoFillVoucherFromHotelRates(voucher: VoucherPayload, hot
     rateApplicableText: summaryParts.join(" / ") || "No matching rates found.",
     guideText: buildGuideText(voucher, currency, record.guide_rates),
     billingInstructions: record.billing_instruction || undefined,
-    cancellationText: record.cancellation_policy ? JSON.stringify(record.cancellation_policy, null, 2) : undefined,
-    autoTextNotes: record.voucher_text_rules ? JSON.stringify(record.voucher_text_rules, null, 2) : undefined,
   };
 }
 

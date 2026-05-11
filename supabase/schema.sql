@@ -385,8 +385,6 @@ create table if not exists public.hotel_rates (
   guide_rates jsonb not null default '{}'::jsonb,
   foc_rules jsonb not null default '{}'::jsonb,
   billing_instruction text not null default '',
-  cancellation_policy jsonb not null default '{}'::jsonb,
-  voucher_text_rules jsonb not null default '{}'::jsonb,
   skipped_sections text[] not null default '{}'::text[],
   created_by uuid references auth.users(id),
   created_at timestamptz not null default now(),

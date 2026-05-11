@@ -623,8 +623,6 @@ export function App() {
           form.setValue("guideText", result.guideText || "");
           form.setValue("matchedHotelRateId", result.matchedHotelRateId ?? "");
           if (result.billingInstructions) form.setValue("billingInstructions", result.billingInstructions);
-          if (result.cancellationText) form.setValue("cancellationText", result.cancellationText);
-          if (result.autoTextNotes) form.setValue("autoTextNotes", result.autoTextNotes);
         } else if (result.status === "multiple" && result.candidateHotelRates?.length) {
           form.setValue("rateApplicableText", "");
           form.setValue("guideText", "");

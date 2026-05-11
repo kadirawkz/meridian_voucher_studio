@@ -43,8 +43,6 @@ export const voucherSchema = z.object({
   guideText: z.string().optional(),
   surchargeText: z.string().optional(),
   eventSupplementText: z.string().optional(),
-  cancellationText: z.string().optional(),
-  autoTextNotes: z.string().optional(),
   manuallyEdited: z.boolean().optional().default(false)
 });
 

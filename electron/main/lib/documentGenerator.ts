@@ -279,8 +279,6 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     guideText: voucher.guideText ?? "",
     surchargeText: voucher.surchargeText ?? "",
     eventSupplementText: voucher.eventSupplementText ?? "",
-    cancellationText: voucher.cancellationText ?? "",
-    autoTextNotes: voucher.autoTextNotes ?? "",
     manuallyEdited: voucher.manuallyEdited ?? false,
     lineItems
   };

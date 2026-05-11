@@ -25,8 +25,6 @@ export const defaultVoucher: VoucherFormValues = {
   guideText: "",
   surchargeText: "",
   eventSupplementText: "",
-  cancellationText: "",
-  autoTextNotes: "",
   manuallyEdited: false,
   lineItems: [
     {

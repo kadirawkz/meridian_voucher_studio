@@ -132,14 +132,6 @@ function buildGuideText(): string {
   return "";
 }
 
-function buildCancellationText(): string {
-  return "";
-}
-
-function buildAutoTextNotes(): string {
-  return "";
-}
-
 /* ------------------------------------------------------------------ */
 /*  Orchestrator                                                       */
 /* ------------------------------------------------------------------ */
@@ -195,7 +187,5 @@ export function autoFillFromContract(
     surchargeText: surchargeTexts.join("\n"),
     eventSupplementText: eventTexts.join("\n"),
     billingInstructions: record.billing_instruction || undefined,
-    cancellationText: buildCancellationText(),
-    autoTextNotes: buildAutoTextNotes(),
   };
 }

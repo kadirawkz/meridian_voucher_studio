@@ -106,35 +106,6 @@ function buildEventText(lineItem, events, currency) {
     const label = isBB ? "BB" : "HB/FB";
     return `${match.eventName} (${label}): ${currency} ${rate} per ${(match.per ?? "person").toLowerCase()}`;
 }
-function buildCancellationText(contract) {
-    const lines = [];
-    if (contract.cancellationReleaseDays) {
-        lines.push(`Release: ${contract.cancellationReleaseDays} days prior to arrival`);
-    }
-    if (contract.cancellationWithin20) {
-        lines.push(`Within 20 days: ${contract.cancellationWithin20} cancellation charge`);
-    }
-    if (contract.cancellationWithin14) {
-        lines.push(`Within 14 days: ${contract.cancellationWithin14} cancellation charge`);
-    }
-    if (contract.cancellationNoShow) {
-        lines.push(`No Show / Short Stay: ${contract.cancellationNoShow} charge`);
-    }
-    return lines.join("\n");
-}
-function buildAutoTextNotes(contract) {
-    const rules = contract.autoTextRules;
-    if (!rules)
-        return "";
-    const notes = [];
-    if (rules.includeVat)
-        notes.push("Rates are inclusive of applicable VAT and service charge.");
-    if (rules.showMarket)
-        notes.push(`Market: ${contract.market}`);
-    if (rules.requirePrepayment)
-        notes.push("Full payment is required before arrival.");
-    return notes.join("\n");
-}
 /* ------------------------------------------------------------------ */
 /*  Orchestrator                                                       */
 /* ------------------------------------------------------------------ */
@@ -188,7 +159,5 @@ export function autoFillFromContract(voucher, contracts, forcedContractId) {
         surchargeText: surchargeTexts.join("\n"),
         eventSupplementText: eventTexts.join("\n"),
         billingInstructions: contract.billingTemplate || undefined,
-        cancellationText: buildCancellationText(contract),
-        autoTextNotes: buildAutoTextNotes(contract),
     };
 }

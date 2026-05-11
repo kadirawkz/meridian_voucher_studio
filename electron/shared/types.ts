@@ -43,8 +43,6 @@ export interface VoucherPayload {
   guideText?: string;
   surchargeText?: string;
   eventSupplementText?: string;
-  cancellationText?: string;
-  autoTextNotes?: string;
   manuallyEdited?: boolean;
 }
 
@@ -184,9 +182,6 @@ export type HotelRateFocRules = {
 
 export type HotelRateGuideRates = Record<string, number | null>;
 
-export type HotelRateCancellationPolicy = Record<string, unknown>;
-export type HotelRateVoucherTextRules = Record<string, unknown>;
-
 export interface HotelRateRecord {
   id?: string;
   hotel_name: string;
@@ -201,8 +196,6 @@ export interface HotelRateRecord {
   compulsory_events: HotelRateCompulsoryEvent[];
   foc_rules: HotelRateFocRules;
   billing_instruction: string;
-  cancellation_policy?: HotelRateCancellationPolicy;
-  voucher_text_rules?: HotelRateVoucherTextRules;
   skipped_sections?: string[];
   guide_rates?: HotelRateGuideRates | null;
   created_at?: string;
@@ -225,8 +218,6 @@ export interface AutoFillResult {
   surchargeText?: string;
   eventSupplementText?: string;
   billingInstructions?: string;
-  cancellationText?: string;
-  autoTextNotes?: string;
   candidateHotelRates?: HotelRateRecordSummary[];
 }
 

@@ -96,16 +96,6 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
       basis: "BB",
     },
     billing_instruction: "Please bill to Meridian Travels and Tours.",
-    cancellation_policy: {
-      "Release Days": "21 Days Prior",
-      "Within 20 Days": "50% Charge",
-      "Within 14 Days": "100% Charge",
-      "No Show": "100% Charge",
-    },
-    voucher_text_rules: {
-      "VAT Details": "All rates include VAT and local taxes.",
-      "Market Notes": "Valid only for the specified market.",
-    },
     skipped_sections: [],
   };
 }
