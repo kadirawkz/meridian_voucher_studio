@@ -10,24 +10,6 @@ import { listHotelRates, saveHotelRates } from "./hotelRates.js";
 const hotels = [
   "Heritance Kandalama - Dambulla",
   "Galle Face Hotel - Colombo",
-  "Shangri-La Colombo - Colombo",
-  "Marino Beach Colombo - Colombo",
-  "Cinnamon Grand Colombo - Colombo",
-  "Taj Samudra - Colombo",
-  "Hilton Colombo - Colombo",
-  "Weligama Bay Marriott Resort & Spa - Weligama",
-  "Jetwing Lagoon - Negombo",
-  "Jetwing Lighthouse - Galle",
-  "Hotel Sigiriya - Sigiriya",
-  "EKHO Ella - Ella",
-  "Cinnamon Citadel - Kandy",
-  "Fox Kandy - Kandy",
-  "Camelot Beach Hotel - Negombo",
-  "Grand Serendib Hotel - Kandy",
-  "Riu Sri Lanka - Ahungalla",
-  "Paradise Road Tintagel - Colombo",
-  "The Villa Bentota - Bentota",
-  "Kahanda Kanda - Galle",
 ];
 
 /* Deterministic rate ranges per hotel "tier" */
