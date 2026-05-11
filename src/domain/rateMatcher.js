@@ -76,7 +76,7 @@ function buildRateApplicableText(lineItem, contract) {
         parts.push(`Triple-${mp} ${cur} ${rate.tpl}`);
     return parts.join(" / ");
 }
-function buildGuideDriverText(totalPax, guideRule, currency) {
+function buildGuideText(totalPax, guideRule, currency) {
     if (!guideRule)
         return "";
     const minPersons = Number(guideRule.minPersons) || 0;
@@ -178,13 +178,13 @@ export function autoFillFromContract(voucher, contracts, forcedContractId) {
             eventTexts.push(text);
     }
     const totalPax = voucher.totalPax ?? 0;
-    const guideDriverText = buildGuideDriverText(totalPax, contract.guideRule, contract.currency);
+    const guideText = buildGuideText(totalPax, contract.guideRule, contract.currency);
     return {
         status: "matched",
         warnings,
         matchedContractId: contract.id,
         rateApplicableText: rateTexts.join("\n"),
-        guideDriverText,
+        guideText,
         surchargeText: surchargeTexts.join("\n"),
         eventSupplementText: eventTexts.join("\n"),
         billingInstructions: contract.billingTemplate || undefined,

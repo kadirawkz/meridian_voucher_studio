@@ -22,6 +22,7 @@ export const defaultVoucher: VoucherFormValues = {
   remarks: "",
   matchedHotelRateId: undefined,
   rateApplicableText: "",
+  guideText: "",
   surchargeText: "",
   eventSupplementText: "",
   cancellationText: "",

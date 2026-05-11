@@ -74,6 +74,11 @@ interface ContractDetails {
   validTo: string;
 }
 
+interface GuideRateRow {
+  basis: string;
+  amount: string;
+}
+
 type FocRules = {
   enabled: boolean;
   appliesTo: string;
@@ -95,7 +100,7 @@ function createRateApplicableText(rate: Pick<RateRow, "basis" | "sgl" | "dbl" | 
 }
 
 function createFocRuleText(rule: FocRules): string {
-  if (!rule.enabled) return "Guide / Driver FOC not applied";
+  if (!rule.enabled) return "Guide FOC not applied";
   const personText = rule.minimumPersons ? `when ${rule.minimumPersons}+ persons` : "when person count rule is met";
   const qtyText = rule.focQuantity || "1";
   const who = rule.appliesTo || "Guide";
@@ -152,14 +157,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   });
 
   const [rates, setRates] = useState<RateRow[]>([]);
+  const [guideRates, setGuideRates] = useState<GuideRateRow[]>([]);
 
-  const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string; rule: string }>>([]);
+  const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string }>>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
-  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "HB" });
+  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "" });
   const [billingText, setBillingText] = useState("");
-  const [cancellationRules, setCancellationRules] = useState<PolicyRule[]>([]);
-  const [voucherRules, setVoucherRules] = useState<PolicyRule[]>([]);
-  const [skippedSections, setSkippedSections] = useState<string[]>([]);
   const [saveNotice, setSaveNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hotels, setHotels] = useState<string[]>([...referenceHotels]);
@@ -245,6 +248,13 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       }))
     );
 
+    setGuideRates(
+      Object.entries(record.guide_rates ?? {}).map(([basis, amount]) => ({
+        basis,
+        amount: amount == null ? "" : String(amount),
+      }))
+    );
+
 
 
     setSeasonalSurcharges(
@@ -254,7 +264,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         from: String(s.date_from ?? ""),
         to: String(s.date_to ?? ""),
         appliesTo: String(s.applies_to ?? ""),
-        rule: String(s.rule ?? ""),
       }))
     );
 
@@ -279,37 +288,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     });
 
     setBillingText(record.billing_instruction ?? "");
-    if (record.cancellation_policy) {
-      const rules: PolicyRule[] = Object.entries(record.cancellation_policy).map(([title, val]) => {
-        if (typeof val === 'string') return { id: crypto.randomUUID(), title, content: val, appliesTo: "", notes: "", isActive: true };
-        const v = val as Record<string, unknown>;
-        return { 
-          id: crypto.randomUUID(), 
-          title: (v.title as string) || title, 
-          content: (v.content as string) || "", 
-          appliesTo: (v.appliesTo as string) || "", 
-          notes: (v.notes as string) || "", 
-          isActive: v.isActive !== false 
-        };
-      });
-      setCancellationRules(rules);
-    }
-    if (record.voucher_text_rules) {
-      const rules: PolicyRule[] = Object.entries(record.voucher_text_rules).map(([title, val]) => {
-        if (typeof val === 'string') return { id: crypto.randomUUID(), title, content: val, appliesTo: "", notes: "", isActive: true };
-        const v = val as Record<string, unknown>;
-        return { 
-          id: crypto.randomUUID(), 
-          title: (v.title as string) || title, 
-          content: (v.content as string) || "", 
-          appliesTo: (v.appliesTo as string) || "", 
-          notes: (v.notes as string) || "", 
-          isActive: v.isActive !== false 
-        };
-      });
-      setVoucherRules(rules);
-    }
-    setSkippedSections(record.skipped_sections ?? []);
   }
 
   /* ---------- updaters ---------- */
@@ -328,6 +306,17 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
   const removeRate = (i: number) => setRates(rates.filter((_, idx) => idx !== i));
 
+  const addGuideRate = () =>
+    setGuideRates([...guideRates, { basis: "", amount: "" }]);
+
+  const updateGuideRate = (i: number, field: keyof GuideRateRow, value: string) => {
+    const copy = [...guideRates];
+    copy[i] = { ...copy[i], [field]: value };
+    setGuideRates(copy);
+  };
+
+  const removeGuideRate = (i: number) => setGuideRates(guideRates.filter((_, idx) => idx !== i));
+
 
 
   const addEvent = () =>
@@ -344,7 +333,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const addSeasonalSurcharge = () =>
     setSeasonalSurcharges([
       ...seasonalSurcharges,
-      { name: "", amount: "", from: "", to: "", appliesTo: "", rule: "" },
+      { name: "", amount: "", from: "", to: "", appliesTo: "" },
     ]);
 
   const updateSeasonalSurcharge = (
@@ -368,30 +357,17 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     setSelectedHotelRateId("");
     setContract({ hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" });
     setRates([]);
+    setGuideRates([]);
     setSeasonalSurcharges([]);
     setEvents([]);
-    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "HB" });
+    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "" });
     setBillingText("");
-    setCancellationRules([]);
-    setVoucherRules([]);
-    setSkippedSections([]);
     setSaveNotice("Cleared");
   }
 
-  function skipSection(sectionName: string) {
-    setSkippedSections((cur) => (cur.includes(sectionName) ? cur : [...cur, sectionName]));
-    // Enforce skipped-section save behavior (store empty arrays/objects/disabled rules)
-    if (sectionName === "Room Rates") setRates([]);
-    if (sectionName === "Seasonal Surcharges") setSeasonalSurcharges([]);
-    if (sectionName === "Compulsory Events") setEvents([]);
-    if (sectionName === "FOC Rules") setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "HB" });
-    if (sectionName === "Billing Instructions") setBillingText("");
-    if (sectionName === "Cancellation Policy") setCancellationRules([]);
-    if (sectionName === "Voucher Text Rules") setVoucherRules([]);
-  }
+
 
   function sectionStatus(sectionName: string, isEmpty: boolean): SectionStatus {
-    if (skippedSections.includes(sectionName)) return "Skipped";
     return isEmpty ? "Empty" : "Completed";
   }
 
@@ -404,25 +380,23 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       !contract.validFrom ||
       !contract.validTo;
 
-    const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis);
-    const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.every((s) => !s.name && !s.amount && !s.from && !s.to);
-    const eventsEmpty = events.length === 0 || events.every((e) => !e.date && !e.event && !e.bb && !e.hb && !e.fb);
-    const focEmpty = !focRules.enabled;
+    const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis || !r.sgl || !r.dbl || !r.twn || !r.tpl);
+    const guideRatesEmpty = guideRates.length === 0 || guideRates.some((r) => !r.basis.trim() || !r.amount.trim());
+    const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.some((s) => !s.name || !s.amount || !s.from || !s.to || !s.appliesTo);
+    const eventsEmpty = events.length === 0 || events.some((e) => !e.date || !e.event || !e.bb || !e.hb || !e.fb);
+    const focEmpty = !focRules.enabled || !focRules.appliesTo || !focRules.minimumPersons || !focRules.focQuantity || !focRules.basis;
     const billingEmpty = !billingText.trim();
-    const cancellationEmpty = cancellationRules.length === 0 || cancellationRules.some(r => !r.title.trim() || !r.content.trim());
-    const voucherTextEmpty = voucherRules.length === 0 || voucherRules.some(r => !r.title.trim() || !r.content.trim());
 
     return [
       { name: "Basic Information", status: sectionStatus("Basic Information", basicEmpty), empty: basicEmpty },
       { name: "Room Rates", status: sectionStatus("Room Rates", roomRatesEmpty), empty: roomRatesEmpty },
+      { name: "Guide Rates", status: sectionStatus("Guide Rates", guideRatesEmpty), empty: guideRatesEmpty },
       { name: "Seasonal Surcharges", status: sectionStatus("Seasonal Surcharges", seasonalEmpty), empty: seasonalEmpty },
       { name: "Compulsory Events", status: sectionStatus("Compulsory Events", eventsEmpty), empty: eventsEmpty },
       { name: "FOC Rules", status: sectionStatus("FOC Rules", focEmpty), empty: focEmpty },
       { name: "Billing Instructions", status: sectionStatus("Billing Instructions", billingEmpty), empty: billingEmpty },
-      { name: "Cancellation Policy", status: sectionStatus("Cancellation Policy", cancellationEmpty), empty: cancellationEmpty },
-      { name: "Voucher Text Rules", status: sectionStatus("Voucher Text Rules", voucherTextEmpty), empty: voucherTextEmpty },
     ] as const;
-  }, [billingText, cancellationRules, contract, events, focRules, rates, seasonalSurcharges, skippedSections, voucherRules]);
+  }, [billingText, contract, events, focRules, guideRates, rates, seasonalSurcharges]);
 
   const canSave = sectionStates.every((s) => s.status !== "Empty");
 
@@ -451,9 +425,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         contract_name: contract.contractName,
         valid_from: contract.validFrom,
         valid_to: contract.validTo,
-        room_rates: skippedSections.includes("Room Rates")
-          ? []
-          : rates.map((r) => ({
+        room_rates: rates.map((r) => ({
               from: r.from,
               to: r.to,
               room_category: r.roomCategory,
@@ -463,20 +435,20 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               twn: r.twn ? Number(r.twn) : null,
               tpl: r.tpl ? Number(r.tpl) : null,
             })),
+        guide_rates: Object.fromEntries(
+              guideRates
+                .filter((row) => row.basis.trim())
+                .map((row) => [row.basis.trim().toUpperCase(), row.amount ? Number(row.amount) : null])
+            ),
 
-        seasonal_surcharges: skippedSections.includes("Seasonal Surcharges")
-          ? []
-          : seasonalSurcharges.map((s) => ({
+        seasonal_surcharges: seasonalSurcharges.map((s) => ({
               name: s.name,
               amount: s.amount ? Number(s.amount) : null,
               date_from: s.from || null,
               date_to: s.to || null,
               applies_to: s.appliesTo || null,
-              rule: s.rule || null,
             })),
-        compulsory_events: skippedSections.includes("Compulsory Events")
-          ? []
-          : events.map((e) => ({
+        compulsory_events: events.map((e) => ({
               event_date: e.date,
               event_name: e.event,
               bb_rate: e.bb ? Number(e.bb) : null,
@@ -486,25 +458,14 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               mandatory: e.mandatory,
             })),
 
-        foc_rules: skippedSections.includes("FOC Rules")
-          ? { enabled: false }
-          : {
+        foc_rules: {
               enabled: focRules.enabled,
               applies_to: focRules.appliesTo,
               minimum_persons: focRules.minimumPersons ? Number(focRules.minimumPersons) : null,
               foc_quantity: focRules.focQuantity ? Number(focRules.focQuantity) : null,
               basis: focRules.basis,
             },
-        billing_instruction: skippedSections.includes("Billing Instructions") ? "" : billingText,
-        cancellation_policy: skippedSections.includes("Cancellation Policy") ? {} : cancellationRules.reduce((acc, r) => ({ 
-          ...acc, 
-          [r.title]: { title: r.title, content: r.content, appliesTo: r.appliesTo, notes: r.notes, isActive: r.isActive } 
-        }), {}),
-        voucher_text_rules: skippedSections.includes("Voucher Text Rules") ? {} : voucherRules.reduce((acc, r) => ({ 
-          ...acc, 
-          [r.title]: { title: r.title, content: r.content, appliesTo: r.appliesTo, notes: r.notes, isActive: r.isActive } 
-        }), {}),
-        skipped_sections: skippedSections,
+        billing_instruction: billingText,
       };
 
       const result = await window.meridian.saveHotelRates(payload);
@@ -520,10 +481,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   /* ---------- table helper class ---------- */
 
   const cellControl =
-    "app-input h-9 px-2";
+    "app-table-control";
 
   const cellSelect =
-    "app-select h-9 px-2";
+    "app-table-control";
 
   /* ---------- render ---------- */
 
@@ -715,14 +676,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                   if (id) {
                     void loadSelectedRateRecord(id);
                   } else {
-                    setSkippedSections([]);
                     setRates([]);
                     setSeasonalSurcharges([]);
                     setEvents([]);
-                    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "HB" });
+                    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "" });
                     setBillingText("");
-                    setCancellationRules([]);
-                    setVoucherRules([]);
                     setContract((cur) => ({ ...cur, market: "", currency: "", contractName: "", validFrom: "", validTo: "" }));
                   }
                 }}
@@ -786,11 +744,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         <Section title="1. Basic Information">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[0].status} />
-            {sectionStates[0].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Basic Hotel Rate Info")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Ignore
-              </button>
-            )}
           </div>
           {sectionStates[0].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -851,11 +804,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         <Section title="2. Room Rates">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[1].status} />
-            {sectionStates[1].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Room Rates")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Ignore
-              </button>
-            )}
           </div>
           {sectionStates[1].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -925,16 +873,60 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             <Plus size={16} /> Add Rate Row
           </button>
         </Section>
-        <Section title="3. Seasonal Surcharges">
+        <Section title="3. Guide Rates">
           <div className="mb-5 flex items-center justify-between">
             <StatusPill status={sectionStates[2].status} />
-            {sectionStates[2].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Seasonal Surcharges")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Ignore
-              </button>
-            )}
           </div>
           {sectionStates[2].status === "Empty" && (
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <AlertTriangle size={16} /> This section is empty
+            </p>
+          )}
+          <div className="thin-scrollbar overflow-x-auto">
+            <table className="w-full table-fixed border-collapse text-sm">
+              <thead>
+                <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
+                  <th className="px-4 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Guide Basis</th>
+                  <th className="px-2 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Amount</th>
+                  <th className="px-2 py-3 w-[60px]"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {guideRates.map((rate, i) => (
+                  <tr key={`${rate.basis}-${i}`}>
+                    <td className="px-4 py-2">
+                      <Select className={cellSelect} aria-label="Guide basis" title="Guide basis" value={rate.basis} onChange={(e) => updateGuideRate(i, "basis", e.target.value)}>
+                        <option value="">Select basis</option>
+                        {mealBasisOptions.map((basis) => (
+                          <option key={basis} value={basis}>
+                            {basis}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                    <td className="px-2 py-2">
+                      <input className={cellControl} aria-label="Guide rate amount" title="Guide rate amount" placeholder="Amount" value={rate.amount} onChange={(e) => updateGuideRate(i, "amount", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button type="button" onClick={() => removeGuideRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove guide rate">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" onClick={addGuideRate} className="mt-4 flex items-center gap-2 rounded-app border border-line px-3 py-2 text-sm font-bold text-navy">
+            <Plus size={16} /> Add Guide Rate
+          </button>
+        </Section>
+
+        <Section title="4. Seasonal Surcharges">
+          <div className="mb-5 flex items-center justify-between">
+            <StatusPill status={sectionStates[3].status} />
+          </div>
+          {sectionStates[3].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -954,13 +946,18 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 <input className={cellControl} aria-label="Surcharge amount" title="Surcharge amount" placeholder="Amount" value={s.amount} onChange={(e) => updateSeasonalSurcharge(i, "amount", e.target.value)} />
                 <input type="date" className={cellControl} aria-label="From" title="From" value={s.from} onChange={(e) => updateSeasonalSurcharge(i, "from", e.target.value)} />
                 <input type="date" className={cellControl} aria-label="To" title="To" value={s.to} onChange={(e) => updateSeasonalSurcharge(i, "to", e.target.value)} />
-                <input className={cellControl} aria-label="Surcharge applies to" title="Surcharge applies to" placeholder="Applies to" value={s.appliesTo} onChange={(e) => updateSeasonalSurcharge(i, "appliesTo", e.target.value)} />
+                <Select className={cellSelect} aria-label="Surcharge applies to" title="Surcharge applies to" value={s.appliesTo} onChange={(e) => updateSeasonalSurcharge(i, "appliesTo", e.target.value)}>
+                  <option value="">Select</option>
+                  <option value="All">All Categories</option>
+                  {roomCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </Select>
                 <button type="button" onClick={() => removeSeasonalSurcharge(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove surcharge">
                   <Trash2 size={16} />
                 </button>
-                <div className="col-span-6">
-                  <input className={cellControl} aria-label="Surcharge rule" title="Surcharge rule" placeholder="Rule" value={s.rule} onChange={(e) => updateSeasonalSurcharge(i, "rule", e.target.value)} />
-                </div>
               </div>
             ))}
           </div>
@@ -971,16 +968,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
 
         {/* 4. Compulsory Events */}
-        <Section title="4. Compulsory Events / Gala Dinner">
+        <Section title="5. Compulsory Events / Gala Dinner">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[3].status} />
-            {sectionStates[3].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Compulsory Events")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Skip
-              </button>
-            )}
+            <StatusPill status={sectionStates[4].status} />
           </div>
-          {sectionStates[3].status === "Empty" && (
+          {sectionStates[4].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1026,16 +1018,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </Section>
 
         {/* 5. FOC Rules */}
-        <Section title="5. FOC Rules">
+        <Section title="6. FOC Rules">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[4].status} />
-            {sectionStates[4].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("FOC Rules")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Ignore
-              </button>
-            )}
+            <StatusPill status={sectionStates[5].status} />
           </div>
-          {sectionStates[4].status === "Empty" && (
+          {sectionStates[5].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1059,7 +1046,14 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 <input className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value })} placeholder="1" />
               </Field>
               <Field label="Basis">
-                <input className={controlClass} title="Basis" value={focRules.basis} onChange={(e) => setFocRules({ ...focRules, basis: e.target.value })} placeholder="HB" />
+                <Select className="w-full" title="Basis" value={focRules.basis} onChange={(e) => setFocRules({ ...focRules, basis: e.target.value })}>
+                  <option value="">Select Basis</option>
+                  {mealBasisOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </Select>
               </Field>
               <Field label="Generated Rule Preview">
                 <input className={controlClass} title="Generated Rule Preview" value={previewFocText} readOnly />
@@ -1069,23 +1063,20 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </Section>
 
         {/* 6. Billing Instructions */}
-        <Section title="6. Billing Instructions">
+        <Section title="7. Billing Instructions">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[5].status} />
-            {sectionStates[5].status === "Empty" && (
-                <button type="button" onClick={() => skipSection("Billing Instructions")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                  <SkipForward size={16} /> Skip
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setBillingText(defaultBillingText)}
-                className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy"
-              >
-                <Circle size={16} /> Use Default Billing Instruction
-              </button>
+            <StatusPill status={sectionStates[6].status} />
           </div>
-          {sectionStates[5].status === "Empty" && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setBillingText(defaultBillingText)}
+              className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy"
+            >
+              <Circle size={16} /> Use Default Billing Instruction
+            </button>
+          </div>
+          {sectionStates[6].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1099,113 +1090,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
           />
         </Section>
 
-        {/* 7. Cancellation Policy */}
-        <Section title="7. Cancellation Policy">
-          <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[6].status} />
-            {sectionStates[6].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Cancellation Policy")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Skip
-              </button>
-            )}
-          </div>
-          {sectionStates[6].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              <AlertTriangle size={16} /> This section is empty
-            </p>
-          )}
-          <div className="space-y-4">
-            {cancellationRules.map((rule, i) => (
-              <div key={rule.id} className="relative flex flex-col gap-4 rounded-app border border-line bg-white p-5 pt-10">
-                <div className="absolute right-4 top-4 flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-xs font-bold text-steel">
-                    <input 
-                      type="checkbox" 
-                      checked={rule.isActive} 
-                      onChange={(e) => { const n = [...cancellationRules]; n[i].isActive = e.target.checked; setCancellationRules(n); }} 
-                      className="accent-navy"
-                    />
-                    Active
-                  </label>
-                  <button type="button" onClick={() => setCancellationRules(cancellationRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors" aria-label="Remove cancellation policy" title="Remove cancellation policy">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <UiField label="Policy Title">
-                    <input className={controlClass} placeholder="e.g., Early Bird Cancellation" value={rule.title} onChange={(e) => { const n = [...cancellationRules]; n[i].title = e.target.value; setCancellationRules(n); }} />
-                  </UiField>
-                  <UiField label="Applies To">
-                    <input className={controlClass} placeholder="e.g., All Markets" value={rule.appliesTo} onChange={(e) => { const n = [...cancellationRules]; n[i].appliesTo = e.target.value; setCancellationRules(n); }} />
-                  </UiField>
-                </div>
-                <UiField label="Policy Description">
-                  <textarea className="app-textarea min-h-24" placeholder="Full policy text..." value={rule.content} onChange={(e) => { const n = [...cancellationRules]; n[i].content = e.target.value; setCancellationRules(n); }} />
-                </UiField>
-                <UiField label="Internal Notes">
-                  <input className={controlClass} placeholder="Internal references..." value={rule.notes} onChange={(e) => { const n = [...cancellationRules]; n[i].notes = e.target.value; setCancellationRules(n); }} />
-                </UiField>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={() => setCancellationRules([...cancellationRules, { id: crypto.randomUUID(), title: "", content: "", appliesTo: "", notes: "", isActive: true }])} className="mt-4 flex items-center gap-2 rounded-app border border-line px-3 py-2 text-sm font-bold text-navy shadow-sm hover:bg-cloud transition-all">
-            <Plus size={16} /> Add Policy Section
-          </button>
-        </Section>
-
-        {/* 8. Voucher Text Rules */}
-        <Section title="8. Voucher Text Rules">
-          <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[7].status} />
-            {sectionStates[7].status === "Empty" && (
-              <button type="button" onClick={() => skipSection("Voucher Text Rules")} className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy">
-                <SkipForward size={16} /> Skip
-              </button>
-            )}
-          </div>
-          {sectionStates[7].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              <AlertTriangle size={16} /> This section is empty
-            </p>
-          )}
-          <div className="space-y-4">
-            {voucherRules.map((rule, i) => (
-              <div key={rule.id} className="relative flex flex-col gap-4 rounded-app border border-line bg-white p-5 pt-10">
-                <div className="absolute right-4 top-4 flex items-center gap-2">
-                  <label className="flex items-center gap-2 text-xs font-bold text-steel">
-                    <input 
-                      type="checkbox" 
-                      checked={rule.isActive} 
-                      onChange={(e) => { const n = [...voucherRules]; n[i].isActive = e.target.checked; setVoucherRules(n); }} 
-                      className="accent-navy"
-                    />
-                    Active
-                  </label>
-                  <button type="button" onClick={() => setVoucherRules(voucherRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors" aria-label="Remove voucher text rule" title="Remove voucher text rule">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <UiField label="Rule Title">
-                    <input className={controlClass} placeholder="e.g., Arrival Instructions" value={rule.title} onChange={(e) => { const n = [...voucherRules]; n[i].title = e.target.value; setVoucherRules(n); }} />
-                  </UiField>
-                  <UiField label="Applies To">
-                    <input className={controlClass} placeholder="e.g., Fit Travelers" value={rule.appliesTo} onChange={(e) => { const n = [...voucherRules]; n[i].appliesTo = e.target.value; setVoucherRules(n); }} />
-                  </UiField>
-                </div>
-                <UiField label="Rule Content">
-                  <textarea className="app-textarea min-h-24" placeholder="Content text..." value={rule.content} onChange={(e) => { const n = [...voucherRules]; n[i].content = e.target.value; setVoucherRules(n); }} />
-                </UiField>
-                <UiField label="Internal Notes">
-                  <input className={controlClass} placeholder="Internal references..." value={rule.notes} onChange={(e) => { const n = [...voucherRules]; n[i].notes = e.target.value; setVoucherRules(n); }} />
-                </UiField>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={() => setVoucherRules([...voucherRules, { id: crypto.randomUUID(), title: "", content: "", appliesTo: "", notes: "", isActive: true }])} className="mt-4 flex items-center gap-2 rounded-app border border-line px-3 py-2 text-sm font-bold text-navy shadow-sm hover:bg-cloud transition-all">
-            <Plus size={16} /> Add Voucher Text Rule
-          </button>
-        </Section>
       </div>
     </div>
   );

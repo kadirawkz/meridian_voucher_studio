@@ -382,7 +382,7 @@ create table if not exists public.hotel_rates (
   room_rates jsonb not null default '[]'::jsonb,
   seasonal_surcharges jsonb not null default '[]'::jsonb,
   compulsory_events jsonb not null default '[]'::jsonb,
-  guide_driver_rates jsonb not null default '{}'::jsonb,
+  guide_rates jsonb not null default '{}'::jsonb,
   foc_rules jsonb not null default '{}'::jsonb,
   billing_instruction text not null default '',
   cancellation_policy jsonb not null default '{}'::jsonb,

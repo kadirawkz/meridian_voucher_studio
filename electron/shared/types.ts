@@ -40,7 +40,7 @@ export interface VoucherPayload {
   lineItems: VoucherLineItem[];
   matchedHotelRateId?: string;
   rateApplicableText?: string;
-  guideDriverText?: string;
+  guideText?: string;
   surchargeText?: string;
   eventSupplementText?: string;
   cancellationText?: string;
@@ -151,7 +151,6 @@ export type HotelRateSeasonalSurcharge = {
   date_from?: string | null;
   date_to?: string | null;
   applies_to?: string | null;
-  rule?: string | null;
 };
 
 export type HotelRateCompulsoryEvent = {
@@ -166,11 +165,13 @@ export type HotelRateCompulsoryEvent = {
 
 export type HotelRateFocRules = {
   enabled: boolean;
-  applies_to?: "Guide" | "Driver" | "Guide / Driver" | string | null;
+  applies_to?: "Guide" | string | null;
   minimum_persons?: number | null;
   foc_quantity?: number | null;
   basis?: string | null;
 };
+
+export type HotelRateGuideRates = Record<string, number | null>;
 
 export type HotelRateCancellationPolicy = Record<string, unknown>;
 export type HotelRateVoucherTextRules = Record<string, unknown>;
@@ -188,10 +189,10 @@ export interface HotelRateRecord {
   compulsory_events: HotelRateCompulsoryEvent[];
   foc_rules: HotelRateFocRules;
   billing_instruction: string;
-  cancellation_policy: HotelRateCancellationPolicy;
-  voucher_text_rules: HotelRateVoucherTextRules;
-  skipped_sections: string[];
-  guide_driver_rates?: Record<string, unknown> | null;
+  cancellation_policy?: HotelRateCancellationPolicy;
+  voucher_text_rules?: HotelRateVoucherTextRules;
+  skipped_sections?: string[];
+  guide_rates?: HotelRateGuideRates | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -208,7 +209,7 @@ export interface AutoFillResult {
   warnings: string[];
   matchedHotelRateId?: string;
   rateApplicableText?: string;
-  guideDriverText?: string;
+  guideText?: string;
   surchargeText?: string;
   eventSupplementText?: string;
   billingInstructions?: string;

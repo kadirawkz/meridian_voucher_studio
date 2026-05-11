@@ -1,5 +1,6 @@
 import type {
   AutoFillResult,
+  HotelRateGuideRates,
   HotelRateRecord,
   HotelRateRecordSummary,
   VoucherPayload,
@@ -33,6 +34,37 @@ function requireNonEmpty(value: string, message: string) {
   if (!value?.trim()) throw new Error(message);
 }
 
+function buildGuideText(voucher: VoucherPayload, currency: string, guideRates?: HotelRateGuideRates | null): string {
+  if (!guideRates) {
+    return "";
+  }
+
+  const summaries: string[] = [];
+  const seen = new Set<string>();
+
+  for (const lineItem of voucher.lineItems) {
+    const guideCount = Number(lineItem.guide || 0);
+    const basis = (lineItem.guideBasis || "").trim().toUpperCase();
+
+    if (guideCount <= 0 || !basis) {
+      continue;
+    }
+
+    const amount = guideRates[basis];
+    if (amount == null) {
+      continue;
+    }
+
+    const summary = `Guide-${basis} ${currency} ${amount}`;
+    if (!seen.has(summary)) {
+      seen.add(summary);
+      summaries.push(summary);
+    }
+  }
+
+  return summaries.join(" / ");
+}
+
 export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: string }> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return { id: record.id ?? crypto.randomUUID() };
@@ -57,7 +89,7 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
     room_rates: record.room_rates ?? [],
     seasonal_surcharges: record.seasonal_surcharges ?? [],
     compulsory_events: record.compulsory_events ?? [],
-    guide_driver_rates: record.guide_driver_rates ?? {},
+    guide_rates: record.guide_rates ?? {},
     foc_rules: record.foc_rules ?? { enabled: false },
     billing_instruction: record.billing_instruction ?? "",
     cancellation_policy: record.cancellation_policy ?? {},
@@ -265,6 +297,7 @@ export async function autoFillVoucherFromHotelRates(voucher: VoucherPayload, hot
     warnings,
     matchedHotelRateId: record.id,
     rateApplicableText: summaryParts.join(" / ") || "No matching rates found.",
+    guideText: buildGuideText(voucher, currency, record.guide_rates),
     billingInstructions: record.billing_instruction || undefined,
     cancellationText: record.cancellation_policy ? JSON.stringify(record.cancellation_policy, null, 2) : undefined,
     autoTextNotes: record.voucher_text_rules ? JSON.stringify(record.voucher_text_rules, null, 2) : undefined,

@@ -23,7 +23,7 @@ export const hotelRateRecordSchema = z.object({
   room_supplements: z.array(z.record(z.unknown())).default([]),
   seasonal_surcharges: z.array(z.record(z.unknown())).default([]),
   compulsory_events: z.array(z.record(z.unknown())).default([]),
-  guide_driver_rates: z.record(z.unknown()).default({}),
+  guide_rates: z.record(z.unknown()).default({}),
   foc_rules: z.record(z.unknown()).default({}),
   billing_instruction: z.string().default(""),
   cancellation_policy: z.record(z.unknown()).default({}),
@@ -55,7 +55,7 @@ export const hotelRateJsonSchema = {
     room_supplements: { type: "array", items: { type: "object" } },
     seasonal_surcharges: { type: "array", items: { type: "object" } },
     compulsory_events: { type: "array", items: { type: "object" } },
-    guide_driver_rates: { type: "object" },
+    guide_rates: { type: "object" },
     foc_rules: { type: "object" },
     billing_instruction: { type: "string" },
     cancellation_policy: { type: "object" },
@@ -66,4 +66,3 @@ export const hotelRateJsonSchema = {
   },
   additionalProperties: false,
 } as const;
-

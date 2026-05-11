@@ -128,7 +128,7 @@ function buildRateApplicableText(
   return parts.join(" / ");
 }
 
-function buildGuideDriverText(): string {
+function buildGuideText(): string {
   return "";
 }
 
@@ -184,14 +184,14 @@ export function autoFillFromContract(
 
   const totalPax = voucher.totalPax ?? 0;
   void totalPax;
-  const guideDriverText = buildGuideDriverText();
+  const guideText = buildGuideText();
 
   return {
     status: "matched",
     warnings,
     matchedHotelRateId: record.id,
     rateApplicableText: rateTexts.join("\n"),
-    guideDriverText,
+    guideText,
     surchargeText: surchargeTexts.join("\n"),
     eventSupplementText: eventTexts.join("\n"),
     billingInstructions: record.billing_instruction || undefined,

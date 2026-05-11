@@ -109,7 +109,7 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
     ],
     foc_rules: {
       enabled: true,
-      applies_to: "Guide / Driver",
+      applies_to: "Guide",
       minimum_persons: 15,
       foc_quantity: 1,
       basis: "BB",

@@ -16,7 +16,6 @@ export function Select({ className = "", ...props }: ComponentPropsWithoutRef<"s
           "app-select app-select-with-chevron w-full",
           isCompact ? "app-select-compact" : "",
           className,
-          "pr-10",
         ].filter(Boolean).join(" ")}
       />
       <ChevronDown size={16} className="app-select-chevron" />

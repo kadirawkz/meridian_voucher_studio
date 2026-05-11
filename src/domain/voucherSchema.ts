@@ -40,6 +40,7 @@ export const voucherSchema = z.object({
   lineItems: z.array(voucherLineItemSchema).min(1, "At least one voucher content row is required"),
   matchedHotelRateId: z.string().optional(),
   rateApplicableText: z.string().optional(),
+  guideText: z.string().optional(),
   surchargeText: z.string().optional(),
   eventSupplementText: z.string().optional(),
   cancellationText: z.string().optional(),

@@ -620,15 +620,18 @@ export function App() {
 
         if (result.status === "matched") {
           form.setValue("rateApplicableText", result.rateApplicableText || "");
+          form.setValue("guideText", result.guideText || "");
           form.setValue("matchedHotelRateId", result.matchedHotelRateId ?? "");
           if (result.billingInstructions) form.setValue("billingInstructions", result.billingInstructions);
           if (result.cancellationText) form.setValue("cancellationText", result.cancellationText);
           if (result.autoTextNotes) form.setValue("autoTextNotes", result.autoTextNotes);
         } else if (result.status === "multiple" && result.candidateHotelRates?.length) {
           form.setValue("rateApplicableText", "");
+          form.setValue("guideText", "");
           form.setValue("matchedHotelRateId", "");
         } else {
           form.setValue("rateApplicableText", "");
+          form.setValue("guideText", "");
         }
       } catch {
         // Ignored for now
@@ -1220,32 +1223,34 @@ export function App() {
               void refreshVoucherRegister(voucherFilters);
             }}
           />
-        ) : activeView === "rate-master" ? (
-          <HotelRateMasterScreen
-            initialEditId={editHotelRateId}
-            onBack={() => {
-              setEditHotelRateId(undefined);
-              setActiveView("entry");
-            }}
-            onManageRates={() => setActiveView("manage-rates")}
-          />
-        ) : activeView === "manage-rates" ? (
-          <ManageRatesScreen
-            onBack={() => setActiveView("rate-master")}
-            onEdit={(id) => {
-              setEditHotelRateId(id);
-              setActiveView("rate-master");
-            }}
-          />
-        ) : activeView === "settings" ? (
-          <SettingsScreen
-          />
-        ) : activeView === "profile" ? (
-          <ProfileScreen
-            accountProfile={accountProfile}
-            onProfileUpdated={(profile) => setAccountProfile(profile)}
-          />
         ) : (
+          <>
+            <div style={{ display: activeView === "rate-master" ? "block" : "none" }}>
+              <HotelRateMasterScreen
+                initialEditId={editHotelRateId}
+                onBack={() => {
+                  setEditHotelRateId(undefined);
+                  setActiveView("entry");
+                }}
+                onManageRates={() => setActiveView("manage-rates")}
+              />
+            </div>
+            {activeView === "manage-rates" ? (
+              <ManageRatesScreen
+                onBack={() => setActiveView("rate-master")}
+                onEdit={(id) => {
+                  setEditHotelRateId(id);
+                  setActiveView("rate-master");
+                }}
+              />
+            ) : activeView === "settings" ? (
+              <SettingsScreen />
+            ) : activeView === "profile" ? (
+              <ProfileScreen
+                accountProfile={accountProfile}
+                onProfileUpdated={(profile) => setAccountProfile(profile)}
+              />
+            ) : (
           <div className="mx-auto max-w-[1400px] p-8">
             <div className="mb-8 flex items-start gap-4">
               <button 
@@ -1392,6 +1397,8 @@ export function App() {
             </div>
           </div>
         )}
+      </>
+    )}
 
         {searchQuery && (
           <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setSearchQuery("")}>
@@ -1505,4 +1512,3 @@ export function App() {
     </div>
   );
 }
-

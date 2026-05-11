@@ -26,6 +26,7 @@ const supportedTemplateTags = new Set([
   "confirmedBy",
   "rateApplicable",
   "rateApplicableText",
+  "guideText",
   "employeeName",
   "EmployeeName",
   "Employee_name",
@@ -65,9 +66,8 @@ const supportedTemplateTags = new Set([
   "GuideBasis",
   "guide_basis",
   "guide-basis",
-  "guideorDriver",
-  "guideOrDriver",
-  "GuideOrDriver",
+  "guideOnly",
+  "GuideOnly",
   "guideWithBasis",
   "arrivingFor",
   "ArrivingFor",
@@ -256,13 +256,10 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     guideBasis: firstLineItem?.guideBasis ?? "",
     guide_basis: firstLineItem?.guideBasis ?? "",
     "guide-basis": firstLineItem?.guideBasis ?? "",
-    guideorDriver: firstLineItem
+    guideOnly: firstLineItem
       ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
       : "",
-    guideOrDriver: firstLineItem
-      ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
-      : "",
-    GuideOrDriver: firstLineItem
+    GuideOnly: firstLineItem
       ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
       : "",
     guideWithBasis: firstLineItem
@@ -279,7 +276,7 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     market: voucher.market ?? "",
     rateApplicable: resolvedRateApplicable,
     rateApplicableText: voucher.rateApplicableText ?? "",
-    guideDriverText: voucher.guideDriverText ?? "",
+    guideText: voucher.guideText ?? "",
     surchargeText: voucher.surchargeText ?? "",
     eventSupplementText: voucher.eventSupplementText ?? "",
     cancellationText: voucher.cancellationText ?? "",
