@@ -880,6 +880,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     <td className="px-4 py-2">
                       <select
                         className={selectClass}
+                        aria-label="Room category"
+                        title="Room category"
                         value={rate.roomCategory}
                         onChange={(e) => updateRate(i, "roomCategory", e.target.value)}
                       >
@@ -894,6 +896,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     <td className="px-2 py-2">
                       <select
                         className={selectClass}
+                        aria-label="Meal basis"
+                        title="Meal basis"
                         value={rate.basis}
                         onChange={(e) => updateRate(i, "basis", e.target.value)}
                       >
@@ -1124,7 +1128,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     />
                     Active
                   </label>
-                  <button type="button" onClick={() => setCancellationRules(cancellationRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors">
+                  <button type="button" onClick={() => setCancellationRules(cancellationRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors" aria-label="Remove cancellation policy" title="Remove cancellation policy">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -1178,7 +1182,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     />
                     Active
                   </label>
-                  <button type="button" onClick={() => setVoucherRules(voucherRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors">
+                  <button type="button" onClick={() => setVoucherRules(voucherRules.filter((_, idx) => idx !== i))} className="p-2 text-steel hover:text-red-600 transition-colors" aria-label="Remove voucher text rule" title="Remove voucher text rule">
                     <Trash2 size={16} />
                   </button>
                 </div>

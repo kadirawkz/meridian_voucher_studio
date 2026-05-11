@@ -691,12 +691,8 @@ export function App() {
     return <AuthScreen onAuthenticated={handleAuthenticated} />;
   }
 
-  const layoutStyle = {
-    "--nav-width": `${navWidth}px`,
-  } as React.CSSProperties;
-
   return (
-    <div className="app-shell" style={layoutStyle}>
+    <div className={`app-shell ${navCollapsed ? "app-shell-nav-collapsed" : "app-shell-nav-expanded"}`}>
       <MenuBar 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}

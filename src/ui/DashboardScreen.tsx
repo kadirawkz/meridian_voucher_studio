@@ -363,12 +363,11 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
 
             {/* Progress bar */}
             <div className="px-5 pt-4">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-cloud">
-                <div
-                  className="h-full rounded-full bg-navy transition-all duration-500"
-                  style={{ width: `${(coveredCount / totalReferenceHotels) * 100}%` }}
-                />
-              </div>
+              <progress
+                className="app-progress h-2 w-full"
+                max={totalReferenceHotels}
+                value={coveredCount}
+              />
               <p className="mt-2 text-xs text-steel">
                 {totalReferenceHotels - coveredCount} hotels missing contracts
               </p>

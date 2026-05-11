@@ -51,7 +51,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
   return (
     <div className="flex h-screen flex-col bg-sand text-ink">
       <header className="flex shrink-0 items-center gap-4 border-b border-line bg-white px-6 py-4">
-        <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded hover:bg-cloud text-steel transition-colors">
+        <button onClick={onBack} className="flex h-8 w-8 items-center justify-center rounded hover:bg-cloud text-steel transition-colors" aria-label="Go back" title="Go back">
           <ArrowLeft size={18} />
         </button>
         <div>
@@ -106,10 +106,10 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
                       <td className="px-4 py-3">{r.currency || "USD"}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => onEdit(r.id!)} className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors">
+                          <button onClick={() => onEdit(r.id!)} className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" aria-label={`Edit rate for ${r.hotel_name}`} title={`Edit rate for ${r.hotel_name}`}>
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => setDeleteId(r.id!)} className="rounded p-1.5 text-steel hover:bg-red-50 hover:text-red-600 transition-colors">
+                          <button onClick={() => setDeleteId(r.id!)} className="rounded p-1.5 text-steel hover:bg-red-50 hover:text-red-600 transition-colors" aria-label={`Delete rate for ${r.hotel_name}`} title={`Delete rate for ${r.hotel_name}`}>
                             <Trash2 size={16} />
                           </button>
                         </div>

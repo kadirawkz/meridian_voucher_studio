@@ -74,6 +74,29 @@
   .app-history-card {
     @apply rounded-app border border-line bg-cloud p-3;
   }
+
+  .app-progress {
+    -webkit-appearance: none;
+    appearance: none;
+    overflow: hidden;
+    border: 0;
+    border-radius: 9999px;
+    background: #eef2f7;
+  }
+
+  .app-progress::-webkit-progress-bar {
+    background: #eef2f7;
+  }
+
+  .app-progress::-webkit-progress-value {
+    border-radius: 9999px;
+    background: #12345a;
+  }
+
+  .app-progress::-moz-progress-bar {
+    border-radius: 9999px;
+    background: #12345a;
+  }
 }
 
 :root {
@@ -88,20 +111,18 @@
 body {
   margin: 0;
   overflow: hidden;
-  user-select: none;
   -webkit-user-select: none;
-  -webkit-user-drag: none; /* Disable element dragging globally */
+  user-select: none;
 }
 
 /* Specific overrides for common draggable elements */
 img, a, button {
-  -webkit-user-drag: none;
 }
 
 /* Allow text selection ONLY in input and textarea */
 input, textarea, [contenteditable="true"], .app-selectable-text {
-  user-select: text;
   -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Hide selection highlight globally except in allowed fields */
@@ -153,6 +174,14 @@ textarea:focus {
   overflow: hidden;
 }
 
+.app-shell-nav-expanded {
+  --nav-width: 288px;
+}
+
+.app-shell-nav-collapsed {
+  --nav-width: 64px;
+}
+
 .app-body {
   display: flex;
   flex: 1;
@@ -174,11 +203,9 @@ textarea:focus {
 }
 
 .drag {
-  -webkit-app-region: drag;
 }
 
 .no-drag {
-  -webkit-app-region: no-drag;
 }
 
 /* ---- Text selection ---- */
@@ -263,6 +290,7 @@ button, [role="button"], .drag {
   padding: 48px 56px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
@@ -396,7 +424,20 @@ button, [role="button"], .drag {
   cursor: pointer;
   position: relative;
   transition: none;
+  -webkit-user-select: none;
   user-select: none;
+}
+
+.tour-tree-indent-track {
+  display: flex;
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.tour-tree-indent-cell {
+  position: relative;
+  flex: 0 0 12px;
+  align-self: stretch;
 }
 
 .tour-tree-item:hover {
@@ -440,14 +481,68 @@ button, [role="button"], .drag {
   flex: 1;
   text-align: left;
 }
+  -webkit-user-select: none;
 
 .tour-tree-indent-guide {
   position: absolute;
   top: 0;
   bottom: 0;
+  left: 50%;
   width: 1px;
   background: #e2e8f0;
   pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.tour-tree-empty-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 22px;
+}
+
+.tour-tree-empty-text {
+  flex: 0 1 auto;
+}
+
+.tour-tree-context-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.tour-tree-context-menu {
+  position: fixed;
+  z-index: 80;
+  min-width: 190px;
+  overflow: hidden;
+  border: 1px solid #dbe3ee;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+  padding: 4px;
+}
+
+.tour-tree-context-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 8px 10px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tour-tree-context-menu button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .tour-tree-badge {

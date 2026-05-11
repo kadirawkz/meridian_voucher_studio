@@ -50,6 +50,16 @@ export function MenuBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const root = menuBarRef.current as HTMLElement | null;
+    if (!root) return;
+
+    root.style.setProperty("-webkit-app-region", "drag");
+    root.querySelectorAll<HTMLElement>(".no-drag").forEach((element) => {
+      element.style.setProperty("-webkit-app-region", "no-drag");
+    });
+  }, []);
+
   const handleMenuClick = (label: string) => {
     if (isMenuOpen && activeMenu === label) {
       setIsMenuOpen(false);
@@ -210,18 +220,24 @@ export function MenuBar({
           <button 
             onClick={() => window.meridian?.minimizeWindow()}
             className="h-8 w-10 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
+            aria-label="Minimize window"
+            title="Minimize window"
           >
             <Minus size={14} />
           </button>
           <button 
             onClick={() => window.meridian?.maximizeWindow()}
             className="h-8 w-10 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
+            aria-label="Maximize window"
+            title="Maximize window"
           >
             <Square size={12} />
           </button>
           <button 
             onClick={() => window.meridian?.closeWindow()}
             className="h-8 w-12 flex items-center justify-center text-steel hover:bg-red-500 hover:text-white transition-colors"
+            aria-label="Close window"
+            title="Close window"
           >
             <X size={16} />
           </button>
