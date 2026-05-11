@@ -82,7 +82,6 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
         date_from: "2026-12-20",
         date_to: "2027-01-05",
         applies_to: "All Room Categories",
-        rule: "Per Room Per Night",
       },
     ],
     compulsory_events: [
