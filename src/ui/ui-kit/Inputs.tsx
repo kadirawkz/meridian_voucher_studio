@@ -1,29 +1,42 @@
 import { ChevronDown } from "lucide-react";
-import type { ComponentPropsWithoutRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef } from "react";
 
-export function Input({ className = "", ...props }: ComponentPropsWithoutRef<"input">) {
-  return <input {...props} className={["app-input", className].filter(Boolean).join(" ")} />;
-}
+export const Input = forwardRef<HTMLInputElement, ComponentPropsWithoutRef<"input">>(
+  ({ className = "", ...props }, ref) => {
+    return <input ref={ref} {...props} className={["app-input", className].filter(Boolean).join(" ")} />;
+  }
+);
 
-export function Select({ className = "", ...props }: ComponentPropsWithoutRef<"select">) {
-  const isCompact = className.includes("app-table-control");
+Input.displayName = "Input";
 
-  return (
-    <div className="app-select-shell w-full">
-      <select
-        {...props}
-        className={[
-          "app-select app-select-with-chevron w-full",
-          isCompact ? "app-select-compact" : "",
-          className,
-        ].filter(Boolean).join(" ")}
-      />
-      <ChevronDown size={16} className="app-select-chevron" />
-    </div>
-  );
-}
+export const Select = forwardRef<HTMLSelectElement, ComponentPropsWithoutRef<"select">>(
+  ({ className = "", ...props }, ref) => {
+    const isCompact = className?.includes("app-table-control");
 
-export function Textarea({ className = "", ...props }: ComponentPropsWithoutRef<"textarea">) {
-  return <textarea {...props} className={["app-textarea", className].filter(Boolean).join(" ")} />;
-}
+    return (
+      <div className="app-select-shell w-full">
+        <select
+          ref={ref}
+          {...props}
+          className={[
+            "app-select app-select-with-chevron w-full",
+            isCompact ? "app-select-compact" : "",
+            className,
+          ].filter(Boolean).join(" ")}
+        />
+        <ChevronDown size={16} className="app-select-chevron" />
+      </div>
+    );
+  }
+);
+
+Select.displayName = "Select";
+
+export const Textarea = forwardRef<HTMLTextAreaElement, ComponentPropsWithoutRef<"textarea">>(
+  ({ className = "", ...props }, ref) => {
+    return <textarea ref={ref} {...props} className={["app-textarea", className].filter(Boolean).join(" ")} />;
+  }
+);
+
+Textarea.displayName = "Textarea";
 

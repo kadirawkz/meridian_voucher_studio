@@ -861,7 +861,7 @@ export function App() {
                   <div className="grid grid-cols-2 gap-5">
                     <Field label="Tour Type">
                       <Select
-                        className="w-full"
+                        className={`w-full ${form.formState.errors.tourType ? "border-red-500" : ""}`}
                         {...form.register("tourType")}
                         onChange={(event) => {
                           form.setValue("tourType", event.target.value as VoucherFormValues["tourType"], {
@@ -876,10 +876,11 @@ export function App() {
                           </option>
                         ))}
                       </Select>
+                      <FieldError message={form.formState.errors.tourType?.message} />
                     </Field>
                     <Field label="Hotel Name">
                       <Select
-                        className="w-full"
+                        className={`w-full ${form.formState.errors.hotelName ? "border-red-500" : ""}`}
                         {...form.register("hotelName")}
                         onChange={(event) => {
                           form.setValue("hotelName", event.target.value, { shouldValidate: true });
@@ -895,7 +896,13 @@ export function App() {
                       <FieldError message={form.formState.errors.hotelName?.message} />
                     </Field>
                     <Field label="Market">
-                      <Select className="w-full" {...form.register("market")}>
+                      <Select
+                        className={`w-full ${form.formState.errors.market ? "border-red-500" : ""}`}
+                        {...form.register("market")}
+                        onChange={(event) => {
+                          form.setValue("market", event.target.value, { shouldValidate: true });
+                        }}
+                      >
                         <option value="">Select Market</option>
                         {markets.map((m) => (
                           <option value={m} key={m}>
@@ -903,9 +910,16 @@ export function App() {
                           </option>
                         ))}
                       </Select>
+                      <FieldError message={form.formState.errors.market?.message} />
                     </Field>
                     <Field label="Rate Period">
-                      <Select className={`w-full ${form.formState.errors.ratePeriod ? "border-red-500" : ""}`} {...form.register("ratePeriod")}>
+                      <Select
+                        className={`w-full ${form.formState.errors.ratePeriod ? "border-red-500" : ""}`}
+                        {...form.register("ratePeriod")}
+                        onChange={(event) => {
+                          form.setValue("ratePeriod", event.target.value, { shouldValidate: true });
+                        }}
+                      >
                         <option value="">Select Rate Period</option>
                         {uniqueContractNames.map((name) => (
                           <option value={name} key={name}>
