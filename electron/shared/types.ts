@@ -11,6 +11,8 @@ export interface VoucherLineItem {
   doubleRooms: number;
   twinRooms: number;
   tripleRooms: number;
+  child0_5?: number;
+  child6_12?: number;
   guide?: number;
   guideBasis?: string;
   arrivingFor: string;
@@ -146,10 +148,10 @@ export type HotelRateChildRate = {
   to: string;
   room_category: string;
   basis: string;
-  age2_6?: number | null;
-  age6_12?: number | null;
-  extra_bed?: number | null;
-  own_room?: number | null;
+  age0_5?: string | null;
+  age6_12?: string | null;
+  extra_bed?: string | null;
+  own_room?: string | null;
 };
 
 

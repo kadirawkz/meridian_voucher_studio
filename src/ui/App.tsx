@@ -127,13 +127,23 @@ const lineItemColumns = [
   { name: "doubleRooms", type: "number", className: "min-w-[76px]" },
   { name: "twinRooms", type: "number", className: "min-w-[76px]" },
   { name: "tripleRooms", type: "number", className: "min-w-[76px]" },
+  { name: "child0_5", type: "number", className: "min-w-[76px]" },
+  { name: "child6_12", type: "number", className: "min-w-[76px]" },
   { name: "guide", type: "number", className: "min-w-[76px]" },
   { name: "guideBasis", type: "select-basis", className: "min-w-[96px]" },
   { name: "arrivingFor", type: "text", className: "min-w-[150px]" }
 ] as const;
 
 const tableControlClass = "app-table-control";
-const roomCountFields = new Set(["singleRooms", "doubleRooms", "twinRooms", "tripleRooms", "guide"]);
+const roomCountFields = new Set([
+  "singleRooms",
+  "doubleRooms",
+  "twinRooms",
+  "tripleRooms",
+  "child0_5",
+  "child6_12",
+  "guide"
+]);
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
@@ -1012,6 +1022,8 @@ export function App() {
                           doubleRooms: 0,
                           twinRooms: 0,
                           tripleRooms: 0,
+                          child0_5: 0,
+                          child6_12: 0,
                           guide: 0,
                           guideBasis: "",
                           arrivingFor: ""
@@ -1033,6 +1045,8 @@ export function App() {
                             ["DBL", "w-[76px]"],
                             ["TWN", "w-[76px]"],
                             ["TPL", "w-[76px]"],
+                            ["C (0-5)", "w-[76px]"],
+                            ["C (6-12)", "w-[76px]"],
                             ["Guide", "w-[76px]"],
                             ["Basis (Guide)", "w-[96px]"],
                             ["Arriving For", "w-[150px]"],
@@ -1189,22 +1203,126 @@ export function App() {
                     <h3 className="text-sm font-bold uppercase tracking-wide text-navy">Voucher Preview</h3>
                   </div>
                   <div className="p-6">
-                    <div className="aspect-[3/4] border border-line bg-white p-5 shadow-sm">
-                      <div className="flex items-start justify-between border-b border-line pb-4">
+                    <div className="aspect-[1/1.41] border border-line bg-white p-8 shadow-sm text-[10px] leading-tight overflow-hidden flex flex-col">
+                      {/* Header */}
+                      <div className="flex justify-between items-start border-b-2 border-navy pb-4 mb-4">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wide text-steel">Meridian</p>
-                          <p className="mt-1 font-display text-xl font-bold text-navy">{form.watch("voucherTitle") || `${voucherType.toUpperCase()} Voucher`}</p>
+                          <div className="text-lg font-bold text-navy tracking-tighter">MERIDIAN</div>
+                          <div className="text-[8px] text-steel">EXPERIENCE LANKA (PVT) LTD</div>
                         </div>
-                        <p className="text-xs font-bold text-steel">Page {form.watch("pageNumber")}</p>
+                        <div className="text-right">
+                          <div className="text-xs font-bold uppercase text-navy">
+                            {form.watch("voucherType") === "reservation" ? "Hotel Reservation Voucher" : 
+                             form.watch("voucherType") === "amendment" ? "Amendment Voucher" : "PPTP Voucher"}
+                          </div>
+                          <div className="text-[8px] text-steel mt-1">Page {form.watch("pageNumber")}</div>
+                        </div>
                       </div>
-                      <div className="mt-5 space-y-3 text-sm">
-                        <p><span className="font-bold text-steel">Hotel:</span> {form.watch("hotelName") || "Pending"}</p>
-                        <p><span className="font-bold text-steel">Tour:</span> {form.watch("tourName") || "Pending"}</p>
-                        <p><span className="font-bold text-steel">Customer:</span> {form.watch("customerName") || "Pending"}</p>
-                        <p><span className="font-bold text-steel">Rooms:</span> {dailyRooms.reduce((sum, dr) => sum + dr.total, 0)}</p>
+
+                      {/* Primary Info Grid */}
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 border-b border-line pb-4">
+                        <div className="space-y-1">
+                          <p><span className="font-bold text-steel uppercase text-[8px]">Hotel:</span><br/><span className="text-navy font-bold truncate block">{form.watch("hotelName") || "—"}</span></p>
+                          <p><span className="font-bold text-steel uppercase text-[8px]">Market:</span><br/>{form.watch("market") || "—"}</p>
+                          <p><span className="font-bold text-steel uppercase text-[8px]">Rate Period:</span><br/>{form.watch("ratePeriod") || "—"}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between border-b border-cloud pb-1">
+                            <span className="font-bold text-steel uppercase text-[8px]">Date:</span>
+                            <span>{form.watch("date") || "—"}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-cloud pb-1">
+                            <span className="font-bold text-steel uppercase text-[8px]">Requisition:</span>
+                            <span>{form.watch("requisitionNo") || "—"}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-cloud pb-1">
+                            <span className="font-bold text-steel uppercase text-[8px]">Tour No:</span>
+                            <span>{form.watch("tourNo") || "—"}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-cloud pb-1">
+                            <span className="font-bold text-steel uppercase text-[8px]">Customer:</span>
+                            <span className="truncate ml-2 max-w-[80px]">{form.watch("customerName") || "—"}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-6 h-28 rounded-app border border-dashed border-line bg-cloud" />
-                      <div className="mt-auto pt-8 text-center text-xs font-bold uppercase tracking-wide text-steel">Authenticated Digital Voucher</div>
+
+                      {/* Tour Name Bar */}
+                      <div className="bg-cloud p-2 mb-4 rounded border border-line">
+                        <span className="font-bold text-steel uppercase text-[8px] block mb-0.5">Tour Name</span>
+                        <div className="text-navy font-bold truncate">{form.watch("tourName") || "—"}</div>
+                      </div>
+
+                      {/* Line Items Table */}
+                      <div className="flex-1 overflow-hidden">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b border-line text-left">
+                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Date</th>
+                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Category</th>
+                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Basis</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">SGL</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">DBL</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TWN</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TPL</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">C1</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">C2</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">GUD</th>
+                              <th className="py-1 pl-1 font-bold text-steel uppercase text-[6px]">Arriving For</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-line">
+                            {(lineItems || []).map((item, idx) => (
+                              <tr key={idx} className="border-b border-cloud">
+                                <td className="py-1 pr-1 whitespace-nowrap text-[7px]">{item.requiredDate || "—"}</td>
+                                <td className="py-1 pr-1 truncate max-w-[60px] text-[7px]">{item.roomCategory || "—"}</td>
+                                <td className="py-1 pr-1 text-[7px]">{item.basis || "—"}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.singleRooms || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.doubleRooms || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.twinRooms || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.tripleRooms || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child0_5 || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child6_12 || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.guide || 0}</td>
+                                <td className="py-1 pl-1 truncate max-w-[70px] text-[7px]">{item.arrivingFor || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Footer Info */}
+                      <div className="mt-4 pt-4 border-t border-line space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="font-bold text-steel uppercase text-[7px] mb-1">Confirmed By</p>
+                            <p className="font-medium border-b border-dotted border-line pb-1 truncate">{form.watch("confirmedBy") || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="font-bold text-steel uppercase text-[7px] mb-1">Prepared By</p>
+                            <p className="font-medium truncate">{form.watch("employeeName") || "—"}</p>
+                            <p className="text-[8px] text-steel truncate">{form.watch("employeeEmail")}</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-steel uppercase text-[7px] mb-1">Rate Applicable</p>
+                          <p className="text-[8px] leading-relaxed line-clamp-2 italic text-navy">
+                            {form.watch("rateApplicableText") || "—"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-steel uppercase text-[7px] mb-1">Billing Instructions</p>
+                          <p className="text-[7px] leading-snug line-clamp-3 text-steel">
+                            {(form.watch("billingInstructions") || "").trim() || "All payments will be made based on room categories provided above. All extras to be collected directly from the client."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-between items-end pt-2 border-t border-cloud">
+                        <div className="text-[6px] text-steel">Generated Preview</div>
+                        <div className="text-[9px] font-bold text-navy tracking-widest uppercase opacity-50">MERIDIAN</div>
+                      </div>
                     </div>
                   </div>
                 </section>

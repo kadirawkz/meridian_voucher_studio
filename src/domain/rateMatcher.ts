@@ -107,12 +107,16 @@ function buildRateApplicableText(
   lineItem: VoucherLineItem,
   record: HotelRateRecord
 ): string {
+  const roomCategory = (lineItem.roomCategory || "").toLowerCase();
+  const basis = (lineItem.basis || "").toLowerCase();
+  const date = lineItem.requiredDate;
+
   const rate = record.room_rates.find(
     (r) =>
-      r.room_category.toLowerCase() === (lineItem.roomCategory ?? "").toLowerCase() &&
-      r.basis.toLowerCase() === (lineItem.basis ?? "").toLowerCase() &&
-      lineItem.requiredDate >= r.from &&
-      lineItem.requiredDate <= r.to
+      r.room_category.toLowerCase() === roomCategory &&
+      r.basis.toLowerCase() === basis &&
+      date >= r.from &&
+      date <= r.to
   );
 
   if (!rate) return "";
@@ -124,6 +128,32 @@ function buildRateApplicableText(
   if (rate.dbl) parts.push(`Double-${mp} ${cur} ${rate.dbl}`);
   if (rate.twn) parts.push(`Twin-${mp} ${cur} ${rate.twn}`);
   if (rate.tpl) parts.push(`Triple-${mp} ${cur} ${rate.tpl}`);
+
+  // Find child rates for the same category, basis, and date
+  const childRate = (record.child_rates || []).find(
+    (cr) =>
+      cr.room_category.toLowerCase() === roomCategory &&
+      cr.basis.toLowerCase() === basis &&
+      date >= cr.from &&
+      date <= cr.to
+  );
+
+  if (childRate) {
+    const hasChild0_5 = (lineItem.child0_5 || 0) > 0;
+    const hasChild6_12 = (lineItem.child6_12 || 0) > 0;
+
+    const formatValue = (val: string) => (val.includes("%") ? val : `${cur} ${val}`);
+
+    if (hasChild0_5 && childRate.age0_5) {
+      parts.push(`Child(0-5)-${mp} ${formatValue(childRate.age0_5)}`);
+    }
+    if (hasChild6_12 && childRate.age6_12) {
+      parts.push(`Child(6-12)-${mp} ${formatValue(childRate.age6_12)}`);
+    }
+    if ((hasChild0_5 || hasChild6_12) && childRate.extra_bed) {
+      parts.push(`Child Extra Bed ${formatValue(childRate.extra_bed)}`);
+    }
+  }
 
   return parts.join(" / ");
 }

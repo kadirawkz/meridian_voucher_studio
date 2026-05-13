@@ -49,7 +49,7 @@ interface ChildRateRow {
   to: string;
   roomCategory: string;
   basis: string;
-  age2_6: string;
+  age0_5: string;
   age6_12: string;
   extraBed: string;
   ownRoom: string;
@@ -179,7 +179,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const [isSaving, setIsSaving] = useState(false);
   const [hotels, setHotels] = useState<string[]>([...referenceHotels]);
   const [hotelMode, setHotelMode] = useState<"select" | "create">("select");
-  const [newHotelName, setNewHotelName] = useState("");
   const [hotelSelectValue, setHotelSelectValue] = useState("");
   const [selectedHotelName, setSelectedHotelName] = useState("");
   const [hotelRateSummaries, setHotelRateSummaries] = useState<HotelRateRecordSummary[]>([]);
@@ -238,8 +237,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     if (!window.meridian?.getHotelRates) return;
     const record = await window.meridian.getHotelRates(hotelRateId);
 
+    const hName = record.hotel_name ?? "";
+    setSelectedHotelName(hName);
+    setHotelSelectValue(hName);
+
     setContract({
-      hotelName: record.hotel_name ?? "",
+      hotelName: hName,
       market: record.market ?? "",
       currency: record.currency ?? "",
       contractName: record.contract_name ?? "",
@@ -266,7 +269,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         to: r.to || "",
         roomCategory: r.room_category || "",
         basis: r.basis || "",
-        age2_6: r.age2_6 == null ? "" : String(r.age2_6),
+        age0_5: r.age0_5 == null ? "" : String(r.age0_5),
         age6_12: r.age6_12 == null ? "" : String(r.age6_12),
         extraBed: r.extra_bed == null ? "" : String(r.extra_bed),
         ownRoom: r.own_room == null ? "" : String(r.own_room),
@@ -332,7 +335,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const removeRate = (i: number) => setRates(rates.filter((_, idx) => idx !== i));
 
   const addChildRate = () =>
-    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age2_6: "", age6_12: "", extraBed: "", ownRoom: "" }]);
+    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age0_5: "", age6_12: "", extraBed: "", ownRoom: "" }]);
 
   const updateChildRate = (i: number, field: keyof ChildRateRow, value: string) => {
     const copy = [...childRates];
@@ -388,7 +391,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   function clearAll() {
     setSelectedHotelName("");
     setHotelSelectValue("");
-    setNewHotelName("");
     setHotelRateSummaries([]);
     setSelectedHotelRateId("");
     setContract({ hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" });
@@ -418,7 +420,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       !contract.validTo;
 
     const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis || !r.sgl || !r.dbl || !r.twn || !r.tpl);
-    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age2_6 || !r.age6_12 || !r.extraBed || !r.ownRoom);
+    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age0_5 || !r.age6_12 || !r.extraBed || !r.ownRoom);
     const guideRatesEmpty = guideRates.length === 0 || guideRates.some((r) => !r.basis.trim() || !r.amount.trim());
     const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.some((s) => !s.name || !s.amount || !s.from || !s.to || !s.appliesTo);
     const eventsEmpty = events.length === 0 || events.some((e) => !e.date || !e.event || !e.bb || !e.hb || !e.fb);
@@ -479,10 +481,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               to: r.to,
               room_category: r.roomCategory,
               basis: r.basis,
-              age2_6: r.age2_6 ? Number(r.age2_6) : null,
-              age6_12: r.age6_12 ? Number(r.age6_12) : null,
-              extra_bed: r.extraBed ? Number(r.extraBed) : null,
-              own_room: r.ownRoom ? Number(r.ownRoom) : null,
+              age0_5: r.age0_5 || null,
+              age6_12: r.age6_12 || null,
+              extra_bed: r.extraBed || null,
+              own_room: r.ownRoom || null,
             })),
         guide_rates: Object.fromEntries(
               guideRates
@@ -518,6 +520,16 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       };
 
       const result = await window.meridian.saveHotelRates(payload);
+      const savedName = contract.hotelName;
+      
+      // Update hotels list if it's a new hotel
+      setHotels((cur) => (cur.includes(savedName) ? cur : [...cur, savedName].sort((a, b) => a.localeCompare(b))));
+      
+      // Sync selection states
+      setSelectedHotelName(savedName);
+      setHotelSelectValue(savedName);
+      setHotelMode("select");
+      
       setSelectedHotelRateId(result.id);
       setSaveNotice(`Saved (${result.id.slice(0, 8)})`);
     } catch (error) {
@@ -611,7 +623,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                     type="button"
                     onClick={() => {
                       setHotelMode("select");
-                      setNewHotelName("");
                     }}
                     className={`rounded px-3 py-1 text-xs font-bold transition ${
                       hotelMode === "select"
@@ -669,41 +680,14 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                       className={controlClass}
                       aria-label="New hotel name"
                       placeholder="e.g. Grand Hotel – Colombo"
-                      value={newHotelName}
+                      value={contract.hotelName}
                       autoFocus
-                      onChange={(e) => setNewHotelName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key !== "Enter") return;
-                        const name = newHotelName.trim();
-                        if (!name) return;
-                        setHotels((cur) => (cur.includes(name) ? cur : [...cur, name].sort((a, b) => a.localeCompare(b))));
-                        setSelectedHotelName(name);
-                        setHotelSelectValue(name);
-                        setContract((cur) => ({ ...cur, hotelName: name }));
-                        setNewHotelName("");
-                        setHotelMode("select");
-                      }}
+                      onChange={(e) => setContract((cur) => ({ ...cur, hotelName: e.target.value }))}
                     />
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => {
-                        const name = newHotelName.trim();
-                        if (!name) return;
-                        setHotels((cur) => (cur.includes(name) ? cur : [...cur, name].sort((a, b) => a.localeCompare(b))));
-                        setSelectedHotelName(name);
-                        setHotelSelectValue(name);
-                        setContract((cur) => ({ ...cur, hotelName: name }));
-                        setNewHotelName("");
-                        setHotelMode("select");
-                      }}
-                    >
-                      Add
-                    </Button>
                   </div>
                 )}
 
-                {selectedHotelName && (
+                {hotelMode === "create" && selectedHotelName && (
                   <p className="flex items-center gap-2 rounded-app bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
                     <CheckCircle2 size={14} /> {selectedHotelName}
                   </p>
@@ -800,14 +784,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             </p>
           )}
           <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-            <Field label="Hotel Name">
-              <Select className="w-full" title="Hotel Name" value={contract.hotelName} onChange={(e) => updateContract("hotelName", e.target.value)}>
-                <option value="">Select Hotel Name</option>
-                {referenceHotels.map((hotel) => (
-                  <option value={hotel} key={hotel}>{hotel}</option>
-                ))}
-              </Select>
-            </Field>
             <Field label="Market">
               <Select className="w-full" title="Market" value={contract.market} onChange={(e) => updateContract("market", e.target.value)}>
                 <option value="">Select Market</option>
@@ -904,10 +880,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         ))}
                       </Select>
                     </td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="Single rate" title="Single rate" value={rate.sgl} onChange={(e) => updateRate(i, "sgl", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="Double rate" title="Double rate" value={rate.dbl} onChange={(e) => updateRate(i, "dbl", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="Twin rate" title="Twin rate" value={rate.twn} onChange={(e) => updateRate(i, "twn", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="Triple rate" title="Triple rate" value={rate.tpl} onChange={(e) => updateRate(i, "tpl", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Single rate" title="Single rate" value={rate.sgl} onChange={(e) => updateRate(i, "sgl", e.target.value.replace(/\D/g, ''))} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Double rate" title="Double rate" value={rate.dbl} onChange={(e) => updateRate(i, "dbl", e.target.value.replace(/\D/g, ''))} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Twin rate" title="Twin rate" value={rate.twn} onChange={(e) => updateRate(i, "twn", e.target.value.replace(/\D/g, ''))} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Triple rate" title="Triple rate" value={rate.tpl} onChange={(e) => updateRate(i, "tpl", e.target.value.replace(/\D/g, ''))} /></td>
                     <td className="px-2 py-2">
                       <button type="button" onClick={() => removeRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove row">
                         <Trash2 size={16} />
@@ -937,7 +913,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px]">Room Category</th>
-                  {["Basis", "Age 2-6", "Age 6-12", "Extra Bed", "Own Room", ""].map((h) => (
+                  {["Basis", "Age 0-5", "Age 6-12", "Extra Bed", "Own Room", ""].map((h) => (
                     <th className="px-2 py-3" key={h || "action"}>{h}</th>
                   ))}
                 </tr>
@@ -977,7 +953,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         ))}
                       </Select>
                     </td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 2-6 rate" title="Age 2-6 rate" value={rate.age2_6} onChange={(e) => updateChildRate(i, "age2_6", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 0-5 rate" title="Age 0-5 rate" value={rate.age0_5} onChange={(e) => updateChildRate(i, "age0_5", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={controlClass} aria-label="Age 6-12 rate" title="Age 6-12 rate" value={rate.age6_12} onChange={(e) => updateChildRate(i, "age6_12", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={controlClass} aria-label="Extra bed rate" title="Extra bed rate" value={rate.extraBed} onChange={(e) => updateChildRate(i, "extraBed", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={controlClass} aria-label="Own room rate" title="Own room rate" value={rate.ownRoom} onChange={(e) => updateChildRate(i, "ownRoom", e.target.value)} /></td>
@@ -1027,7 +1003,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                       </Select>
                     </td>
                     <td className="px-2 py-2">
-                      <input className={cellControl} aria-label="Guide rate amount" title="Guide rate amount" placeholder="Amount" value={rate.amount} onChange={(e) => updateGuideRate(i, "amount", e.target.value)} />
+                      <input type="number" step="1" className={cellControl} aria-label="Guide rate amount" title="Guide rate amount" placeholder="Amount" value={rate.amount} onChange={(e) => updateGuideRate(i, "amount", e.target.value.replace(/\D/g, ''))} />
                     </td>
                     <td className="px-2 py-2 text-center">
                       <button type="button" onClick={() => removeGuideRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove guide rate">
@@ -1065,7 +1041,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             {seasonalSurcharges.map((s, i) => (
               <div key={i} className="grid grid-cols-6 gap-3 rounded-app border border-line bg-cloud p-3">
                 <input className={cellControl} aria-label="Surcharge name" title="Surcharge name" placeholder="Name" value={s.name} onChange={(e) => updateSeasonalSurcharge(i, "name", e.target.value)} />
-                <input className={cellControl} aria-label="Surcharge amount" title="Surcharge amount" placeholder="Amount" value={s.amount} onChange={(e) => updateSeasonalSurcharge(i, "amount", e.target.value)} />
+                <input type="number" step="1" className={cellControl} aria-label="Surcharge amount" title="Surcharge amount" placeholder="Amount" value={s.amount} onChange={(e) => updateSeasonalSurcharge(i, "amount", e.target.value.replace(/\D/g, ''))} />
                 <input type="date" className={cellControl} aria-label="From" title="From" value={s.from} onChange={(e) => updateSeasonalSurcharge(i, "from", e.target.value)} />
                 <input type="date" className={cellControl} aria-label="To" title="To" value={s.to} onChange={(e) => updateSeasonalSurcharge(i, "to", e.target.value)} />
                 <Select className={cellSelect} aria-label="Surcharge applies to" title="Surcharge applies to" value={s.appliesTo} onChange={(e) => updateSeasonalSurcharge(i, "appliesTo", e.target.value)}>
@@ -1113,9 +1089,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                   <tr key={i}>
                     <td className="px-2 py-2"><input type="date" className={cellControl} aria-label="Event date" title="Event date" value={ev.date} onChange={(e) => updateEvent(i, "date", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={cellControl} aria-label="Event name" title="Event name" value={ev.event} onChange={(e) => updateEvent(i, "event", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="BB rate" title="BB rate" value={ev.bb} onChange={(e) => updateEvent(i, "bb", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="HB rate" title="HB rate" value={ev.hb} onChange={(e) => updateEvent(i, "hb", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={cellControl} aria-label="FB rate" title="FB rate" value={ev.fb} onChange={(e) => updateEvent(i, "fb", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="BB rate" title="BB rate" value={ev.bb} onChange={(e) => updateEvent(i, "bb", e.target.value.replace(/\D/g, ''))} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="HB rate" title="HB rate" value={ev.hb} onChange={(e) => updateEvent(i, "hb", e.target.value.replace(/\D/g, ''))} /></td>
+                    <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="FB rate" title="FB rate" value={ev.fb} onChange={(e) => updateEvent(i, "fb", e.target.value.replace(/\D/g, ''))} /></td>
                     <td className="px-2 py-2">
                       <Select className={cellSelect} aria-label="Event per" title="Event per" value={ev.per} onChange={(e) => updateEvent(i, "per", e.target.value)}>
                         <option>Person</option><option>Room</option>
@@ -1162,10 +1138,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 <input className={controlClass} title="Applies To" value={focRules.appliesTo} onChange={(e) => setFocRules({ ...focRules, appliesTo: e.target.value })} placeholder="Guide" />
               </Field>
               <Field label="Minimum Persons">
-                <input className={controlClass} title="Minimum Persons" value={focRules.minimumPersons} onChange={(e) => setFocRules({ ...focRules, minimumPersons: e.target.value })} placeholder="15" />
+                <input type="number" step="1" className={controlClass} title="Minimum Persons" value={focRules.minimumPersons} onChange={(e) => setFocRules({ ...focRules, minimumPersons: e.target.value.replace(/\D/g, '') })} placeholder="15" />
               </Field>
               <Field label="FOC Quantity">
-                <input className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value })} placeholder="1" />
+                <input type="number" step="1" className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value.replace(/\D/g, '') })} placeholder="1" />
               </Field>
               <Field label="Basis">
                 <Select className="w-full" title="Basis" value={focRules.basis} onChange={(e) => setFocRules({ ...focRules, basis: e.target.value })}>

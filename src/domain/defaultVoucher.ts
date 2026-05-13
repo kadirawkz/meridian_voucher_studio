@@ -35,6 +35,8 @@ export const defaultVoucher: VoucherFormValues = {
       doubleRooms: 0,
       twinRooms: 0,
       tripleRooms: 0,
+      child0_5: 0,
+      child6_12: 0,
       guide: 0,
       guideBasis: "",
       arrivingFor: ""
