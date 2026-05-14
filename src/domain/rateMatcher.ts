@@ -139,27 +139,147 @@ function buildRateApplicableText(
   );
 
   if (childRate) {
-    const hasChild0_5 = (lineItem.child0_5 || 0) > 0;
-    const hasChild6_12 = (lineItem.child6_12 || 0) > 0;
+    const hasChild2_5 = (lineItem.child2_5 || 0) > 0;
+    const hasChild6_11 = (lineItem.child6_11 || 0) > 0;
 
-    const formatValue = (val: string) => (val.includes("%") ? val : `${cur} ${val}`);
+    const formatVal = (val: string) => {
+      const v = val.trim().toUpperCase();
+      if (v === "0" || v === "FOC" || v === "FREE") return "FOC";
+      if (v.includes("%")) return v;
+      return `${cur} ${val}`;
+    };
 
-    if (hasChild0_5 && childRate.age0_5) {
-      parts.push(`Child(0-5)-${mp} ${formatValue(childRate.age0_5)}`);
+    if (hasChild2_5 && childRate.age2_5) {
+      parts.push(`Child (2-5 Years) ${formatVal(childRate.age2_5)}`);
     }
-    if (hasChild6_12 && childRate.age6_12) {
-      parts.push(`Child(6-12)-${mp} ${formatValue(childRate.age6_12)}`);
-    }
-    if ((hasChild0_5 || hasChild6_12) && childRate.extra_bed) {
-      parts.push(`Child Extra Bed ${formatValue(childRate.extra_bed)}`);
+    if (hasChild6_11 && childRate.age6_11) {
+      parts.push(`Child (6-11 Years) ${formatVal(childRate.age6_11)}`);
     }
   }
 
   return parts.join(" / ");
 }
 
-function buildGuideText(): string {
-  return "";
+function buildGuideText(
+  voucher: VoucherPayload,
+  record: HotelRateRecord
+): string[] {
+  const parts: string[] = [];
+  const cur = record.currency;
+  
+  // 1. Check FOC Rules
+  if (record.foc_rules?.enabled) {
+    const totalPax = voucher.lineItems.reduce(
+      (sum, li) =>
+        sum +
+        (li.singleRooms || 0) +
+        (li.doubleRooms || 0) * 2 +
+        (li.twinRooms || 0) * 2 +
+        (li.tripleRooms || 0) * 3 +
+        (li.child2_5 || 0) +
+        (li.child6_11 || 0),
+      0
+    );
+    
+    const minPax = record.foc_rules.minimum_persons || 0;
+    if (totalPax >= minPax) {
+      const qty = record.foc_rules.foc_quantity || 1;
+      const target = record.foc_rules.applies_to || "Guide";
+      const basis = record.foc_rules.basis || "HB";
+      parts.push(`${target} FOC: ${qty} ${target} FOC on ${basis} when ${minPax}+ persons`);
+      return parts; // If FOC applies, we usually don't show the paid rate
+    }
+  }
+
+  // 2. Otherwise show standard Guide Rates if requested
+  const guideBasics = new Set(
+    voucher.lineItems
+      .filter((li) => (li.guide || 0) > 0 && li.guideBasis)
+      .map((li) => li.guideBasis!.toUpperCase())
+  );
+
+  for (const basis of guideBasics) {
+    const rate = record.guide_rates?.[basis];
+    if (rate != null) {
+      parts.push(`Guide-${basis} ${cur} ${rate}`);
+    }
+  }
+
+  return parts;
+}
+
+function buildSurchargeTexts(
+  voucher: VoucherPayload,
+  record: HotelRateRecord
+): string[] {
+  const parts: string[] = [];
+  const cur = record.currency;
+  const lineDates = voucher.lineItems.map((li) => li.requiredDate).filter(Boolean);
+
+  for (const surcharge of record.seasonal_surcharges || []) {
+    const isActive = lineDates.some(
+      (d) => d >= (surcharge.date_from || "") && d <= (surcharge.date_to || "")
+    );
+    if (isActive && surcharge.amount) {
+      parts.push(`${surcharge.name}: ${cur} ${surcharge.amount} per ${surcharge.applies_to || "room"}`);
+    }
+  }
+
+  return parts;
+}
+
+function buildEventTexts(
+  voucher: VoucherPayload,
+  record: HotelRateRecord
+): string[] {
+  const parts: string[] = [];
+  const cur = record.currency;
+  const lineDates = voucher.lineItems.map((li) => li.requiredDate).filter(Boolean);
+
+  for (const event of record.compulsory_events || []) {
+    if (lineDates.includes(event.event_date)) {
+      const rates = [];
+      if (event.bb_rate) rates.push(`BB ${cur} ${event.bb_rate}`);
+      if (event.hb_rate) rates.push(`HB ${cur} ${event.hb_rate}`);
+      if (event.fb_rate) rates.push(`FB ${cur} ${event.fb_rate}`);
+      
+      if (rates.length > 0) {
+        parts.push(`${event.event_name} (${event.event_date}): ${rates.join(" / ")} per ${event.per}`);
+      }
+    }
+  }
+
+  return parts;
+}
+
+function buildRoomSupplementTexts(
+  voucher: VoucherPayload,
+  record: HotelRateRecord
+): string[] {
+  const parts: string[] = [];
+  const cur = record.currency;
+
+  if (!record.room_supplements || record.room_supplements.length === 0) {
+    return parts;
+  }
+
+  // Find which room categories are actually booked on this voucher
+  const bookedCategories = new Set(
+    voucher.lineItems
+      .map((li) => (li.roomCategory || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  for (const supplement of record.room_supplements) {
+    const supplementCategory = (supplement.room_category || "").trim().toLowerCase();
+    
+    // Only apply the supplement if the voucher has booked this exact room category
+    if (bookedCategories.has(supplementCategory) && supplement.supplement_amount) {
+      parts.push(`${supplement.supplement_name} ${cur} ${supplement.supplement_amount} ${supplement.per || "per room per night"}`);
+    }
+  }
+
+  return parts;
 }
 
 /* ------------------------------------------------------------------ */
@@ -192,28 +312,33 @@ export function autoFillFromContract(
   const rateTexts: string[] = [];
   for (const li of voucher.lineItems) {
     const text = buildRateApplicableText(li, record);
-    if (!text) {
+    if (!text && li.roomCategory) {
       warnings.push(
-        `No matching rate for ${li.roomCategory || "unknown room"} / ${li.basis || "unknown basis"} on ${li.requiredDate || "unknown date"}.`
+        `No matching rate for ${li.roomCategory} / ${li.basis || "unknown basis"} on ${li.requiredDate || "unknown date"}.`
       );
-    } else if (!rateTexts.includes(text)) {
+    } else if (text && !rateTexts.includes(text)) {
       rateTexts.push(text);
     }
   }
 
-  const surchargeTexts: string[] = [];
-  const eventTexts: string[] = [];
+  const surchargeTexts = buildSurchargeTexts(voucher, record);
+  const eventTexts = buildEventTexts(voucher, record);
+  const roomSupplementTexts = buildRoomSupplementTexts(voucher, record);
+  const guideParts = buildGuideText(voucher, record);
 
-  const totalPax = voucher.totalPax ?? 0;
-  void totalPax;
-  const guideText = buildGuideText();
+  // Combine all into a master rate text for the voucher field
+  const finalRateParts = [...rateTexts];
+  if (roomSupplementTexts.length > 0) finalRateParts.push(...roomSupplementTexts);
+  if (guideParts.length > 0) finalRateParts.push(...guideParts);
+  if (surchargeTexts.length > 0) finalRateParts.push(...surchargeTexts);
+  if (eventTexts.length > 0) finalRateParts.push(...eventTexts);
 
   return {
     status: "matched",
     warnings,
     matchedHotelRateId: record.id,
-    rateApplicableText: rateTexts.join("\n"),
-    guideText,
+    rateApplicableText: finalRateParts.join("\n"),
+    guideText: guideParts.join("\n"),
     surchargeText: surchargeTexts.join("\n"),
     eventSupplementText: eventTexts.join("\n"),
     billingInstructions: record.billing_instruction || undefined,

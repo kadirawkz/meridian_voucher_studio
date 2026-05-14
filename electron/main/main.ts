@@ -31,6 +31,10 @@ function loadEnvironmentFile(): void {
     path.join(process.resourcesPath, ".env")
   ];
 
+  // Clear any stale Supabase env vars so .env values take precedence
+  delete process.env.SUPABASE_URL;
+  delete process.env.SUPABASE_ANON_KEY;
+
   for (const envPath of candidatePaths) {
     if (fs.existsSync(envPath)) {
       dotenv.config({ path: envPath, override: false });
@@ -72,6 +76,7 @@ function loadEnvironmentConfig(): void {
 }
 
 loadEnvironmentConfig();
+console.log("[electron] active SUPABASE_URL=", process.env.SUPABASE_URL || "<not set>");
 
 async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({

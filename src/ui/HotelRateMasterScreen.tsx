@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { HotelRateRecord, HotelRateRecordSummary, SectionStatus } from "../../electron/shared/types";
-import { hotels as referenceHotels, markets, roomCategories, mealBasisOptions } from "../domain/referenceData";
+import type { HotelRateRecord, HotelRateRecordSummary, HotelRef, MarketRef, RoomCategoryRef, SectionStatus } from "../../electron/shared/types";
+import { hotels as fallbackHotels, markets as fallbackMarkets, roomCategories as fallbackRoomCategories, mealBasisOptions } from "../domain/referenceData";
 import { Button } from "./ui-kit/Button";
 import { Field as UiField } from "./ui-kit/Field";
 import { Select } from "./ui-kit/Inputs";
@@ -44,13 +44,20 @@ interface RateRow {
   tpl: string;
 }
 
+interface RoomSupplementRow {
+  roomCategory: string;
+  supplementName: string;
+  supplementAmount: string;
+  per: string;
+}
+
 interface ChildRateRow {
   from: string;
   to: string;
   roomCategory: string;
   basis: string;
-  age0_5: string;
-  age6_12: string;
+  age2_5: string;
+  age6_11: string;
   extraBed: string;
   ownRoom: string;
 }
@@ -115,7 +122,7 @@ function createFocRuleText(rule: FocRules): string {
   const personText = rule.minimumPersons ? `when ${rule.minimumPersons}+ persons` : "when person count rule is met";
   const qtyText = rule.focQuantity || "1";
   const who = rule.appliesTo || "Guide";
-  const basisText = rule.basis ? ` on ${rule.basis}` : "";
+  const basisText = rule.basis ? ` on ${rule.basis.split(",").join("/")}` : "";
   return `${qtyText} ${who} FOC${basisText} ${personText}`;
 }
 
@@ -169,6 +176,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
   const [rates, setRates] = useState<RateRow[]>([]);
   const [childRates, setChildRates] = useState<ChildRateRow[]>([]);
+  const [roomSupplements, setRoomSupplements] = useState<RoomSupplementRow[]>([]);
   const [guideRates, setGuideRates] = useState<GuideRateRow[]>([]);
 
   const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string }>>([]);
@@ -177,7 +185,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const [billingText, setBillingText] = useState("");
   const [saveNotice, setSaveNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [hotels, setHotels] = useState<string[]>([...referenceHotels]);
+  const [hotels, setHotels] = useState<string[]>([...fallbackHotels]);
+  const [marketOptions, setMarketOptions] = useState<readonly string[]>(fallbackMarkets);
+  const [roomCategoryOptions, setRoomCategoryOptions] = useState<readonly string[]>(fallbackRoomCategories);
   const [hotelMode, setHotelMode] = useState<"select" | "create">("select");
   const [hotelSelectValue, setHotelSelectValue] = useState("");
   const [selectedHotelName, setSelectedHotelName] = useState("");
@@ -217,16 +227,37 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   /* ---------- load hotels + selected hotel rate summaries ---------- */
 
   useEffect(() => {
-    if (!window.meridian?.listHotelsFromRates) return;
-    void window.meridian
-      .listHotelsFromRates()
-      .then((items) => {
-        const set = new Set<string>();
-        for (const h of referenceHotels) set.add(h);
-        for (const h of items) if (h?.trim()) set.add(h.trim());
-        setHotels(Array.from(set).sort((a, b) => a.localeCompare(b)));
-      })
-      .catch(() => setHotels([...referenceHotels]));
+    // Load hotels from API
+    if (window.meridian?.listHotels) {
+      void window.meridian.listHotels()
+        .then((refs: HotelRef[]) => {
+          const names = refs.map((h) => h.name).filter(Boolean);
+          const set = new Set<string>(names);
+          for (const h of fallbackHotels) set.add(h);
+          setHotels(Array.from(set).sort((a, b) => a.localeCompare(b)));
+        })
+        .catch(() => setHotels([...fallbackHotels]));
+    }
+
+    // Load markets from API
+    if (window.meridian?.listMarkets) {
+      void window.meridian.listMarkets()
+        .then((refs: MarketRef[]) => {
+          const codes = refs.map((m) => m.code).filter(Boolean);
+          if (codes.length > 0) setMarketOptions(codes);
+        })
+        .catch(() => {});
+    }
+
+    // Load room categories from API
+    if (window.meridian?.listRoomCategories) {
+      void window.meridian.listRoomCategories()
+        .then((refs: RoomCategoryRef[]) => {
+          const names = refs.map((r) => r.name).filter(Boolean);
+          if (names.length > 0) setRoomCategoryOptions(names);
+        })
+        .catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -269,10 +300,19 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         to: r.to || "",
         roomCategory: r.room_category || "",
         basis: r.basis || "",
-        age0_5: r.age0_5 == null ? "" : String(r.age0_5),
-        age6_12: r.age6_12 == null ? "" : String(r.age6_12),
+        age2_5: r.age2_5 == null ? "" : String(r.age2_5),
+        age6_11: r.age6_11 == null ? "" : String(r.age6_11),
         extraBed: r.extra_bed == null ? "" : String(r.extra_bed),
         ownRoom: r.own_room == null ? "" : String(r.own_room),
+      }))
+    );
+
+    setRoomSupplements(
+      (record.room_supplements ?? []).map((s) => ({
+        roomCategory: s.room_category || "",
+        supplementName: s.supplement_name || "",
+        supplementAmount: s.supplement_amount == null ? "" : String(s.supplement_amount),
+        per: s.per || "per room per night",
       }))
     );
 
@@ -335,7 +375,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const removeRate = (i: number) => setRates(rates.filter((_, idx) => idx !== i));
 
   const addChildRate = () =>
-    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age0_5: "", age6_12: "", extraBed: "", ownRoom: "" }]);
+    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age2_5: "", age6_11: "", extraBed: "", ownRoom: "" }]);
 
   const updateChildRate = (i: number, field: keyof ChildRateRow, value: string) => {
     const copy = [...childRates];
@@ -344,6 +384,17 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   };
 
   const removeChildRate = (i: number) => setChildRates(childRates.filter((_, idx) => idx !== i));
+
+  const addSupplement = () =>
+    setRoomSupplements([...roomSupplements, { roomCategory: "", supplementName: "", supplementAmount: "", per: "per room per night" }]);
+
+  const updateSupplement = (i: number, field: keyof RoomSupplementRow, value: string) => {
+    const copy = [...roomSupplements];
+    copy[i] = { ...copy[i], [field]: value };
+    setRoomSupplements(copy);
+  };
+
+  const removeSupplement = (i: number) => setRoomSupplements(roomSupplements.filter((_, idx) => idx !== i));
 
   const addGuideRate = () =>
     setGuideRates([...guideRates, { basis: "", amount: "" }]);
@@ -396,6 +447,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     setContract({ hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" });
     setRates([]);
     setChildRates([]);
+    setRoomSupplements([]);
     setGuideRates([]);
     setSeasonalSurcharges([]);
     setEvents([]);
@@ -420,7 +472,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       !contract.validTo;
 
     const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis || !r.sgl || !r.dbl || !r.twn || !r.tpl);
-    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age0_5 || !r.age6_12 || !r.extraBed || !r.ownRoom);
+    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age2_5 || !r.age6_11 || !r.extraBed || !r.ownRoom);
+    const supplementsEmpty = roomSupplements.length === 0 || roomSupplements.some((s) => !s.supplementName || !s.supplementAmount);
     const guideRatesEmpty = guideRates.length === 0 || guideRates.some((r) => !r.basis.trim() || !r.amount.trim());
     const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.some((s) => !s.name || !s.amount || !s.from || !s.to || !s.appliesTo);
     const eventsEmpty = events.length === 0 || events.some((e) => !e.date || !e.event || !e.bb || !e.hb || !e.fb);
@@ -431,13 +484,14 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       { name: "Basic Information", status: sectionStatus("Basic Information", basicEmpty), empty: basicEmpty },
       { name: "Room Rates", status: sectionStatus("Room Rates", roomRatesEmpty), empty: roomRatesEmpty },
       { name: "Child Rates", status: sectionStatus("Child Rates", childRatesEmpty), empty: childRatesEmpty },
+      { name: "Room Supplements", status: sectionStatus("Room Supplements", supplementsEmpty), empty: supplementsEmpty },
       { name: "Guide Rates", status: sectionStatus("Guide Rates", guideRatesEmpty), empty: guideRatesEmpty },
+      { name: "Guide FOC Rule", status: sectionStatus("Guide FOC Rule", focEmpty), empty: focEmpty },
       { name: "Seasonal Surcharges", status: sectionStatus("Seasonal Surcharges", seasonalEmpty), empty: seasonalEmpty },
       { name: "Compulsory Events", status: sectionStatus("Compulsory Events", eventsEmpty), empty: eventsEmpty },
-      { name: "FOC Rules", status: sectionStatus("FOC Rules", focEmpty), empty: focEmpty },
       { name: "Billing Instructions", status: sectionStatus("Billing Instructions", billingEmpty), empty: billingEmpty },
     ] as const;
-  }, [billingText, contract, events, focRules, guideRates, rates, seasonalSurcharges]);
+  }, [billingText, contract, events, focRules, guideRates, rates, roomSupplements, seasonalSurcharges, childRates]);
 
   const canSave = sectionStates.every((s) => s.status !== "Empty");
 
@@ -467,8 +521,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         valid_from: contract.validFrom,
         valid_to: contract.validTo,
         room_rates: rates.map((r) => ({
-              from: r.from,
-              to: r.to,
+              from: contract.validFrom,
+              to: contract.validTo,
               room_category: r.roomCategory,
               basis: r.basis,
               sgl: r.sgl ? Number(r.sgl) : null,
@@ -477,15 +531,25 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               tpl: r.tpl ? Number(r.tpl) : null,
             })),
         child_rates: childRates.map((r) => ({
-              from: r.from,
-              to: r.to,
+              from: contract.validFrom,
+              to: contract.validTo,
               room_category: r.roomCategory,
               basis: r.basis,
-              age0_5: r.age0_5 || null,
-              age6_12: r.age6_12 || null,
+              age2_5: r.age2_5 || null,
+              age6_11: r.age6_11 || null,
               extra_bed: r.extraBed || null,
               own_room: r.ownRoom || null,
             })),
+        room_supplements: roomSupplements
+              .filter((s) => s.supplementName.trim() && s.supplementAmount.trim())
+              .map((s) => ({
+                from: contract.validFrom,
+                to: contract.validTo,
+                room_category: s.roomCategory,
+                supplement_name: s.supplementName.trim(),
+                supplement_amount: Number(s.supplementAmount),
+                per: s.per || "per room per night",
+              })),
         guide_rates: Object.fromEntries(
               guideRates
                 .filter((row) => row.basis.trim())
@@ -787,7 +851,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             <Field label="Market">
               <Select className="w-full" title="Market" value={contract.market} onChange={(e) => updateContract("market", e.target.value)}>
                 <option value="">Select Market</option>
-                {markets.map((m) => (
+                {marketOptions.map((m: string) => (
                   <option value={m} key={m}>{m}</option>
                 ))}
               </Select>
@@ -857,7 +921,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         onChange={(e) => updateRate(i, "roomCategory", e.target.value)}
                       >
                         <option value="">Select</option>
-                        {roomCategories.map((cat) => (
+                        {roomCategoryOptions.map((cat: string) => (
                           <option value={cat} key={cat}>
                             {cat}
                           </option>
@@ -913,7 +977,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px]">Room Category</th>
-                  {["Basis", "Age 0-5", "Age 6-12", "Extra Bed", "Own Room", ""].map((h) => (
+                  {["Basis", "Child (2-5)", "Child (6-11)", "Extra Bed", "Own Room", ""].map((h) => (
                     <th className="px-2 py-3" key={h || "action"}>{h}</th>
                   ))}
                 </tr>
@@ -930,7 +994,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         onChange={(e) => updateChildRate(i, "roomCategory", e.target.value)}
                       >
                         <option value="">Select</option>
-                        {roomCategories.map((cat) => (
+                        {roomCategoryOptions.map((cat: string) => (
                           <option value={cat} key={cat}>
                             {cat}
                           </option>
@@ -953,8 +1017,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         ))}
                       </Select>
                     </td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 0-5 rate" title="Age 0-5 rate" value={rate.age0_5} onChange={(e) => updateChildRate(i, "age0_5", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 6-12 rate" title="Age 6-12 rate" value={rate.age6_12} onChange={(e) => updateChildRate(i, "age6_12", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 2-5 rate" title="Age 2-5 rate" value={rate.age2_5} onChange={(e) => updateChildRate(i, "age2_5", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 6-11 rate" title="Age 6-11 rate" value={rate.age6_11} onChange={(e) => updateChildRate(i, "age6_11", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={controlClass} aria-label="Extra bed rate" title="Extra bed rate" value={rate.extraBed} onChange={(e) => updateChildRate(i, "extraBed", e.target.value)} /></td>
                     <td className="px-2 py-2"><input className={controlClass} aria-label="Own room rate" title="Own room rate" value={rate.ownRoom} onChange={(e) => updateChildRate(i, "ownRoom", e.target.value)} /></td>
                     <td className="px-2 py-2">
@@ -971,11 +1035,69 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             <Plus size={16} /> Add Child Rate Row
           </button>
         </Section>
-        <Section title="4. Guide Rates">
+
+        {/* 4. Room Supplements */}
+        <Section title="4. Room Supplements">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[2].status} />
+            <StatusPill status={sectionStates[3].status} />
           </div>
-          {sectionStates[2].status === "Empty" && (
+          {sectionStates[3].status === "Empty" && (
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <AlertTriangle size={16} /> This section is empty
+            </p>
+          )}
+          <p className="mb-4 text-xs text-steel">
+            Flat per-room-per-night uplift for upgraded room categories (e.g. Deluxe Supplement, Suite Supplement). These appear in the Rate Applicable text automatically.
+          </p>
+          <div className="thin-scrollbar overflow-x-auto">
+            <table className="w-full table-fixed border-collapse text-sm">
+              <thead>
+                <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
+                  <th className="px-4 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Room Category</th>
+                  <th className="px-2 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Supplement Name</th>
+                  <th className="px-2 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Amount</th>
+                  <th className="px-2 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Per</th>
+                  <th className="px-2 py-3 w-[60px]"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {roomSupplements.map((supp, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2">
+                      <Select className={selectClass} aria-label="Supplement room category" title="Supplement room category" value={supp.roomCategory} onChange={(e) => updateSupplement(i, "roomCategory", e.target.value)}>
+                        <option value="">Select category</option>
+                        {roomCategoryOptions.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                      </Select>
+                    </td>
+                    <td className="px-2 py-2">
+                      <input className={controlClass} aria-label="Supplement name" title="Supplement name" placeholder="e.g. Deluxe Room Supplement" value={supp.supplementName} onChange={(e) => updateSupplement(i, "supplementName", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input type="number" step="1" className={controlClass} aria-label="Supplement amount" title="Supplement amount" placeholder="20" value={supp.supplementAmount} onChange={(e) => updateSupplement(i, "supplementAmount", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <input className={controlClass} aria-label="Supplement per unit" title="Supplement per unit" placeholder="per room per night" value={supp.per} onChange={(e) => updateSupplement(i, "per", e.target.value)} />
+                    </td>
+                    <td className="px-2 py-2 text-center">
+                      <button type="button" onClick={() => removeSupplement(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove supplement">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button type="button" onClick={addSupplement} className="mt-4 flex items-center gap-2 rounded-app border border-line px-3 py-2 text-sm font-bold text-navy">
+            <Plus size={16} /> Add Supplement Row
+          </button>
+        </Section>
+
+        <Section title="5. Guide Rates">
+          <div className="mb-5 flex items-center justify-between">
+            <StatusPill status={sectionStates[4].status} />
+          </div>
+          {sectionStates[4].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1020,11 +1142,70 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
           </button>
         </Section>
 
-        <Section title="5. Seasonal Surcharges">
+        {/* 6. Guide FOC Rule */}
+        <Section title="6. Guide FOC Rule">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[3].status} />
+            <StatusPill status={sectionStates[5].status} />
           </div>
-          {sectionStates[3].status === "Empty" && (
+          {sectionStates[5].status === "Empty" && (
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <AlertTriangle size={16} /> This section is empty
+            </p>
+          )}
+          <div className="rounded-app border border-line bg-cloud p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-steel">Guide FOC by Number of Persons</p>
+              <label className="flex items-center gap-2 text-sm font-bold text-navy">
+                <input type="checkbox" checked={focRules.enabled} onChange={(e) => setFocRules({ ...focRules, enabled: e.target.checked })} className="accent-navy" />
+                Enable FOC
+              </label>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="Applies To">
+                <input className={controlClass} title="Applies To" value={focRules.appliesTo} onChange={(e) => setFocRules({ ...focRules, appliesTo: e.target.value })} placeholder="Guide" />
+              </Field>
+              <Field label="Minimum Persons">
+                <input type="number" step="1" className={controlClass} title="Minimum Persons" value={focRules.minimumPersons} onChange={(e) => setFocRules({ ...focRules, minimumPersons: e.target.value.replace(/\D/g, '') })} placeholder="15" />
+              </Field>
+              <Field label="FOC Quantity">
+                <input type="number" step="1" className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value.replace(/\D/g, '') })} placeholder="1" />
+              </Field>
+              <Field label="Basis (select all that apply)">
+                <div className="flex items-center gap-4 py-2">
+                  {mealBasisOptions.map((opt) => {
+                    const selected = focRules.basis.split(",").filter(Boolean);
+                    const isChecked = selected.includes(opt);
+                    return (
+                      <label key={opt} className="flex items-center gap-1.5 text-sm font-bold text-navy cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-navy"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...selected, opt]
+                              : selected.filter((b) => b !== opt);
+                            setFocRules({ ...focRules, basis: next.join(",") });
+                          }}
+                        />
+                        {opt}
+                      </label>
+                    );
+                  })}
+                </div>
+              </Field>
+              <Field label="Generated Rule Preview">
+                <input className={controlClass} title="Generated Rule Preview" value={previewFocText} readOnly />
+              </Field>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="7. Seasonal Surcharges">
+          <div className="mb-5 flex items-center justify-between">
+            <StatusPill status={sectionStates[6].status} />
+          </div>
+          {sectionStates[6].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1047,7 +1228,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 <Select className={cellSelect} aria-label="Surcharge applies to" title="Surcharge applies to" value={s.appliesTo} onChange={(e) => updateSeasonalSurcharge(i, "appliesTo", e.target.value)}>
                   <option value="">Select</option>
                   <option value="All">All Categories</option>
-                  {roomCategories.map((cat) => (
+                  {roomCategoryOptions.map((cat: string) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>
@@ -1065,12 +1246,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </Section>
 
 
-        {/* 4. Compulsory Events */}
-        <Section title="6. Compulsory Events / Gala Dinner">
+        {/* 8. Compulsory Events */}
+        <Section title="8. Compulsory Events / Gala Dinner">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[4].status} />
+            <StatusPill status={sectionStates[7].status} />
           </div>
-          {sectionStates[4].status === "Empty" && (
+          {sectionStates[7].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>
@@ -1115,55 +1296,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
           </button>
         </Section>
 
-        {/* 5. FOC Rules */}
-        <Section title="7. FOC Rules">
-          <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[5].status} />
-          </div>
-          {sectionStates[5].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              <AlertTriangle size={16} /> This section is empty
-            </p>
-          )}
-          <div className="rounded-app border border-line bg-cloud p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-steel">FOC Rule by Number of Persons</p>
-              <label className="flex items-center gap-2 text-sm font-bold text-navy">
-                <input type="checkbox" checked={focRules.enabled} onChange={(e) => setFocRules({ ...focRules, enabled: e.target.checked })} className="accent-navy" />
-                Enable FOC
-              </label>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <Field label="Applies To">
-                <input className={controlClass} title="Applies To" value={focRules.appliesTo} onChange={(e) => setFocRules({ ...focRules, appliesTo: e.target.value })} placeholder="Guide" />
-              </Field>
-              <Field label="Minimum Persons">
-                <input type="number" step="1" className={controlClass} title="Minimum Persons" value={focRules.minimumPersons} onChange={(e) => setFocRules({ ...focRules, minimumPersons: e.target.value.replace(/\D/g, '') })} placeholder="15" />
-              </Field>
-              <Field label="FOC Quantity">
-                <input type="number" step="1" className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value.replace(/\D/g, '') })} placeholder="1" />
-              </Field>
-              <Field label="Basis">
-                <Select className="w-full" title="Basis" value={focRules.basis} onChange={(e) => setFocRules({ ...focRules, basis: e.target.value })}>
-                  <option value="">Select Basis</option>
-                  {mealBasisOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Generated Rule Preview">
-                <input className={controlClass} title="Generated Rule Preview" value={previewFocText} readOnly />
-              </Field>
-            </div>
-          </div>
-        </Section>
+        {/* Old FOC section removed — now at position 6 after Guide Rates */}
 
-        {/* 6. Billing Instructions */}
-        <Section title="8. Billing Instructions">
+        {/* 9. Billing Instructions */}
+        <Section title="9. Billing Instructions">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[6].status} />
+            <StatusPill status={sectionStates[8].status} />
           </div>
           <div className="mb-4">
             <button
@@ -1174,7 +1312,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <Circle size={16} /> Use Default Billing Instruction
             </button>
           </div>
-          {sectionStates[6].status === "Empty" && (
+          {sectionStates[8].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               <AlertTriangle size={16} /> This section is empty
             </p>

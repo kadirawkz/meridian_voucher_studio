@@ -66,7 +66,6 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
     }
   }
 
-
   return {
     hotel_name: hotelName,
     market,
@@ -94,6 +93,11 @@ function buildHotelRateRecord(args: { hotelName: string; index: number; market: 
       minimum_persons: 15,
       foc_quantity: 1,
       basis: "BB",
+    },
+    guide_rates: {
+      BB: Math.round(base * 0.6),
+      HB: Math.round(base * 0.75),
+      FB: Math.round(base * 0.9),
     },
     billing_instruction: "Please bill to Meridian Travels and Tours.",
     skipped_sections: [],

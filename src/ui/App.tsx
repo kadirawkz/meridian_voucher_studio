@@ -21,7 +21,8 @@ import logo from "../assets/logo.png";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { defaultVoucher } from "../domain/defaultVoucher";
-import { hotels as referenceHotels, markets, mealBasisOptions, roomCategories, tourTypes } from "../domain/referenceData";
+import { hotels as fallbackHotels, markets as fallbackMarkets, mealBasisOptions, roomCategories as fallbackRoomCategories, tourTypes } from "../domain/referenceData";
+import type { HotelRef, MarketRef, RoomCategoryRef, CustomerRef } from "../../electron/shared/types";
 import { VoucherFormValues, voucherSchema } from "../domain/voucherSchema";
 import { AuthScreen } from "./AuthScreen";
 import { DocumentHistoryPanel, GeneratedFilesPanel, LifecyclePanel, RevisionHistoryPanel } from "./AppPanels";
@@ -127,8 +128,8 @@ const lineItemColumns = [
   { name: "doubleRooms", type: "number", className: "min-w-[76px]" },
   { name: "twinRooms", type: "number", className: "min-w-[76px]" },
   { name: "tripleRooms", type: "number", className: "min-w-[76px]" },
-  { name: "child0_5", type: "number", className: "min-w-[76px]" },
-  { name: "child6_12", type: "number", className: "min-w-[76px]" },
+  { name: "child2_5", type: "number", className: "min-w-[86px]" },
+  { name: "child6_11", type: "number", className: "min-w-[86px]" },
   { name: "guide", type: "number", className: "min-w-[76px]" },
   { name: "guideBasis", type: "select-basis", className: "min-w-[96px]" },
   { name: "arrivingFor", type: "text", className: "min-w-[150px]" }
@@ -140,8 +141,8 @@ const roomCountFields = new Set([
   "doubleRooms",
   "twinRooms",
   "tripleRooms",
-  "child0_5",
-  "child6_12",
+  "child2_5",
+  "child6_11",
   "guide"
 ]);
 
@@ -166,7 +167,10 @@ export function App() {
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
   const [authState, setAuthState] = useState<AuthState>({ isAuthenticated: false, profile: null });
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [hotelOptions, setHotelOptions] = useState<string[]>([...referenceHotels]);
+  const [hotelOptions, setHotelOptions] = useState<string[]>([...fallbackHotels]);
+  const [marketOptions, setMarketOptions] = useState<readonly string[]>(fallbackMarkets);
+  const [roomCategoryOptions, setRoomCategoryOptions] = useState<readonly string[]>(fallbackRoomCategories);
+  const [customerOptions, setCustomerOptions] = useState<string[]>([]);
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>("");
   const [toursFolderPath, setToursFolderPath] = useState<string | null>(null);
   const [toursFolderTree, setToursFolderTree] = useState<FolderTreeNode[]>([]);
@@ -232,22 +236,30 @@ export function App() {
   const tourType = form.watch("tourType");
   const voucherType = form.watch("voucherType");
   const dailyRooms = useMemo(() => {
-    const grouped = new Map<string, number>();
+    const grouped = new Map<string, { rooms: number; children: number }>();
     for (const item of lineItems) {
       if (!item.requiredDate) continue;
-      const total =
+      const rooms =
         Number(item.singleRooms || 0) +
         Number(item.doubleRooms || 0) +
         Number(item.twinRooms || 0) +
         Number(item.tripleRooms || 0);
       
-      if (total > 0) {
-        grouped.set(item.requiredDate, (grouped.get(item.requiredDate) || 0) + total);
+      const children =
+        Number(item.child2_5 || 0) +
+        Number(item.child6_11 || 0);
+      
+      if (rooms > 0 || children > 0) {
+        const existing = grouped.get(item.requiredDate) || { rooms: 0, children: 0 };
+        grouped.set(item.requiredDate, {
+          rooms: existing.rooms + rooms,
+          children: existing.children + children
+        });
       }
     }
     
     return Array.from(grouped.entries())
-      .map(([date, total]) => ({ date, total }))
+      .map(([date, counts]) => ({ date, ...counts }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [lineItems]);
 
@@ -297,20 +309,52 @@ export function App() {
   }, [authState.isAuthenticated]);
 
   useEffect(() => {
-    if (!authState.isAuthenticated || !window.meridian?.listHotelsFromRates) {
-      setHotelOptions([...referenceHotels]);
+    if (!authState.isAuthenticated) {
+      setHotelOptions([...fallbackHotels]);
+      setMarketOptions(fallbackMarkets);
+      setRoomCategoryOptions(fallbackRoomCategories);
+      setCustomerOptions([]);
       return;
     }
 
-    void window.meridian
-      .listHotelsFromRates()
-      .then((dbHotels) => {
-        const set = new Set<string>();
-        for (const h of referenceHotels) set.add(h);
-        for (const h of dbHotels) if (h?.trim()) set.add(h.trim());
-        setHotelOptions(Array.from(set).sort((a, b) => a.localeCompare(b)));
-      })
-      .catch(() => setHotelOptions([...referenceHotels]));
+    // Load hotels from API (merge with fallbacks)
+    if (window.meridian?.listHotels) {
+      void window.meridian.listHotels()
+        .then((refs: HotelRef[]) => {
+          const names = refs.map((h) => h.name).filter(Boolean);
+          const set = new Set<string>(names);
+          for (const h of fallbackHotels) set.add(h);
+          setHotelOptions(Array.from(set).sort((a, b) => a.localeCompare(b)));
+        })
+        .catch(() => setHotelOptions([...fallbackHotels]));
+    }
+
+    // Load markets from API
+    if (window.meridian?.listMarkets) {
+      void window.meridian.listMarkets()
+        .then((refs: MarketRef[]) => {
+          const codes = refs.map((m) => m.code).filter(Boolean);
+          setMarketOptions(codes.length > 0 ? codes : fallbackMarkets as unknown as string[]);
+        })
+        .catch(() => setMarketOptions(fallbackMarkets));
+    }
+
+    // Load room categories from API
+    if (window.meridian?.listRoomCategories) {
+      void window.meridian.listRoomCategories()
+        .then((refs: RoomCategoryRef[]) => {
+          const names = refs.map((r) => r.name).filter(Boolean);
+          setRoomCategoryOptions(names.length > 0 ? names : fallbackRoomCategories as unknown as string[]);
+        })
+        .catch(() => setRoomCategoryOptions(fallbackRoomCategories));
+    }
+
+    // Load customers from API
+    if (window.meridian?.listCustomers) {
+      void window.meridian.listCustomers()
+        .then((refs: CustomerRef[]) => setCustomerOptions(refs.map((c) => c.name).filter(Boolean)))
+        .catch(() => setCustomerOptions([]));
+    }
   }, [authState.isAuthenticated]);
 
   useEffect(() => {
@@ -630,16 +674,13 @@ export function App() {
 
         if (result.status === "matched") {
           form.setValue("rateApplicableText", result.rateApplicableText || "");
-          form.setValue("guideText", result.guideText || "");
           form.setValue("matchedHotelRateId", result.matchedHotelRateId ?? "");
           if (result.billingInstructions) form.setValue("billingInstructions", result.billingInstructions);
         } else if (result.status === "multiple" && result.candidateHotelRates?.length) {
           form.setValue("rateApplicableText", "");
-          form.setValue("guideText", "");
           form.setValue("matchedHotelRateId", "");
         } else {
           form.setValue("rateApplicableText", "");
-          form.setValue("guideText", "");
         }
       } catch {
         // Ignored for now
@@ -914,7 +955,7 @@ export function App() {
                         }}
                       >
                         <option value="">Select Market</option>
-                        {markets.map((m) => (
+                        {marketOptions.map((m) => (
                           <option value={m} key={m}>
                             {m}
                           </option>
@@ -1022,8 +1063,8 @@ export function App() {
                           doubleRooms: 0,
                           twinRooms: 0,
                           tripleRooms: 0,
-                          child0_5: 0,
-                          child6_12: 0,
+                          child2_5: 0,
+                          child6_11: 0,
                           guide: 0,
                           guideBasis: "",
                           arrivingFor: ""
@@ -1045,8 +1086,8 @@ export function App() {
                             ["DBL", "w-[76px]"],
                             ["TWN", "w-[76px]"],
                             ["TPL", "w-[76px]"],
-                            ["C (0-5)", "w-[76px]"],
-                            ["C (6-12)", "w-[76px]"],
+                            ["Child (2-5)", "w-[86px]"],
+                            ["Child (6-11)", "w-[86px]"],
                             ["Guide", "w-[76px]"],
                             ["Basis (Guide)", "w-[96px]"],
                             ["Arriving For", "w-[150px]"],
@@ -1067,7 +1108,7 @@ export function App() {
                                     {...form.register(`lineItems.${index}.${column.name}`)}
                                   >
                                     <option value="">Select</option>
-                                    {roomCategories.map((category) => (
+                                    {roomCategoryOptions.map((category) => (
                                       <option value={category} key={category}>
                                         {category}
                                       </option>
@@ -1122,15 +1163,15 @@ export function App() {
 
                   {/* Rooms summary bar (Per day calculation) */}
                   <div className="mt-4 flex flex-wrap items-center gap-4 rounded-app bg-cloud px-4 py-3 text-sm font-bold">
-                    <span className="text-steel mr-2">Rooms per day:</span>
+                    <span className="text-steel mr-2">Pax Summary per day:</span>
                     {dailyRooms.length > 0 ? (
                       dailyRooms.map((dr, idx) => (
                         <span key={idx} className="text-steel">
-                          {dr.date} rooms = <span className="text-navy">{dr.total}</span>
+                          {dr.date} rooms: <span className="text-navy">{dr.rooms}</span> / child: <span className="text-navy">{dr.children}</span>
                         </span>
                       ))
                     ) : (
-                      <span className="text-steel opacity-50">No rooms entered</span>
+                      <span className="text-steel opacity-50">No data entered</span>
                     )}
                   </div>
                 </section>
@@ -1264,8 +1305,8 @@ export function App() {
                               <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">DBL</th>
                               <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TWN</th>
                               <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TPL</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">C1</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">C2</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">Child (2-5)</th>
+                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">Child (6-11)</th>
                               <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">GUD</th>
                               <th className="py-1 pl-1 font-bold text-steel uppercase text-[6px]">Arriving For</th>
                             </tr>
@@ -1280,8 +1321,8 @@ export function App() {
                                 <td className="py-1 px-0.5 text-center text-[7px]">{item.doubleRooms || 0}</td>
                                 <td className="py-1 px-0.5 text-center text-[7px]">{item.twinRooms || 0}</td>
                                 <td className="py-1 px-0.5 text-center text-[7px]">{item.tripleRooms || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child0_5 || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child6_12 || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child2_5 || 0}</td>
+                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child6_11 || 0}</td>
                                 <td className="py-1 px-0.5 text-center text-[7px]">{item.guide || 0}</td>
                                 <td className="py-1 pl-1 truncate max-w-[70px] text-[7px]">{item.arrivingFor || "—"}</td>
                               </tr>

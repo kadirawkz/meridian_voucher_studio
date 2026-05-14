@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import type { DocumentFormat, VoucherListFilters, VoucherPayload, VoucherStatus } from "../shared/types.js";
 import { generateDocuments } from "./lib/documentGenerator.js";
 import { getVoucher, listVoucherDocuments, listVoucherRevisions, listVouchers, saveGeneratedDocumentRecord, saveVoucher, searchWorkspace, updateVoucherStatus } from "./lib/supabase.js";
-import { autoFillVoucherFromHotelRates, getHotelRates, listHotelRates, listHotelsFromRates, saveHotelRates, getAllHotelRates, deleteHotelRate } from "./lib/hotelRates.js";
+import { autoFillVoucherFromHotelRates, getHotelRates, listHotelRates, listHotelsFromRates, saveHotelRates, getAllHotelRates, deleteHotelRate, listHotels, listMarkets, listRoomCategories, listCustomers } from "./lib/hotelRates.js";
 import { seedAllHotelContracts } from "./lib/seedRateMaster.js";
 
 export async function createVoucherServer(): Promise<{ url: string; close: () => Promise<void> }> {
@@ -104,6 +104,44 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       response.json(result);
     } catch (error) {
       response.status(500).send(error instanceof Error ? error.message : "Unable to search workspace");
+    }
+  });
+
+  /* ---------- Reference Data endpoints ---------- */
+
+  app.get("/api/reference/hotels", async (_request, response) => {
+    try {
+      const result = await listHotels();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load hotels");
+    }
+  });
+
+  app.get("/api/reference/markets", async (_request, response) => {
+    try {
+      const result = await listMarkets();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load markets");
+    }
+  });
+
+  app.get("/api/reference/room-categories", async (_request, response) => {
+    try {
+      const result = await listRoomCategories();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load room categories");
+    }
+  });
+
+  app.get("/api/reference/customers", async (_request, response) => {
+    try {
+      const result = await listCustomers();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load customers");
     }
   });
 

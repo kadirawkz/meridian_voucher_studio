@@ -3,16 +3,44 @@ export type TourType = "SL" | "ASL" | "WSL" | "FSS" | "CSL" | "DSL" | "SLH";
 export type VoucherStatus = "draft" | "generated" | "sent";
 export type DocumentFormat = "docx" | "pdf";
 
+/* ---------- Reference data types ---------- */
+
+export interface HotelRef {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+export interface MarketRef {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface RoomCategoryRef {
+  id: string;
+  name: string;
+}
+
+export interface CustomerRef {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+/* ---------- Voucher types ---------- */
+
 export interface VoucherLineItem {
   requiredDate: string;
-  roomCategory: string;
+  roomCategoryId?: string;
+  roomCategory: string;  // read-only, populated by JOIN
   basis: string;
   singleRooms: number;
   doubleRooms: number;
   twinRooms: number;
   tripleRooms: number;
-  child0_5?: number;
-  child6_12?: number;
+  child2_5?: number;
+  child6_11?: number;
   guide?: number;
   guideBasis?: string;
   arrivingFor: string;
@@ -25,18 +53,21 @@ export interface VoucherPayload {
   pageNumber: string;
   date: string;
   voucherTitle?: string;
-  hotelName: string;
-  market?: string;
+  hotelId?: string;
+  hotelName: string;       // read-only on load, resolved from hotelId
+  marketId?: string;
+  market?: string;         // read-only on load, resolved from marketId
+  customerId?: string;
+  customerName: string;    // read-only on load, resolved from customerId
   requisitionNo: string;
   tourNo: string;
   tourName: string;
-  customerName: string;
   confirmedBy: string;
   rateApplicable: number;
   ratePeriod?: string;
   totalPax?: number;
-  employeeName: string;
-  employeeEmail: string;
+  employeeName: string;    // read-only, populated from employee_profiles via created_by
+  employeeEmail: string;   // read-only, populated from employee_profiles via created_by
   billingInstructions?: string;
   remarks?: string;
   lineItems: VoucherLineItem[];
@@ -92,6 +123,7 @@ export interface VoucherRevisionRecord {
   versionNumber: number;
   status: VoucherStatus;
   changedBy: string;
+  snapshotSummary: string;
   createdAt: string;
 }
 
@@ -128,14 +160,16 @@ export interface AuthState {
   message?: string;
 }
 
-/* ---------- Hotel rate master (one-table) types ---------- */
+/* ---------- Hotel rate master (NORMALIZED) types ---------- */
 
 export type SectionStatus = "Empty" | "Completed" | "Skipped";
 
 export type HotelRateRoomRate = {
+  id?: string;
   from: string;
   to: string;
-  room_category: string;
+  room_category_id?: string;
+  room_category: string;  // read-only, populated by JOIN
   basis: string;
   sgl?: number | null;
   dbl?: number | null;
@@ -144,19 +178,20 @@ export type HotelRateRoomRate = {
 };
 
 export type HotelRateChildRate = {
+  id?: string;
   from: string;
   to: string;
-  room_category: string;
+  room_category_id?: string;
+  room_category: string;  // read-only, populated by JOIN
   basis: string;
-  age0_5?: string | null;
-  age6_12?: string | null;
+  age2_5?: string | null;
+  age6_11?: string | null;
   extra_bed?: string | null;
   own_room?: string | null;
 };
 
-
-
 export type HotelRateSeasonalSurcharge = {
+  id?: string;
   name: string;
   amount?: number | null;
   date_from?: string | null;
@@ -165,6 +200,7 @@ export type HotelRateSeasonalSurcharge = {
 };
 
 export type HotelRateCompulsoryEvent = {
+  id?: string;
   event_date: string;
   event_name: string;
   bb_rate?: number | null;
@@ -182,24 +218,43 @@ export type HotelRateFocRules = {
   basis?: string | null;
 };
 
+export type HotelRateGuidePrice = {
+  id?: string;
+  basis: string;
+  rate: number | null;
+};
+
 export type HotelRateGuideRates = Record<string, number | null>;
+
+export type HotelRateRoomSupplement = {
+  id?: string;
+  room_category_id?: string;
+  room_category: string;  // read-only, populated by JOIN
+  supplement_name: string;
+  supplement_amount: number;
+  per: string;            // e.g. "per room per night"
+};
 
 export interface HotelRateRecord {
   id?: string;
-  hotel_name: string;
-  market: string;
+  hotel_id?: string;
+  hotel_name: string;      // read-only, populated by JOIN
+  market_id?: string;
+  market: string;           // read-only, populated by JOIN
   currency: string;
   contract_name: string;
   valid_from: string;
   valid_to: string;
   room_rates: HotelRateRoomRate[];
   child_rates?: HotelRateChildRate[];
+  room_supplements?: HotelRateRoomSupplement[];
   seasonal_surcharges: HotelRateSeasonalSurcharge[];
   compulsory_events: HotelRateCompulsoryEvent[];
   foc_rules: HotelRateFocRules;
   billing_instruction: string;
   skipped_sections?: string[];
   guide_rates?: HotelRateGuideRates | null;
+  guide_prices?: HotelRateGuidePrice[];
   created_at?: string;
   updated_at?: string;
 }
@@ -269,6 +324,10 @@ export interface AppApi {
   getAllHotelRates: () => Promise<HotelRateRecord[]>;
   getHotelRates: (hotelRateId: string) => Promise<HotelRateRecord>;
   listHotelsFromRates: () => Promise<string[]>;
+  listHotels: () => Promise<HotelRef[]>;
+  listMarkets: () => Promise<MarketRef[]>;
+  listRoomCategories: () => Promise<RoomCategoryRef[]>;
+  listCustomers: () => Promise<CustomerRef[]>;
   autoFillVoucher: (voucher: VoucherPayload, contractId?: string) => Promise<AutoFillResult>;
   seedRateMaster: () => Promise<{ seeded: number; ids: string[] }>;
   selectToursFolder: () => Promise<{ path: string } | null>;

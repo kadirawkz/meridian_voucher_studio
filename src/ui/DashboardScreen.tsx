@@ -11,8 +11,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
-import { hotels as referenceHotels } from "../domain/referenceData";
-import type { HotelRateRecordSummary, VoucherRecord, VoucherStatus } from "../../electron/shared/types";
+import { hotels as fallbackHotels } from "../domain/referenceData";
+import type { HotelRateRecordSummary, HotelRef, VoucherRecord, VoucherStatus } from "../../electron/shared/types";
 
 interface DashboardProps {
   onNewVoucher: () => void;
@@ -148,9 +148,22 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
     })
     .sort((a, b) => a.valid_to.localeCompare(b.valid_to));
 
-  const totalReferenceHotels = referenceHotels.length;
-  const coveredCount = referenceHotels.filter((h) => hotelsWithContracts.has(h)).length;
-  const uncoveredHotels = referenceHotels.filter((h) => !hotelsWithContracts.has(h));
+  // Load hotel names from API for coverage calculation
+  const [allHotelNames, setAllHotelNames] = useState<string[]>([...fallbackHotels]);
+  useEffect(() => {
+    if (window.meridian?.listHotels) {
+      void window.meridian.listHotels()
+        .then((refs: HotelRef[]) => {
+          const names = refs.map((h) => h.name).filter(Boolean);
+          if (names.length > 0) setAllHotelNames(names);
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const totalReferenceHotels = allHotelNames.length;
+  const coveredCount = allHotelNames.filter((h) => hotelsWithContracts.has(h)).length;
+  const uncoveredHotels = allHotelNames.filter((h) => !hotelsWithContracts.has(h));
 
   return (
     <div className="mx-auto max-w-[1400px] p-8">
