@@ -330,10 +330,10 @@ async function convertDocxToPdf(docxPath: string, outputDirectory: string): Prom
       "--outdir",
       outputDirectory,
       docxPath
-    ]);
+    ]) as any;
 
     child.on("error", () => resolve(undefined));
-    child.on("close", (code) => {
+    child.on("close", (code: number | null) => {
       if (code !== 0) {
         resolve(undefined);
         return;

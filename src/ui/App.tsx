@@ -1396,7 +1396,7 @@ export function App() {
           />
         ) : (
           <>
-            <div style={{ display: activeView === "rate-master" ? "block" : "none" }}>
+            <div className={activeView === "rate-master" ? "block" : "hidden"}>
               <HotelRateMasterScreen
                 initialEditId={editHotelRateId}
                 onBack={() => {
