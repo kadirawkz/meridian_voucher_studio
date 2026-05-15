@@ -708,6 +708,22 @@ export function App() {
   }, [customerName, tourType, lineItems, form]);
 
   useEffect(() => {
+    if (!voucherType) return;
+    if (form.formState.dirtyFields.voucherTitle) return;
+
+    const titleMap: Record<string, string> = {
+      reservation: "Hotel Reservation Voucher",
+      amendment: "Amendment Voucher",
+      pptp: "PPTP Voucher"
+    };
+
+    const title = titleMap[voucherType as string] || "";
+    if (title) {
+      form.setValue("voucherTitle", title, { shouldValidate: true });
+    }
+  }, [voucherType, form]);
+
+  useEffect(() => {
     setSelectedHotelRateId("");
   }, [hotelName, market]);
 

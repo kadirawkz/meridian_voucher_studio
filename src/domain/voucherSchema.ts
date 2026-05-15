@@ -20,8 +20,12 @@ export const voucherSchema = z.object({
   id: z.string().optional(),
   voucherType: z.enum(["reservation", "amendment", "pptp"]),
   tourType: z.enum(tourTypes, {
-    required_error: "Tour type is required",
-    invalid_type_error: "Tour type is required"
+    errorMap: (issue, ctx) => {
+      if (issue.code === "invalid_enum_value") {
+        return { message: "Tour type is required" };
+      }
+      return { message: ctx.defaultError };
+    }
   }),
   pageNumber: z.string().min(1, "Page number is required"),
   date: z.string().min(1, "Voucher date is required"),
