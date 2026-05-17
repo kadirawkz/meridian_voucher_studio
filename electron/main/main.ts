@@ -354,7 +354,7 @@ app.whenReady().then(async () => {
     return getAllSettings();
   });
 
-  ipcMain.handle("settings:set", async (_event, settings: Record<string, any>) => {
+  ipcMain.handle("settings:set", async (_event, settings: Record<string, unknown>) => {
     return updateSettings(settings);
   });
 

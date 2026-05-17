@@ -76,8 +76,8 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
       {feedback && (
         <div className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
           feedback.includes("success")
-            ? "border-green-200 bg-green-50 text-green-700"
-            : "border-red-200 bg-red-50 text-red-700"
+            ? "border-green-500/20 bg-green-500/10 text-green-500"
+            : "border-red-500/20 bg-red-500/10 text-red-500"
         }`}>
           {feedback}
         </div>

@@ -50,10 +50,10 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
 
   return (
     <div className="flex h-screen flex-col bg-sand text-ink">
-      <header className="flex shrink-0 items-center gap-4 border-b border-line bg-white px-6 py-4">
+      <header className="flex shrink-0 items-center gap-4 border-b border-line bg-surface px-6 py-4">
         <button 
           onClick={onBack} 
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm" 
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm" 
           aria-label="Go back" 
           title="Go back"
         >
@@ -76,7 +76,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
 
       <div className="flex-1 overflow-y-auto p-6">
         {error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mb-4 rounded border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
             {error}
           </div>
         )}
@@ -84,7 +84,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
         {loading ? (
           <div className="flex h-32 items-center justify-center text-steel">Loading rates...</div>
         ) : (
-          <div className="rounded-app border border-line bg-white shadow-sm overflow-hidden">
+          <div className="rounded-app border border-line bg-surface shadow-sm overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="bg-cloud text-xs font-bold uppercase tracking-wide text-steel">
                 <tr>
@@ -114,7 +114,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
                           <button onClick={() => onEdit(r.id!)} className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" aria-label={`Edit rate for ${r.hotel_name}`} title={`Edit rate for ${r.hotel_name}`}>
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => setDeleteId(r.id!)} className="rounded p-1.5 text-steel hover:bg-red-50 hover:text-red-600 transition-colors" aria-label={`Delete rate for ${r.hotel_name}`} title={`Delete rate for ${r.hotel_name}`}>
+                          <button onClick={() => setDeleteId(r.id!)} className="rounded p-1.5 text-steel hover:bg-red-500/10 hover:text-red-500 transition-colors" aria-label={`Delete rate for ${r.hotel_name}`} title={`Delete rate for ${r.hotel_name}`}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -130,7 +130,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
 
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl bg-surface p-6 shadow-xl">
             <div className="mb-4 flex items-center gap-3 text-red-600">
               <AlertTriangle size={24} />
               <h2 className="text-lg font-bold">Delete Rate Master Entry</h2>
@@ -141,7 +141,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setDeleteId(null)}
-                className="rounded-app border border-line bg-white px-4 py-2 text-sm font-bold text-navy hover:bg-cloud transition-colors"
+                className="rounded-app border border-line bg-surface px-4 py-2 text-sm font-bold text-navy hover:bg-cloud transition-colors"
               >
                 Cancel
               </button>

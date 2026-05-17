@@ -76,14 +76,6 @@ interface EventRow {
   mandatory: boolean;
 }
 
-interface PolicyRule {
-  id: string;
-  title: string;
-  content: string;
-  appliesTo: string;
-  notes: string;
-  isActive: boolean;
-}
 
 interface ContractDetails {
   hotelName: string;
@@ -346,8 +338,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
         date: e.event_date ?? "",
         event: e.event_name ?? "",
         bb: e.bb_rate == null ? "" : String(e.bb_rate),
-        hb: e.hb_rate == null ? ((e as any).hbfb_rate == null ? "" : String((e as any).hbfb_rate)) : String(e.hb_rate),
-        fb: e.fb_rate == null ? ((e as any).hbfb_rate == null ? "" : String((e as any).hbfb_rate)) : String(e.fb_rate),
+        hb: e.hb_rate == null ? ((e as Record<string, unknown>).hbfb_rate == null ? "" : String((e as Record<string, unknown>).hbfb_rate)) : String(e.hb_rate),
+        fb: e.fb_rate == null ? ((e as Record<string, unknown>).hbfb_rate == null ? "" : String((e as Record<string, unknown>).hbfb_rate)) : String(e.fb_rate),
         per: String(e.per ?? "Person"),
         mandatory: Boolean(e.mandatory ?? true),
       }))
@@ -716,7 +708,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     }}
                     className={`rounded px-3 py-1 text-xs font-bold transition ${
                       hotelMode === "select"
-                        ? "bg-white text-navy shadow-sm"
+                        ? "bg-surface text-navy shadow-sm"
                         : "text-steel hover:text-ink"
                     }`}
                   >
@@ -733,7 +725,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     }}
                     className={`flex items-center gap-1 rounded px-3 py-1 text-xs font-bold transition ${
                       hotelMode === "create"
-                        ? "bg-white text-navy shadow-sm"
+                        ? "bg-surface text-navy shadow-sm"
                         : "text-steel hover:text-ink"
                     }`}
                   >
@@ -841,9 +833,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                 </div>
               </div>
               {!canSave && (
-                <div className="mt-3 flex items-center gap-2 rounded-app bg-red-50 px-3 py-2.5">
-                  <AlertTriangle size={14} className="text-red-700 flex-shrink-0" />
-                  <p className="text-xs font-semibold text-red-700">
+                <div className="mt-3 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-3 py-2.5">
+                  <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                  <p className="text-xs font-semibold text-red-500">
                     {sectionStates.filter(s => s.status === "Empty").length} section(s) need attention
                   </p>
                 </div>
@@ -869,7 +861,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             <StatusPill status={sectionStates[0].status} />
           </div>
           {sectionStates[0].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -921,7 +913,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             <StatusPill status={sectionStates[1].status} />
           </div>
           {sectionStates[1].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -975,7 +967,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Twin rate" title="Twin rate" value={rate.twn} onChange={(e) => updateRate(i, "twn", e.target.value.replace(/\D/g, ''))} /></td>
                     <td className="px-2 py-2"><input type="number" step="1" className={cellControl} aria-label="Triple rate" title="Triple rate" value={rate.tpl} onChange={(e) => updateRate(i, "tpl", e.target.value.replace(/\D/g, ''))} /></td>
                     <td className="px-2 py-2">
-                      <button type="button" onClick={() => removeRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove row">
+                      <button type="button" onClick={() => removeRate(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove row">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -1008,7 +1000,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[2].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1076,7 +1068,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 bed" value={rate.age_6_11_extra_bed} onChange={(e) => updateChildRate(i, "age_6_11_extra_bed", e.target.value)} /></td>
                     <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 own room" value={rate.age_6_11_own_room} onChange={(e) => updateChildRate(i, "age_6_11_own_room", e.target.value)} /></td>
                     <td className="px-2 py-2">
-                      <button type="button" onClick={() => removeChildRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove row">
+                      <button type="button" onClick={() => removeChildRate(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove row">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -1110,7 +1102,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[3].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1147,7 +1139,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       <input className={controlClass} aria-label="Supplement per unit" title="Supplement per unit" placeholder="per room per night" value={supp.per} onChange={(e) => updateSupplement(i, "per", e.target.value)} />
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <button type="button" onClick={() => removeSupplement(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove supplement">
+                      <button type="button" onClick={() => removeSupplement(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove supplement">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -1180,7 +1172,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[4].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1210,7 +1202,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       <input type="number" step="1" className={cellControl} aria-label="Guide rate amount" title="Guide rate amount" placeholder="Amount" value={rate.amount} onChange={(e) => updateGuideRate(i, "amount", e.target.value.replace(/\D/g, ''))} />
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <button type="button" onClick={() => removeGuideRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove guide rate">
+                      <button type="button" onClick={() => removeGuideRate(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove guide rate">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -1244,7 +1236,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[5].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1316,7 +1308,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[6].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1344,7 +1336,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     </option>
                   ))}
                 </Select>
-                <button type="button" onClick={() => removeSeasonalSurcharge(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove surcharge">
+                <button type="button" onClick={() => removeSeasonalSurcharge(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove surcharge">
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -1376,7 +1368,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             </div>
           </div>
           {sectionStates[7].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
@@ -1406,7 +1398,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       <input type="checkbox" aria-label="Event mandatory" title="Event mandatory" checked={ev.mandatory} onChange={(e) => updateEvent(i, "mandatory", e.target.checked)} className="h-5 w-5 rounded border-line accent-navy" />
                     </td>
                     <td className="px-2 py-2">
-                      <button type="button" onClick={() => removeEvent(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove event">
+                      <button type="button" onClick={() => removeEvent(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove event">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -1445,13 +1437,13 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             <button
               type="button"
               onClick={() => setBillingText(defaultBillingText)}
-              className="flex items-center gap-2 rounded-app border border-line bg-white px-3 py-2 text-sm font-bold text-navy"
+              className="flex items-center gap-2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-bold text-navy"
             >
               <Circle size={16} /> Use Default Billing Instruction
             </button>
           </div>
           {sectionStates[8].status === "Empty" && (
-            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}

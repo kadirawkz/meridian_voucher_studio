@@ -73,7 +73,7 @@ function StatCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group w-full rounded-2xl border border-line bg-white p-5 text-left shadow-sm transition hover:shadow-md ${onClick ? "cursor-pointer" : "cursor-default"}`}
+      className={`group w-full rounded-2xl border border-line bg-surface p-5 text-left shadow-sm transition hover:shadow-md ${onClick ? "cursor-pointer" : "cursor-default"}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${accent ?? "bg-cloud"}`}>
@@ -183,7 +183,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
             type="button"
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2 text-sm font-bold text-steel shadow-sm hover:text-navy disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-bold text-steel shadow-sm hover:text-navy disabled:opacity-50"
           >
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -235,7 +235,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
       </div>
 
       {/* ── Status breakdown ── */}
-      <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white px-6 py-4 shadow-sm">
+      <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-4 shadow-sm">
         <p className="shrink-0 text-xs font-bold uppercase tracking-wide text-steel">Status Breakdown</p>
         <div className="ml-0 md:ml-4 flex flex-wrap items-center gap-2">
           {(["draft", "generated", "sent"] as VoucherStatus[]).map((s) => {
@@ -258,7 +258,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
 
         {/* Recent Vouchers */}
-        <div className="rounded-2xl border border-line bg-white shadow-sm">
+        <div className="rounded-2xl border border-line bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-line px-6 py-4">
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-navy" />
@@ -316,7 +316,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
         <div className="space-y-6">
 
           {/* Expiring Contracts */}
-          <div className="rounded-2xl border border-line bg-white shadow-sm">
+          <div className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="flex items-center gap-2 border-b border-line px-5 py-4">
               <CalendarClock size={16} className="text-red-500" />
               <h3 className="text-sm font-bold text-navy">Expiring Contracts</h3>
@@ -361,7 +361,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
           </div>
 
           {/* Rate Master Coverage */}
-          <div className="rounded-2xl border border-line bg-white shadow-sm">
+          <div className="rounded-2xl border border-line bg-surface shadow-sm">
             <div className="flex items-center gap-2 border-b border-line px-5 py-4">
               <Building2 size={16} className="text-navy" />
               <h3 className="text-sm font-bold text-navy">Rate Master Coverage</h3>

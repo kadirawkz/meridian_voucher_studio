@@ -123,7 +123,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     <div className="flex min-h-screen items-center justify-center bg-cloud px-6 text-ink">
       <form className="app-panel w-full max-w-md p-8" onSubmit={handleSubmit}>
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-app overflow-hidden bg-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-app overflow-hidden bg-cloud">
             <img src={logo} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div>

@@ -43,6 +43,10 @@ export async function getToursFolderTree(): Promise<FolderTreeNode[]> {
     return [];
   }
 
+  if (!fs.existsSync(root)) {
+    throw new Error(`Tours root folder does not exist at: ${root}`);
+  }
+
   return buildTreeFromDirectory(root);
 }
 

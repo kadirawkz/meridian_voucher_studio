@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { getTemplatePath, resolveVoucherOutputDirectory } from "../config.js";
@@ -378,7 +378,7 @@ async function convertDocxToPdf(docxPath: string, outputDirectory: string): Prom
       "--outdir",
       outputDirectory,
       docxPath
-    ]) as any;
+    ]) as ChildProcess;
 
     child.on("error", () => resolve(undefined));
     child.on("close", (code: number | null) => {

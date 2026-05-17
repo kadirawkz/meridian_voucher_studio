@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { FolderOpen, Save, RotateCcw } from "lucide-react";
+import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor } from "lucide-react";
 
 interface AppSettings {
   toursFolderRoot?: string;
   exportDirectory?: string;
+  theme?: "light" | "dark" | "system";
 }
 
 interface SettingsScreenProps {
+  onThemeChange?: (theme: "light" | "dark" | "system") => void;
 }
 
-export function SettingsScreen() {
+export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
   const [settings, setSettings] = useState<AppSettings>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -92,8 +94,8 @@ export function SettingsScreen() {
       {feedback && (
         <div className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
           feedback.includes("success") 
-            ? "border-green-200 bg-green-50 text-green-700"
-            : "border-red-200 bg-red-50 text-red-700"
+            ? "border-green-500/20 bg-green-500/10 text-green-500"
+            : "border-red-500/20 bg-red-500/10 text-red-500"
         }`}>
           {feedback}
         </div>
@@ -139,6 +141,54 @@ export function SettingsScreen() {
                 >
                   <FolderOpen size={16} /> Select
                 </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Appearance Settings */}
+        <section className="app-panel app-panel-body-lg">
+          <h3 className="mb-5 app-section-title">Appearance</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block space-y-2 mb-3">
+                <span className="app-label">Application Theme</span>
+                <p className="text-xs text-steel">Choose how Meridian Voucher Studio looks on your screen</p>
+              </label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { value: "light", label: "Light Theme", icon: Sun, desc: "Clean and classic, ideal for bright workspaces." },
+                  { value: "dark", label: "Dark Theme", icon: Moon, desc: "A sleek, low-glare dark palette optimized for clarity." },
+                  { value: "system", label: "System Sync", icon: Monitor, desc: "Automatically match your computer's OS theme." }
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = (settings.theme || "system") === item.value;
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => {
+                        const nextSettings = { ...settings, theme: item.value as "light" | "dark" | "system" };
+                        setSettings(nextSettings);
+                        if (onThemeChange) {
+                          onThemeChange(item.value as "light" | "dark" | "system");
+                        }
+                      }}
+                      className={`flex flex-col items-start rounded-app border p-4 text-left transition-all ${
+                        isSelected 
+                          ? "border-navy bg-[var(--color-accent-bg)] text-navy shadow-sm" 
+                          : "border-line bg-surface text-ink hover:border-steel"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-bold text-sm">
+                        <Icon size={18} className={isSelected ? "text-navy" : "text-steel"} />
+                        <span>{item.label}</span>
+                      </div>
+                      <p className="mt-2 text-xs text-steel leading-relaxed">{item.desc}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

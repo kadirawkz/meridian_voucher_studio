@@ -1,6 +1,5 @@
 import {
   FileDown,
-  FilePlus,
   FileText,
   History,
   Hotel,
@@ -18,7 +17,8 @@ import {
   ChevronLeft,
   Minus,
   Maximize2,
-  Minimize2
+  ChevronDown,
+  Check
 } from "lucide-react";
 import React, { useDeferredValue, useEffect, useMemo, useState, useRef } from "react";
 import logo from "../assets/logo.png";
@@ -186,34 +186,45 @@ function SupplementaryDropdown({
     : "Select";
 
   return (
-    <div className="relative" ref={ref}>
-      <button 
-        type="button" 
-        onClick={() => setOpen(!open)}
-        className="app-table-control w-full text-left truncate bg-white"
-        title={value.join(", ")}
-      >
-        {display}
-      </button>
+    <div className="relative w-full" ref={ref}>
+      <div className="app-select-shell w-full animate-in fade-in duration-100" data-open={open}>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="app-select app-select-with-chevron w-full app-select-compact app-table-control text-left truncate pr-8 cursor-pointer select-none bg-surface"
+          title={value.join(", ")}
+        >
+          {display}
+        </button>
+        <ChevronDown size={16} className="app-select-chevron" />
+      </div>
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-line shadow-lg rounded-md z-50 max-h-48 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-line shadow-lg rounded-app z-[100] max-h-56 overflow-y-auto thin-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150">
           {options.length === 0 ? (
-            <div className="p-2 text-xs text-steel">No supplements</div>
+            <div className="p-3 text-xs text-steel text-center select-none font-medium">No supplements</div>
           ) : (
-            options.map((opt) => (
-              <label key={opt.name} className="flex items-center gap-2 px-3 py-2 hover:bg-cloud cursor-pointer text-xs">
-                <input 
-                  type="checkbox" 
-                  checked={value.includes(opt.name)}
-                  onChange={(e) => {
-                    if (e.target.checked) onChange([...value, opt.name]);
-                    else onChange(value.filter(v => v !== opt.name));
+            options.map((opt) => {
+              const isSelected = value.includes(opt.name);
+              return (
+                <div
+                  key={opt.name}
+                  onClick={() => {
+                    if (isSelected) onChange(value.filter(v => v !== opt.name));
+                    else onChange([...value, opt.name]);
                   }}
-                  className="rounded text-navy focus:ring-navy"
-                />
-                <span className="truncate" title={opt.label}>{opt.label}</span>
-              </label>
-            ))
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-cloud cursor-pointer text-xs rounded transition-colors select-none text-ink font-medium"
+                >
+                  <div className={`h-4 w-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                    isSelected 
+                      ? "border-navy bg-navy text-white animate-in zoom-in-95 duration-100" 
+                      : "border-line bg-surface text-transparent"
+                  }`}>
+                    {isSelected && <Check size={11} strokeWidth={3} className="shrink-0" />}
+                  </div>
+                  <span className="truncate" title={opt.label}>{opt.label}</span>
+                </div>
+              );
+            })
           )}
         </div>
       )}
@@ -222,6 +233,33 @@ function SupplementaryDropdown({
 }
 
 export function App() {
+  const [activeTheme, setActiveTheme] = useState<"light" | "dark" | "system">("system");
+  const [systemIsDark, setSystemIsDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  // Load theme on startup
+  useEffect(() => {
+    if (window.meridian?.getSettings) {
+      void window.meridian.getSettings().then((settings) => {
+        if (settings?.theme) {
+          setActiveTheme(settings.theme);
+        }
+      });
+    }
+  }, []);
+
+  // Listen to system preference changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      setSystemIsDark(e.matches);
+    };
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, []);
+
+  const isDark = activeTheme === "dark" || (activeTheme === "system" && systemIsDark);
+  const themeClass = isDark ? "dark" : "light";
+
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [previewMode, setPreviewMode] = useState<"collapsed" | "thumbnail" | "expanded">("thumbnail");
@@ -287,10 +325,11 @@ export function App() {
   const [hotelOptions, setHotelOptions] = useState<string[]>([...fallbackHotels]);
   const [marketOptions, setMarketOptions] = useState<readonly string[]>(fallbackMarkets);
   const [roomCategoryOptions, setRoomCategoryOptions] = useState<readonly string[]>(fallbackRoomCategories);
-  const [customerOptions, setCustomerOptions] = useState<string[]>([]);
+  const [customerOptions, setCustomerOptions] = useState<string[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>("");
   const [toursFolderPath, setToursFolderPath] = useState<string | null>(null);
   const [toursFolderTree, setToursFolderTree] = useState<FolderTreeNode[]>([]);
+  const [toursFolderExists, setToursFolderExists] = useState<boolean>(true);
   const [isLoadingTree, setIsLoadingTree] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
@@ -330,6 +369,7 @@ export function App() {
 
   // Use native Event
   useEffect(() => {
+    if (!window.meridian) return;
     const unsubNavigate = window.meridian.onMenuNavigate((view: string) => setActiveView(view as ActiveView));
     const unsubSearch = window.meridian.onMenuSearchFocus(() => {
       window.dispatchEvent(new window.Event("focus-search"));
@@ -355,7 +395,6 @@ export function App() {
     };
   }, [form]);
 
-  const navWidth = navCollapsed ? 64 : 288;
   
   const lineItems = useWatch({
     control: form.control,
@@ -539,8 +578,11 @@ export function App() {
     try {
       const tree = await window.meridian.getToursFolderTree();
       setToursFolderTree(tree);
+      setToursFolderExists(true);
     } catch {
-      addNotice("Unable to scan Tours folder");
+      setToursFolderExists(false);
+      setToursFolderTree([]);
+      addNotice("Tours root folder not found or inaccessible");
     } finally {
       setIsLoadingTree(false);
     }
@@ -776,6 +818,7 @@ export function App() {
       const result = await window.meridian.selectToursFolder();
       if (result) {
         setToursFolderPath(result.path);
+        setToursFolderExists(true);
         addNotice(`Tours folder set: ${result.path}`);
         await refreshToursFolderTree();
       }
@@ -900,25 +943,32 @@ export function App() {
 
   if (isCheckingAuth) {
     return (
-      <div className="app-loading-screen">
-        <div className="app-loading-card">
-          <div className="app-loading-logo overflow-hidden bg-white">
-            <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+      <div className={`min-h-screen ${themeClass} bg-bg text-ink`}>
+        <div className="app-loading-screen">
+          <div className="app-loading-card">
+            <div className="app-loading-logo overflow-hidden bg-cloud">
+              <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+            </div>
+            <div className="app-loading-spinner" />
+            <p className="app-loading-text">Meridian Voucher Studio</p>
+            <p className="app-loading-subtext">Initializing workspace…</p>
           </div>
-          <div className="app-loading-spinner" />
-          <p className="app-loading-text">Meridian Voucher Studio</p>
-          <p className="app-loading-subtext">Initializing workspace…</p>
         </div>
       </div>
     );
   }
 
   if (!authState.isAuthenticated) {
-    return <AuthScreen onAuthenticated={handleAuthenticated} />;
+    return (
+      <div className={`min-h-screen ${themeClass} bg-bg text-ink`}>
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+      </div>
+    );
   }
 
   return (
-    <div className={`app-shell ${navCollapsed ? "app-shell-nav-collapsed" : "app-shell-nav-expanded"}`}>
+    <div className={`min-h-screen ${themeClass} bg-bg text-ink`}>
+      <div className={`app-shell ${navCollapsed ? "app-shell-nav-collapsed" : "app-shell-nav-expanded"}`}>
       <MenuBar 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -936,7 +986,7 @@ export function App() {
           <button
             type="button"
             onClick={() => setNavCollapsed(!navCollapsed)}
-            className="absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-surface shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
             title={navCollapsed ? "Expand Navigation" : "Collapse Navigation"}
           >
             {navCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -1004,7 +1054,7 @@ export function App() {
               </button>
 
               {showAccountMenu && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 w-full min-w-[220px] rounded-2xl border border-line bg-white p-2 shadow-2xl animate-in slide-in-from-bottom-2">
+                <div className="absolute bottom-full left-0 z-50 mb-2 w-full min-w-[220px] rounded-2xl border border-line bg-surface p-2 shadow-2xl animate-in slide-in-from-bottom-2">
                   <div className="px-3 py-2 border-b border-line mb-1">
                     <p className="text-xs font-bold text-navy">Account Actions</p>
                   </div>
@@ -1020,7 +1070,7 @@ export function App() {
                   <div className="my-1 border-t border-line" />
                   <button 
                     onClick={handleSignOut}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors"
                   >
                     <LogOut size={16} /> Sign Out
                   </button>
@@ -1168,7 +1218,7 @@ export function App() {
                               key={type.value}
                               onClick={() => field.onChange(type.value)}
                               className={`rounded-app border p-4 text-left transition ${
-                                selected ? "border-navy bg-blue-50 text-navy" : "border-line bg-white text-ink hover:border-steel"
+                                selected ? "border-navy bg-[var(--color-accent-bg)] text-navy" : "border-line bg-surface text-ink hover:border-steel"
                               }`}
                             >
                               <Icon size={22} />
@@ -1254,7 +1304,7 @@ export function App() {
                       <Plus size={16} /> Row
                     </button>
                   </div>
-                  <div className="thin-scrollbar overflow-x-auto pb-12">
+                  <div className="thin-scrollbar overflow-x-auto pb-48">
                     <table className="w-full min-w-[1440px] table-fixed border-collapse text-sm">
                       <colgroup>
                         <col className="w-[140px]" />
@@ -1344,7 +1394,7 @@ export function App() {
                                 {column.type === "select-supplementary" && (
                                   <Controller
                                     control={form.control}
-                                    name={`lineItems.${index}.supplementary` as any}
+                                    name={`lineItems.${index}.supplementary` as never}
                                     render={({ field }) => {
                                       const cat = lineItems[index]?.roomCategory || "";
                                       const rowOpts = availableSupplements
@@ -1363,7 +1413,7 @@ export function App() {
                                 {column.type !== "select-room-category" && column.type !== "select-basis" && column.type !== "select-supplementary" && (
                                   <Controller
                                     control={form.control}
-                                    name={`lineItems.${index}.${column.name}` as any}
+                                    name={`lineItems.${index}.${column.name}` as never}
                                     render={({ field }) => (
                                       <input
                                         {...field}
@@ -1397,7 +1447,7 @@ export function App() {
                                 type="button"
                                 aria-label={`Remove voucher content row ${index + 1}`}
                                 title={`Remove voucher content row ${index + 1}`}
-                                className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700"
+                                className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500"
                                 onClick={() => remove(index)}
                               >
                                 <Trash2 size={16} />
@@ -1448,7 +1498,7 @@ export function App() {
                         </label>
                       </div>
                       <textarea
-                        className={`app-textarea min-h-48 font-mono ${manualRates ? "border-line bg-white text-ink" : "border-navy/20 bg-blue-50/50 text-navy"}`}
+                        className={`app-textarea min-h-48 font-mono ${manualRates ? "border-line bg-surface text-ink" : "border-navy/20 bg-blue-100/20 text-navy"}`}
                         readOnly={!manualRates}
                         {...form.register("rateApplicableText")}
                         placeholder="Select a hotel and fill room details to see rates"
@@ -1498,7 +1548,7 @@ export function App() {
                 const safeY = Math.max(48, Math.min(previewPos.y, windowSize.height - targetHeight - 8));
                 return (
                   <div 
-                    className="fixed z-50 bg-white border border-line shadow-panel rounded-app overflow-hidden flex flex-col pointer-events-auto"
+                    className="fixed z-50 bg-surface border border-line shadow-panel rounded-app overflow-hidden flex flex-col pointer-events-auto"
                     style={{ 
                       left: `${safeX}px`,
                       top: `${safeY}px`,
@@ -1554,7 +1604,7 @@ export function App() {
                           cursor: previewMode === "thumbnail" ? 'zoom-in' : 'zoom-out'
                         }}
                       >
-                        <div className="w-full h-full bg-white p-10 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800">
+                        <div className="w-full h-full p-10 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800" style={{ backgroundColor: "#ffffff" }}>
                           {/* Header Section */}
                           <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
                             <div className="flex gap-4">
@@ -1618,7 +1668,7 @@ export function App() {
                               </thead>
                               <tbody>
                                 {(lineItems || []).map((item, idx) => (
-                                  <tr key={idx} className={idx % 2 === 0 ? 'bg-[#f5f5f5]' : 'bg-white'}>
+                                  <tr key={idx} className={idx % 2 === 0 ? 'bg-cloud/50' : 'bg-surface'}>
                                     <td className="py-1.5 px-2">{item.requiredDate || "—"}</td>
                                     <td className="py-1.5 px-2 whitespace-pre-wrap">{item.roomCategory || "—"}</td>
                                     <td className="py-1.5 px-2">{item.basis || "—"}</td>
@@ -1717,7 +1767,7 @@ export function App() {
                 }}
               />
             ) : activeView === "settings" ? (
-              <SettingsScreen />
+              <SettingsScreen onThemeChange={setActiveTheme} />
             ) : activeView === "profile" ? (
               <ProfileScreen
                 accountProfile={accountProfile}
@@ -1728,7 +1778,7 @@ export function App() {
             <div className="mb-8 flex items-start gap-4">
               <button 
                 onClick={() => setActiveView("dashboard")}
-                className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm"
+                className="mt-1 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-steel hover:bg-cloud hover:text-navy transition-all shadow-sm"
                 title="Go to Dashboard"
               >
                 <ChevronLeft size={22} />
@@ -1947,6 +1997,7 @@ export function App() {
         <TourExplorerPanel
           toursFolderPath={toursFolderPath}
           toursFolderTree={toursFolderTree}
+          toursFolderExists={toursFolderExists}
           documentHistory={documentHistory}
           voucherRevisions={voucherRevisions}
           isLoading={isLoadingTree}
@@ -1995,5 +2046,6 @@ export function App() {
         )}
       </div>
     </div>
+  </div>
   );
 }

@@ -19,6 +19,7 @@ export function getOutputDirectory(): string {
 interface AppSettings {
   toursFolderRoot?: string;
   exportDirectory?: string;
+  theme?: "light" | "dark" | "system";
 }
 
 function getSettingsPath(): string {

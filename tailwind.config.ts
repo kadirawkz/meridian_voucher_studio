@@ -1,17 +1,19 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#172033",
-        navy: "#12345a",
-        steel: "#4f6078",
-        cloud: "#f6f8fb",
-        line: "#d8dee8",
-        success: "#0f7b55",
-        warning: "#a35f00"
+        ink: "var(--color-ink)",
+        navy: "var(--color-navy)",
+        steel: "var(--color-steel)",
+        cloud: "var(--color-cloud)",
+        line: "var(--color-line)",
+        success: "var(--color-success)",
+        warning: "var(--color-warning)",
+        surface: "var(--color-surface)"
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],

@@ -307,7 +307,7 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
   if (liErr) throw new Error(`Unable to load voucher line items: ${liErr.message}`);
 
   const v = row as Record<string, unknown>;
-  const empProfile = v.employee_profiles as Record<string, unknown> | null;
+  const empProfile = profile as Record<string, unknown> | null;
 
   return {
     id: v.id as string,

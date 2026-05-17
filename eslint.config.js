@@ -23,7 +23,16 @@ export default [
         process: "readonly",
         __dirname: "readonly",
         crypto: "readonly",
-        fetch: "readonly"
+        fetch: "readonly",
+        HTMLDivElement: "readonly",
+        MouseEvent: "readonly",
+        Node: "readonly",
+        MediaQueryListEvent: "readonly",
+        HTMLElement: "readonly",
+        HTMLInputElement: "readonly",
+        HTMLSelectElement: "readonly",
+        HTMLTextAreaElement: "readonly",
+        setTimeout: "readonly"
       }
     },
     plugins: {

@@ -4,7 +4,7 @@
 
 @layer components {
   .app-panel {
-    @apply rounded-app border border-line bg-white shadow-panel;
+    @apply rounded-app border border-line bg-surface shadow-panel;
   }
 
   .app-panel-body {
@@ -28,7 +28,7 @@
   }
 
   .app-input {
-    @apply w-full rounded-app border border-line bg-white px-3 py-2.5 text-sm text-ink transition-colors;
+    @apply w-full rounded-app border border-line bg-surface px-3 py-2.5 text-sm text-ink transition-colors;
   }
 
   .app-select {
@@ -58,12 +58,12 @@
 
   .app-select-shell:has(select:open) .app-select-chevron {
     transform: translateY(-50%) rotate(180deg);
-    color: #12345a;
+    color: var(--color-navy);
   }
 
   .app-select-shell[data-open="true"] .app-select-chevron {
     transform: translateY(-50%) rotate(180deg);
-    color: #12345a;
+    color: var(--color-navy);
   }
 
   .app-textarea {
@@ -71,19 +71,19 @@
   }
 
   .app-table-control {
-    @apply h-9 w-full rounded border border-line bg-white px-2 text-sm text-ink;
+    @apply h-9 w-full rounded border border-line bg-surface px-2 text-sm text-ink;
   }
 
   .app-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-app bg-navy px-4 py-2 text-sm font-bold text-white shadow-panel transition-colors hover:bg-[#0f2d4e] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-app bg-navy px-4 py-2 text-sm font-bold text-white shadow-panel transition-colors hover:bg-opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .app-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-app border border-line bg-white px-4 py-2 text-sm font-bold text-ink shadow-panel transition-colors hover:border-steel disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-app border border-line bg-surface px-4 py-2 text-sm font-bold text-ink shadow-panel transition-colors hover:border-steel disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .app-button-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-app px-3 py-2 text-sm font-bold text-navy transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-app px-3 py-2 text-sm font-bold text-navy transition-colors hover:bg-[var(--color-accent-bg)] disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .app-nav-button {
@@ -91,7 +91,7 @@
   }
 
   .app-nav-button-active {
-    @apply bg-blue-50 text-navy;
+    @apply bg-[var(--color-accent-bg)] text-navy;
   }
 
   .app-badge {
@@ -108,38 +108,75 @@
     overflow: hidden;
     border: 0;
     border-radius: 9999px;
-    background: #eef2f7;
+    background: var(--color-cloud);
   }
 
   .app-progress::-webkit-progress-bar {
-    background: #eef2f7;
+    background: var(--color-cloud);
   }
 
   .app-progress::-webkit-progress-value {
     border-radius: 9999px;
-    background: #12345a;
+    background: var(--color-navy);
   }
 
   .app-progress::-moz-progress-bar {
     border-radius: 9999px;
-    background: #12345a;
+    background: var(--color-navy);
   }
 }
 
 :root {
-  color: #172033;
-  background: #f6f8fb;
+  --color-bg: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-ink: #172033;
+  --color-navy: #12345a;
+  --color-steel: #4f6078;
+  --color-cloud: #f6f8fb;
+  --color-line: #d8dee8;
+  --color-success: #0f7b55;
+  --color-warning: #a35f00;
+  --color-accent-bg: #eff6ff;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --focus-outline: rgba(18, 52, 90, 0.16);
+  --selection-bg: rgba(18, 52, 90, 0.2);
+
+  color: var(--color-ink);
+  background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dark {
+  --color-bg: #090d16;
+  --color-surface: #131926;
+  --color-ink: #f3f4f6;
+  --color-navy: #94a3b8;
+  --color-steel: #9ca3af;
+  --color-cloud: #1c2537;
+  --color-line: #25354e;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-accent-bg: rgba(148, 163, 184, 0.15);
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --focus-outline: rgba(148, 163, 184, 0.3);
+  --selection-bg: rgba(148, 163, 184, 0.3);
+  
+  color-scheme: dark;
+}
+
+
 body {
   margin: 0;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 /* Specific overrides for common draggable elements */
@@ -159,7 +196,7 @@ input, textarea, [contenteditable="true"], .app-selectable-text {
 }
 
 input::selection, textarea::selection, [contenteditable="true"]::selection, .app-selectable-text::selection {
-  background: rgba(18, 52, 90, 0.2);
+  background: var(--selection-bg);
 }
 
 button,
@@ -172,8 +209,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid rgba(18, 52, 90, 0.16);
-  border-color: #12345a;
+  outline: 2px solid var(--focus-outline);
+  border-color: var(--color-navy);
 }
 
 /* Global Scrollbar overrides for better UX */
@@ -185,13 +222,13 @@ textarea:focus {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--scrollbar-thumb);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--scrollbar-thumb-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -207,14 +244,14 @@ textarea:focus {
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--scrollbar-thumb);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--scrollbar-thumb-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -242,13 +279,13 @@ textarea:focus {
   height: 10px;
 }
 .show-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--scrollbar-thumb);
   border: 0px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 .show-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ==========================================================================
@@ -262,8 +299,8 @@ textarea:focus {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: #f6f8fb;
-  color: #172033;
+  background: var(--color-bg);
+  color: var(--color-ink);
   overflow: hidden;
 }
 
@@ -289,8 +326,8 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  border-bottom: 1px solid #d8dee8;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
   z-index: 1000;
   flex-shrink: 0;
 }
@@ -319,8 +356,8 @@ button, [role="button"], .drag {
   width: var(--nav-width);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #d8dee8;
-  background: #ffffff;
+  border-right: 1px solid var(--color-line);
+  background: var(--color-surface);
   z-index: 20;
   flex-shrink: 0;
   transition: width 0.2s ease;
@@ -331,8 +368,8 @@ button, [role="button"], .drag {
   width: var(--explorer-width);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #d8dee8;
-  background: #ffffff;
+  border-left: 1px solid var(--color-line);
+  background: var(--color-surface);
   z-index: 20;
   flex-shrink: 0;
   transition: width 0.2s ease;
@@ -346,8 +383,8 @@ button, [role="button"], .drag {
   align-items: center;
   padding-top: 8px;
   gap: 8px;
-  border-left: 1px solid #d8dee8;
-  background: #f8fafc;
+  border-left: 1px solid var(--color-line);
+  background: var(--color-bg);
   z-index: 20;
   flex-shrink: 0;
   transition: width 0.2s ease;
@@ -361,7 +398,7 @@ button, [role="button"], .drag {
   overflow-y: auto;
   min-width: 0; /* Fix flex child overflow */
   transition: all 0.2s ease;
-  background: #f6f8fb;
+  background: var(--color-bg);
 }
 
 /* ==========================================================================
@@ -434,9 +471,9 @@ button, [role="button"], .drag {
   align-items: center;
   justify-content: space-between;
   padding: 0 8px 0 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-line);
   min-height: 35px;
-  background: #f8fafc;
+  background: var(--color-cloud);
 }
 
 .tour-explorer-title {
@@ -447,7 +484,7 @@ button, [role="button"], .drag {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--color-steel);
   margin: 0;
 }
 
@@ -466,14 +503,14 @@ button, [role="button"], .drag {
   border-radius: 4px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-steel);
   cursor: pointer;
   transition: all 0.1s ease;
 }
 
 .tour-explorer-action-btn:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--color-cloud);
+  color: var(--color-ink);
 }
 
 /* ---------- Tour Explorer Tree ---------- */
@@ -482,7 +519,7 @@ button, [role="button"], .drag {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .tour-explorer-root {
@@ -490,10 +527,11 @@ button, [role="button"], .drag {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #f1f5f9;
-  border-bottom: 1px solid #e2e8f0;
-  color: #334155;
+  background: var(--color-cloud);
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-navy);
 }
+
 
 .tour-explorer-root-path {
   font-size: 12px;
@@ -536,11 +574,11 @@ button, [role="button"], .drag {
 }
 
 .tour-tree-item:hover {
-  background: #f1f5f9;
+  background: var(--color-cloud);
 }
 
 .tour-tree-item:active {
-  background: #e2e8f0;
+  background: var(--color-line);
 }
 
 .tour-tree-chevron {
@@ -549,7 +587,7 @@ button, [role="button"], .drag {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--color-steel);
   flex-shrink: 0;
   visibility: hidden;
 }
@@ -559,7 +597,7 @@ button, [role="button"], .drag {
 }
 
 .tour-tree-icon {
-  color: #64748b;
+  color: var(--color-steel);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -569,7 +607,7 @@ button, [role="button"], .drag {
 .tour-tree-label {
   font-size: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #475569;
+  color: var(--color-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -583,10 +621,11 @@ button, [role="button"], .drag {
   bottom: 0;
   left: 50%;
   width: 1px;
-  background: #e2e8f0;
+  background: var(--color-line);
   pointer-events: none;
   transform: translateX(-50%);
 }
+
 
 .tour-tree-empty-row {
   display: flex;
@@ -611,9 +650,9 @@ button, [role="button"], .drag {
   z-index: 80;
   min-width: 190px;
   overflow: hidden;
-  border: 1px solid #dbe3ee;
+  border: 1px solid var(--color-line);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
   padding: 4px;
 }
@@ -627,7 +666,7 @@ button, [role="button"], .drag {
   border-radius: 8px;
   background: transparent;
   padding: 8px 10px;
-  color: #334155;
+  color: var(--color-navy);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
@@ -635,8 +674,8 @@ button, [role="button"], .drag {
 }
 
 .tour-tree-context-menu button:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--color-cloud);
+  color: var(--color-ink);
 }
 
 .tour-tree-badge {
@@ -644,33 +683,33 @@ button, [role="button"], .drag {
   font-weight: 800;
   padding: 1px 4px;
   border-radius: 3px;
-  background: #e2e8f0;
-  color: #64748b;
+  background: var(--color-cloud);
+  color: var(--color-steel);
   margin-left: 4px;
   flex-shrink: 0;
 }
 
 .tour-tree-badge-pdf {
-  background: #fee2e2;
+  background: rgba(239, 68, 68, 0.15);
   color: #ef4444;
 }
 
 .tour-tree-stats {
   padding: 8px 16px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-cloud);
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-steel);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .tour-tree-stats-dot {
-  color: #cbd5e1;
+  color: var(--color-line);
 }
 
 .tour-explorer-empty {
@@ -683,20 +722,20 @@ button, [role="button"], .drag {
 }
 
 .tour-explorer-empty-icon {
-  color: #e2e8f0;
+  color: var(--color-line);
   margin-bottom: 16px;
 }
 
 .tour-explorer-empty-title {
   font-size: 14px;
   font-weight: 700;
-  color: #475569;
+  color: var(--color-ink);
   margin: 0 0 8px 0;
 }
 
 .tour-explorer-empty-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--color-steel);
   margin: 0 0 24px 0;
   line-height: 1.5;
 }
@@ -708,8 +747,8 @@ button, [role="button"], .drag {
 .tour-explorer-migrate-banner {
   margin: 16px;
   padding: 16px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  background: var(--color-cloud);
+  border: 1px solid var(--color-line);
   border-radius: 8px;
   text-align: left;
 }
@@ -717,28 +756,30 @@ button, [role="button"], .drag {
 .tour-explorer-migrate-title {
   font-size: 13px;
   font-weight: 700;
-  color: #0369a1;
+  color: var(--color-navy);
   margin: 0 0 4px 0;
 }
 
 .tour-explorer-migrate-desc {
   font-size: 11px;
-  color: #0c4a6e;
+  color: var(--color-steel);
   margin: 0 0 12px 0;
   line-height: 1.4;
 }
 
 .tour-explorer-migrate-btn {
   @apply flex items-center justify-center gap-2 w-full py-2 rounded-md font-bold text-xs transition-all;
-  background: #0ea5e9;
+  background: var(--color-navy);
   color: white;
   border: none;
 }
 
 .tour-explorer-migrate-btn:hover:not(:disabled) {
-  background: #0284c7;
+  background: var(--color-navy);
+  opacity: 0.9;
   transform: translateY(-1px);
 }
+
 
 .tour-explorer-migrate-btn:disabled {
   opacity: 0.6;

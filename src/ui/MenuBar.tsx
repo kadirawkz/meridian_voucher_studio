@@ -5,7 +5,6 @@ import {
   Square, 
   X,
   Bell,
-  Trash2,
   Info,
   AlertCircle,
   CheckCircle2,
@@ -152,7 +151,7 @@ export function MenuBar({
     <div className="app-menu-bar drag relative" ref={menuBarRef}>
       {/* Left: Logo and Menus */}
       <div className="flex items-center gap-1 no-drag z-10">
-        <div className="flex h-7 w-7 items-center justify-center rounded overflow-hidden ml-2 bg-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded overflow-hidden ml-2 bg-cloud">
           <img src={logo} alt="Logo" className="h-full w-full object-contain" />
         </div>
 
@@ -171,7 +170,7 @@ export function MenuBar({
                 </button>
                 
                 {isMenuOpen && activeMenu === menu.label && (
-                  <div className="absolute left-0 top-full z-[1001] mt-1 min-w-[220px] rounded-lg border border-line bg-white p-1 shadow-xl animate-in fade-in zoom-in-95 duration-75">
+                  <div className="absolute left-0 top-full z-[1001] mt-1 min-w-[220px] rounded-lg border border-line bg-surface p-1 shadow-xl animate-in fade-in zoom-in-95 duration-75">
                     {menu.items.map((item, idx) => (
                       item.type === "separator" ? (
                         <div key={idx} className="my-1 border-t border-line" />
@@ -200,13 +199,13 @@ export function MenuBar({
       </div>
 
       {/* Center: Search */}
-      <div className="flex-1 min-w-0 px-2 sm:px-4 max-w-lg no-drag transition-all">
+      <div className="flex-1 min-w-0 px-2 sm:px-4 max-w-xs no-drag transition-all">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" size={13} />
           <input
             ref={searchInputRef}
             type="text"
-            className="w-full min-w-[120px] rounded-lg border border-line bg-cloud py-1 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-white transition-all shadow-sm"
+            className="w-full min-w-[120px] rounded-lg border border-line bg-cloud py-1 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-surface transition-all shadow-sm"
             placeholder="Search... (Ctrl+K)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -219,8 +218,8 @@ export function MenuBar({
         <div className="relative" ref={noticeRef}>
           <button
             onClick={() => setIsNoticesOpen(!isNoticesOpen)}
-            className={`flex items-center gap-2 rounded-full border border-line px-3 py-1 mr-2 transition-all hover:bg-white active:scale-95 ${
-              isNoticesOpen ? "bg-white shadow-sm border-navy/30" : "bg-cloud"
+            className={`flex items-center gap-2 rounded-full border border-line px-3 py-1 mr-2 transition-all hover:bg-surface active:scale-95 ${
+              isNoticesOpen ? "bg-surface shadow-sm border-navy/30" : "bg-cloud"
             }`}
           >
             <div className={`relative flex items-center justify-center`}>
@@ -237,7 +236,7 @@ export function MenuBar({
           </button>
 
           {isNoticesOpen && (
-            <div className="absolute right-0 top-full z-[2000] mt-2 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 top-full z-[2000] mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between bg-cloud px-4 py-3 border-b border-line">
                 <h3 className="text-xs font-bold text-navy flex items-center gap-2">
                   <Bell size={13} />
@@ -286,7 +285,7 @@ export function MenuBar({
                         </div>
                         <button 
                           onClick={() => onClearNotice(n.id)}
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center rounded-md text-steel hover:bg-red-50 hover:text-red-500 transition-all"
+                          className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center rounded-md text-steel hover:bg-red-500/10 hover:text-red-500 transition-all"
                           title="Dismiss"
                         >
                           <X size={14} />

@@ -20,6 +20,7 @@ export const EXPLORER_WIDTH_COLLAPSED = 64;
 interface TourExplorerPanelProps {
   toursFolderPath: string | null;
   toursFolderTree: FolderTreeNode[];
+  toursFolderExists?: boolean;
   documentHistory: VoucherDocumentRecord[];
   voucherRevisions: VoucherRevisionRecord[];
   isLoading: boolean;
@@ -173,6 +174,7 @@ function TreeStats({ tree }: { tree: FolderTreeNode[] }) {
 export function TourExplorerPanel({
   toursFolderPath,
   toursFolderTree,
+  toursFolderExists = true,
   documentHistory,
   voucherRevisions,
   isLoading,
@@ -259,7 +261,7 @@ export function TourExplorerPanel({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-surface shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
           title="Open Tour Explorer"
         >
           <PanelRightOpen size={14} />
@@ -274,12 +276,12 @@ export function TourExplorerPanel({
   }
 
   return (
-    <aside className="tour-explorer group flex flex-col h-full bg-white" ref={containerRef}>
+    <aside className="tour-explorer group flex flex-col h-full bg-surface" ref={containerRef}>
       {/* Floating Collapse Button - Outside */}
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute -left-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-surface shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
         title="Collapse panel"
       >
         <PanelRightClose size={14} />
@@ -314,11 +316,20 @@ export function TourExplorerPanel({
 
         {expanded[0] && (
           <div 
-            className={`tour-explorer-body ${hoveredSection === 0 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white flex-1 overflow-y-auto min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            className={`tour-explorer-body ${hoveredSection === 0 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface flex-1 overflow-y-auto min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
             onMouseEnter={() => setHoveredSection(0)}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            {!toursFolderPath ? (
+            {toursFolderExists === false ? (
+              <div className="tour-explorer-empty">
+                <div className="tour-explorer-empty-icon text-red-500 animate-pulse"><FolderPlus size={32} /></div>
+                <p className="tour-explorer-empty-title">Folder Not Found</p>
+                <p className="tour-explorer-empty-desc">The configured Tours root folder was deleted or moved from its location. Please locate or re-select the folder.</p>
+                <button type="button" className="tour-explorer-empty-btn" onClick={onSelectFolder}>
+                  <FolderPlus size={15} /> Locate Tours Folder
+                </button>
+              </div>
+            ) : !toursFolderPath ? (
               <div className="tour-explorer-empty">
                 <div className="tour-explorer-empty-icon"><FolderPlus size={32} /></div>
                 <p className="tour-explorer-empty-title">No Tours Folder</p>
@@ -393,7 +404,7 @@ export function TourExplorerPanel({
         
         {expanded[1] && (
           <div 
-            className={`flex-1 overflow-y-auto ${hoveredSection === 1 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            className={`flex-1 overflow-y-auto ${hoveredSection === 1 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
             onMouseEnter={() => setHoveredSection(1)}
             onMouseLeave={() => setHoveredSection(null)}
           >
@@ -452,7 +463,7 @@ export function TourExplorerPanel({
         
         {expanded[2] && (
           <div 
-            className={`flex-1 overflow-y-auto ${hoveredSection === 2 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            className={`flex-1 overflow-y-auto ${hoveredSection === 2 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
             onMouseEnter={() => setHoveredSection(2)}
             onMouseLeave={() => setHoveredSection(null)}
           >

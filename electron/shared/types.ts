@@ -349,7 +349,7 @@ export interface AppApi {
   closeWindow: () => void;
   navigateBack: () => void;
   navigateForward: () => void;
-  getSettings: () => Promise<Record<string, any>>;
-  saveSettings: (settings: Record<string, any>) => Promise<Record<string, any>>;
+  getSettings: () => Promise<Record<string, unknown>>;
+  saveSettings: (settings: Record<string, unknown>) => Promise<Record<string, unknown>>;
   selectFolder: (options: { title?: string; defaultPath?: string }) => Promise<string | null>;
 }
