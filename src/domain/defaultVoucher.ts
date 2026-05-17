@@ -1,7 +1,7 @@
 import type { VoucherFormValues } from "./voucherSchema";
 
 export const defaultVoucher: VoucherFormValues = {
-  voucherType: "reservation",
+  voucherType: "" as unknown as VoucherFormValues["voucherType"],
   tourType: "" as unknown as VoucherFormValues["tourType"],
   pageNumber: "1",
   date: new Date().toISOString().slice(0, 10),
@@ -36,10 +36,17 @@ export const defaultVoucher: VoucherFormValues = {
       twinRooms: 0,
       tripleRooms: 0,
       child2_5: 0,
+      child2_5Sharing: 0,
+      child2_5Bed: 0,
+      child2_5OwnRoom: 0,
       child6_11: 0,
+      child6_11Sharing: 0,
+      child6_11Bed: 0,
+      child6_11OwnRoom: 0,
       guide: 0,
       guideBasis: "",
-      arrivingFor: ""
+      arrivingFor: "",
+      supplementary: []
     }
   ]
 };

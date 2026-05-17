@@ -11,7 +11,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
-import type { FolderTreeNode } from "../../electron/shared/types";
+import type { FolderTreeNode, VoucherDocumentRecord, VoucherRevisionRecord } from "../../electron/shared/types";
 
 /** Pixel widths — exported so the parent layout can use them for margin calculations. */
 export const EXPLORER_WIDTH_EXPANDED = 300;
@@ -20,6 +20,8 @@ export const EXPLORER_WIDTH_COLLAPSED = 64;
 interface TourExplorerPanelProps {
   toursFolderPath: string | null;
   toursFolderTree: FolderTreeNode[];
+  documentHistory: VoucherDocumentRecord[];
+  voucherRevisions: VoucherRevisionRecord[];
   isLoading: boolean;
   isMigrating: boolean;
   collapsed: boolean;
@@ -28,6 +30,7 @@ interface TourExplorerPanelProps {
   onRefresh: () => void;
   onOpenFile: (filePath: string) => void;
   onRevealFile: (filePath: string) => void;
+  onOpenDocument: (filePath: string) => void;
   onMigrate: () => void;
 }
 
@@ -170,6 +173,8 @@ function TreeStats({ tree }: { tree: FolderTreeNode[] }) {
 export function TourExplorerPanel({
   toursFolderPath,
   toursFolderTree,
+  documentHistory,
+  voucherRevisions,
   isLoading,
   isMigrating,
   collapsed,
@@ -178,8 +183,76 @@ export function TourExplorerPanel({
   onRefresh,
   onOpenFile,
   onRevealFile,
+  onOpenDocument,
   onMigrate,
 }: TourExplorerPanelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [flexes, setFlexes] = useState([1, 1, 1]);
+  const [expanded, setExpanded] = useState([true, true, true]);
+  const [isResizing, setIsResizing] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<number | null>(null);
+
+  const toggleExpanded = (index: number) => {
+    setExpanded(prev => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  };
+
+  const startResize = (index: number) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    // Find nearest expanded panel above
+    let topIdx = index;
+    while (topIdx >= 0 && !expanded[topIdx]) topIdx--;
+    
+    // Find nearest expanded panel below
+    let botIdx = index + 1;
+    while (botIdx < expanded.length && !expanded[botIdx]) botIdx++;
+
+    // Cannot resize if we don't have expanded panels on both sides
+    if (topIdx < 0 || botIdx >= expanded.length) return;
+
+    const startY = e.clientY;
+    const startFlexes = [...flexes];
+    const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
+    const totalFlex = flexes.reduce((sum, val, i) => expanded[i] ? sum + val : sum, 0);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const deltaFlex = (deltaY / containerHeight) * totalFlex;
+      
+      const newFlexes = [...startFlexes];
+      newFlexes[topIdx] += deltaFlex;
+      newFlexes[botIdx] -= deltaFlex;
+
+      if (newFlexes[topIdx] < 0.1) {
+        newFlexes[botIdx] -= (0.1 - newFlexes[topIdx]);
+        newFlexes[topIdx] = 0.1;
+      }
+      if (newFlexes[botIdx] < 0.1) {
+        newFlexes[topIdx] -= (0.1 - newFlexes[botIdx]);
+        newFlexes[botIdx] = 0.1;
+      }
+
+      setFlexes(newFlexes);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "ns-resize";
+    document.body.style.userSelect = "none";
+  };
   if (collapsed) {
     return (
       <aside className="tour-explorer-collapsed group">
@@ -201,7 +274,7 @@ export function TourExplorerPanel({
   }
 
   return (
-    <aside className="tour-explorer group">
+    <aside className="tour-explorer group flex flex-col h-full bg-white" ref={containerRef}>
       {/* Floating Collapse Button - Outside */}
       <button
         type="button"
@@ -212,66 +285,199 @@ export function TourExplorerPanel({
         <PanelRightClose size={14} />
       </button>
 
-      <div className="tour-explorer-header">
-        <h3 className="tour-explorer-title">TOUR EXPLORER</h3>
-        <div className="tour-explorer-actions">
-          {toursFolderPath && (
-            <button type="button" className="tour-explorer-action-btn" onClick={onRefresh} title="Refresh" disabled={isLoading}>
-              <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
-            </button>
-          )}
-          <button type="button" className="tour-explorer-action-btn" onClick={onSelectFolder} title={toursFolderPath ? "Change Root Folder" : "Select Root Folder"}>
-            <FolderPlus size={14} />
-          </button>
-        </div>
-      </div>
-
-      <div className="tour-explorer-body thin-scrollbar">
-        {!toursFolderPath ? (
-          <div className="tour-explorer-empty">
-            <div className="tour-explorer-empty-icon"><FolderPlus size={32} /></div>
-            <p className="tour-explorer-empty-title">No Tours Folder</p>
-            <p className="tour-explorer-empty-desc">Select or create a root folder to organize your vouchers by tour type and hotel.</p>
-            <button type="button" className="tour-explorer-empty-btn" onClick={onSelectFolder}>
-              <FolderPlus size={15} /> Select Tours Folder
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="tour-explorer-root">
-              <Folder size={13} />
-              <span className="tour-explorer-root-path" title={toursFolderPath}>
-                {toursFolderPath.split(/[\\/]/).pop() || "Tours"}
-              </span>
-              <button type="button" className="tour-explorer-action-btn ml-auto" onClick={() => onRevealFile(toursFolderPath)} title="Open in File Explorer">
-                <ExternalLink size={12} />
-              </button>
-            </div>
-
-            {toursFolderTree.length === 0 && !isLoading && (
-              <div className="tour-explorer-migrate-banner">
-                <p className="tour-explorer-migrate-title">Migration Required</p>
-                <p className="tour-explorer-migrate-desc">Existing voucher files are not yet organized into the tour folder structure. Would you like to migrate them now?</p>
-                <button type="button" className="tour-explorer-migrate-btn" onClick={onMigrate} disabled={isMigrating}>
-                  <ArrowDownToLine size={13} /> {isMigrating ? "Migrating…" : "Migrate Files Now"}
+      {/* Section 1: Tour Explorer */}
+      <div 
+        className="flex flex-col min-h-0 border-b border-line" 
+        style={{ flex: expanded[0] ? `${flexes[0]} 1 0%` : '0 0 auto' }}
+      >
+        <div 
+          className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
+          onClick={() => toggleExpanded(0)}
+        >
+          <div className="flex items-center gap-1 w-full">
+            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[0] ? 'rotate-90' : ''}`} />
+            <h3 className="tour-explorer-title flex-1">TOUR EXPLORER</h3>
+            {expanded[0] && (
+              <div className="tour-explorer-actions" onClick={e => e.stopPropagation()}>
+                {toursFolderPath && (
+                  <button type="button" className="tour-explorer-action-btn" onClick={onRefresh} title="Refresh" disabled={isLoading}>
+                    <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                  </button>
+                )}
+                <button type="button" className="tour-explorer-action-btn" onClick={onSelectFolder} title={toursFolderPath ? "Change Root Folder" : "Select Root Folder"}>
+                  <FolderPlus size={14} />
                 </button>
               </div>
             )}
+          </div>
+        </div>
 
-            {isLoading && (
-              <div className="tour-explorer-loading"><RefreshCw size={16} className="animate-spin" /><span>Scanning folders…</span></div>
+        {expanded[0] && (
+          <div 
+            className={`tour-explorer-body ${hoveredSection === 0 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white flex-1 overflow-y-auto min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            onMouseEnter={() => setHoveredSection(0)}
+            onMouseLeave={() => setHoveredSection(null)}
+          >
+            {!toursFolderPath ? (
+              <div className="tour-explorer-empty">
+                <div className="tour-explorer-empty-icon"><FolderPlus size={32} /></div>
+                <p className="tour-explorer-empty-title">No Tours Folder</p>
+                <p className="tour-explorer-empty-desc">Select or create a root folder to organize your vouchers by tour type and hotel.</p>
+                <button type="button" className="tour-explorer-empty-btn" onClick={onSelectFolder}>
+                  <FolderPlus size={15} /> Select Tours Folder
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="tour-explorer-root">
+                  <Folder size={13} />
+                  <span className="tour-explorer-root-path" title={toursFolderPath}>
+                    {toursFolderPath.split(/[\\/]/).pop() || "Tours"}
+                  </span>
+                  <button type="button" className="tour-explorer-action-btn ml-auto" onClick={() => onRevealFile(toursFolderPath)} title="Open in File Explorer">
+                    <ExternalLink size={12} />
+                  </button>
+                </div>
+
+                {toursFolderTree.length === 0 && !isLoading && (
+                  <div className="tour-explorer-migrate-banner">
+                    <p className="tour-explorer-migrate-title">Migration Required</p>
+                    <p className="tour-explorer-migrate-desc">Existing voucher files are not yet organized into the tour folder structure. Would you like to migrate them now?</p>
+                    <button type="button" className="tour-explorer-migrate-btn" onClick={onMigrate} disabled={isMigrating}>
+                      <ArrowDownToLine size={13} /> {isMigrating ? "Migrating…" : "Migrate Files Now"}
+                    </button>
+                  </div>
+                )}
+
+                {isLoading && (
+                  <div className="tour-explorer-loading"><RefreshCw size={16} className="animate-spin" /><span>Scanning folders…</span></div>
+                )}
+
+                {!isLoading && toursFolderTree.length > 0 && (
+                  <div className="tour-tree">
+                    {toursFolderTree.map((node) => (
+                      <TreeNode key={node.path} node={node} depth={0} onOpenFile={onOpenFile} onRevealFile={onRevealFile} />
+                    ))}
+                  </div>
+                )}
+
+                {!isLoading && <TreeStats tree={toursFolderTree} />}
+              </>
             )}
+          </div>
+        )}
+      </div>
 
-            {!isLoading && toursFolderTree.length > 0 && (
-              <div className="tour-tree">
-                {toursFolderTree.map((node) => (
-                  <TreeNode key={node.path} node={node} depth={0} onOpenFile={onOpenFile} onRevealFile={onRevealFile} />
+      {/* Resizer 1 */}
+      {expanded[0] && (expanded[1] || expanded[2]) && (
+        <div 
+          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10" 
+          onMouseDown={startResize(0)} 
+        />
+      )}
+
+      {/* Section 2: Document History */}
+      <div 
+        className="flex flex-col min-h-0 border-b border-line" 
+        style={{ flex: expanded[1] ? `${flexes[1]} 1 0%` : '0 0 auto' }}
+      >
+        <div 
+          className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
+          onClick={() => toggleExpanded(1)}
+        >
+          <div className="flex items-center gap-1 w-full">
+            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[1] ? 'rotate-90' : ''}`} />
+            <h3 className="tour-explorer-title flex-1">DOCUMENT HISTORY</h3>
+          </div>
+        </div>
+        
+        {expanded[1] && (
+          <div 
+            className={`flex-1 overflow-y-auto ${hoveredSection === 1 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            onMouseEnter={() => setHoveredSection(1)}
+            onMouseLeave={() => setHoveredSection(null)}
+          >
+            {documentHistory.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-[10px] text-steel">No documents generated.</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {documentHistory.map((doc) => (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() => onOpenDocument(doc.format === "pdf" ? doc.pdfPath! : doc.docxPath)}
+                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left hover:bg-cloud transition-colors"
+                  >
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <p className="font-bold text-navy text-[11px] truncate">
+                        {doc.format === "pdf" ? "PDF Voucher" : "Word Document"}
+                      </p>
+                      <p className="text-[9px] text-steel truncate">
+                        {new Date(doc.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <FileText size={13} className={doc.format === "pdf" ? "text-red-500" : "text-blue-500"} />
+                  </button>
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </div>
 
-            {!isLoading && <TreeStats tree={toursFolderTree} />}
-          </>
+      {/* Resizer 2 */}
+      {(expanded[0] || expanded[1]) && expanded[2] && (
+        <div 
+          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10" 
+          onMouseDown={startResize(1)} 
+        />
+      )}
+
+      {/* Section 3: Revision History */}
+      <div 
+        className="flex flex-col min-h-0" 
+        style={{ flex: expanded[2] ? `${flexes[2]} 1 0%` : '0 0 auto' }}
+      >
+        <div 
+          className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
+          onClick={() => toggleExpanded(2)}
+        >
+          <div className="flex items-center gap-1 w-full">
+            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[2] ? 'rotate-90' : ''}`} />
+            <h3 className="tour-explorer-title flex-1">REVISION HISTORY</h3>
+          </div>
+        </div>
+        
+        {expanded[2] && (
+          <div 
+            className={`flex-1 overflow-y-auto ${hoveredSection === 2 ? 'show-scrollbar' : 'hide-scrollbar'} bg-white p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+            onMouseEnter={() => setHoveredSection(2)}
+            onMouseLeave={() => setHoveredSection(null)}
+          >
+            {voucherRevisions.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-center">
+                <p className="text-[10px] text-steel px-4">No audit trail.</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {voucherRevisions.map((revision) => (
+                  <div key={revision.id} className="rounded-md px-2 py-1.5 bg-cloud/50 border border-line">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <p className="text-[10px] font-bold text-ink">v{revision.versionNumber}</p>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-navy opacity-70">
+                        {revision.status}
+                      </p>
+                    </div>
+                    <p className="text-[9px] text-steel">
+                      {new Date(revision.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </aside>

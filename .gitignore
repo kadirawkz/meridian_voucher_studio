@@ -1,45 +1,107 @@
-# Dependencies
+# ==============================================================================
+# MERIDIAN VOUCHER STUDIO - GITIGNORE CONFIGURATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Dependencies & Package Managers
+# ------------------------------------------------------------------------------
 node_modules/
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
+bun.lockb
 
-# Build outputs
+# ------------------------------------------------------------------------------
+# Build & Distribution Outputs
+# ------------------------------------------------------------------------------
 dist/
 dist-electron/
 build-resources/
 release/
+out/
+*.dmg
+*.exe
+*.zip
+*.tar.gz
+*.msi
+*.app
 
-# Environment
+# ------------------------------------------------------------------------------
+# Environment, Secrets & Local Configurations
+# ------------------------------------------------------------------------------
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
+*.env.json
 
-# OS
+# ------------------------------------------------------------------------------
+# Logs, Diagnostic & Cache Files
+# ------------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+.tsbuildinfo
+.vite/
+.parcel-cache/
+.cache/
+
+# ------------------------------------------------------------------------------
+# IDE, Editor & OS Specific Metadata
+# ------------------------------------------------------------------------------
+# macOS
 .DS_Store
-Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
-# IDE
+# Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.cab
+
+# JetBrains (WebStorm, IntelliJ, Rider, etc.)
 .idea/
+*.iws
+*.iml
+*.ipr
+
+# Visual Studio Code
 .vscode/
+*.code-workspace
+
+# Text Editors / Backups
 *.swp
 *.swo
 *~
 .project
 .classpath
+.factorypath
 
-# Electron app builds
-out/
-*.dmg
-*.exe
-*.zip
+# ------------------------------------------------------------------------------
+# Local Test & Generated Documents
+# ------------------------------------------------------------------------------
+# Ignore local test and output documents at the root
+test-out.docx
+test-out.pdf
+*.docx
+*.pdf
 
-# Cache
-.eslintcache
-.tsbuildinfo
-dist/
-dist-electron/
-release/
-.env
-.env.local
-build-resources/config.json
-*.log
+# Explicitly ensure the controlled master templates directory remains tracked
+!templates/
+!templates/**/*.docx
+!templates/**/*.pdf
+

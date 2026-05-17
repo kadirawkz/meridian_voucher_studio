@@ -40,7 +40,7 @@ async function getActiveSupabaseClient() {
 
 async function resolveHotelId(supabase: NonNullable<Awaited<ReturnType<typeof getActiveSupabaseClient>>>, name: string): Promise<string | null> {
   if (!name?.trim()) return null;
-  const { data } = await supabase.from("hotels").upsert({ name: name.trim(), location: "", is_active: true }, { onConflict: "name" }).select("id").single();
+  const { data } = await supabase.from("hotels").upsert({ name: name.trim(), is_active: true }, { onConflict: "name" }).select("id").single();
   return (data?.id as string) ?? null;
 }
 
@@ -95,14 +95,14 @@ async function createVoucherRevision(
 
 /* ---------- Voucher CRUD ---------- */
 
-export async function saveVoucher(voucher: VoucherPayload): Promise<{ id: string; status: VoucherStatus }> {
+export async function saveVoucher(voucher: VoucherPayload, statusOverride?: VoucherStatus): Promise<{ id: string; status: VoucherStatus }> {
   const supabase = await getActiveSupabaseClient();
-  if (!supabase) return { id: voucher.id ?? crypto.randomUUID(), status: "draft" };
+  if (!supabase) return { id: voucher.id ?? crypto.randomUUID(), status: statusOverride || "draft" };
 
   const userId = await requireCurrentUserId("Please log in before saving vouchers.");
-  let nextStatus: VoucherStatus = "draft";
+  let nextStatus: VoucherStatus = statusOverride || "draft";
 
-  if (voucher.id) {
+  if (voucher.id && !statusOverride) {
     const { data: ev, error: evErr } = await supabase.from("vouchers").select("status").eq("id", voucher.id).maybeSingle();
     if (evErr) throw new Error(`Unable to save voucher: ${evErr.message}`);
     nextStatus = ev?.status ?? "draft";
@@ -196,12 +196,6 @@ export async function saveGeneratedDocumentRecord(
     .insert({ voucher_id: voucherId, created_by: userId, format, docx_path: document.docxPath, pdf_path: document.pdfPath ?? null })
     .select("id,created_at").single();
   if (error) throw new Error(`Unable to save generated document history: ${error.message}`);
-
-  const { error: statusErr } = await supabase.from("vouchers").update({ status: "generated" }).eq("id", voucherId);
-  if (statusErr) throw new Error(`Unable to update voucher status: ${statusErr.message}`);
-
-  const fullVoucher = await getVoucher(voucherId);
-  await createVoucherRevision(supabase, voucherId, userId, "generated", fullVoucher);
 
   return { ...document, id: data.id, voucherId, format, createdAt: data.created_at };
 }
@@ -297,9 +291,14 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
 
   const { data: row, error } = await supabase
     .from("vouchers")
-    .select("*, hotels(name), markets(code), customers(name), employee_profiles!created_by(employee_name, email)")
+    .select("*, hotels(name), markets(code), customers(name)")
     .eq("id", voucherId).single();
   if (error) throw new Error(`Unable to load voucher: ${error.message}`);
+
+  const { data: profile } = await supabase
+    .from("employee_profiles")
+    .select("employee_name, email")
+    .eq("id", row.created_by).maybeSingle();
 
   const { data: lineItemRows, error: liErr } = await supabase
     .from("voucher_line_items")

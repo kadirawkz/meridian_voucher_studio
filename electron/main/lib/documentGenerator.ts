@@ -71,7 +71,16 @@ const supportedTemplateTags = new Set([
   "guideWithBasis",
   "arrivingFor",
   "ArrivingFor",
-  "arriving_for"
+  "arriving_for",
+  "child2_5Sharing", "c25s",
+  "child2_5Bed", "c25b",
+  "child2_5OwnRoom", "c25i",
+  "child6_11Sharing", "c611s",
+  "child6_11Bed", "c611b",
+  "child6_11OwnRoom", "c611i",
+  "totalPax", "total_pax", "market",
+  "surchargeText", "eventSupplementText", "manuallyEdited",
+  "guideorDriver", "child", "roomCategor"
 ]);
 
 function normalizeFileName(value: string): string {
@@ -170,7 +179,8 @@ function renderLegacyStaticTemplate(zip: PizZip, voucher: VoucherPayload): void 
   xml = replaceTextNodeOccurrences(xml, "BB", [rowOne?.basis ?? "", rowTwo?.basis ?? ""]);
   xml = replaceTextNodeOccurrences(xml, "6", [String(rowOne?.singleRooms ?? ""), String(rowTwo?.singleRooms ?? "")]);
   xml = replaceTextNodeOccurrences(xml, "4", [String(rowOne?.twinRooms ?? ""), String(rowTwo?.twinRooms ?? "")]);
-  xml = replaceTextNodeOccurrences(xml, "1 (HB)", [String(rowOne?.guide ?? ""), String(rowTwo?.guide ?? "")]);
+  const getGuideStr = (row: typeof rowOne) => row?.guide ? `${row.guide} ${row.guideBasis || ""}`.trim() : "";
+  xml = replaceTextNodeOccurrences(xml, "1 (HB)", [getGuideStr(rowOne), getGuideStr(rowTwo)]);
   xml = replaceTextNode(xml, "Employee name", voucher.employeeName);
   xml = replaceTextNode(xml, "employeename@merid.com", voucher.employeeEmail);
 
@@ -198,6 +208,12 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
       "All extras to be collected directly from the client.\n" +
       "Please forward the Tax Invoice addressed to Meridian (Pvt) Ltd along with the signed off voucher.";
 
+  const totalChildren = voucher.lineItems.reduce(
+    (total, item) => total + (item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 
+                             (item.child6_11Sharing || 0) + (item.child6_11Bed || 0) + (item.child6_11OwnRoom || 0),
+    0
+  );
+
   const lineItems = voucher.lineItems.map((item) => ({
     ...item,
     RequiredDate: item.requiredDate,
@@ -205,19 +221,35 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     required_date: formatDisplayDate(item.requiredDate),
     RoomCategory: item.roomCategory,
     "room-category": item.roomCategory,
-    sgl: item.singleRooms,
-    dbl: item.doubleRooms,
-    twin: item.twinRooms,
-    tpl: item.tripleRooms,
-    Guide: item.guide,
-    guid: item.guide,
+    roomCategor: item.roomCategory,
+    sgl: item.singleRooms || "",
+    dbl: item.doubleRooms || "",
+    twin: item.twinRooms || "",
+    tpl: item.tripleRooms || "",
+    Guide: item.guide || "",
+    guid: item.guide || "",
     GuideBasis: item.guideBasis,
     guideBasis: item.guideBasis,
     guide_basis: item.guideBasis,
     "guide-basis": item.guideBasis,
     guideWithBasis: [item.guide, item.guideBasis ? `(${item.guideBasis})` : ""].filter(Boolean).join(" "),
     ArrivingFor: item.arrivingFor,
-    arriving_for: item.arrivingFor
+    arriving_for: item.arrivingFor,
+    child2_5Sharing: item.child2_5Sharing || "",
+    c25s: item.child2_5Sharing || "",
+    child2_5Bed: item.child2_5Bed || "",
+    c25b: item.child2_5Bed || "",
+    child2_5OwnRoom: item.child2_5OwnRoom || "",
+    c25i: item.child2_5OwnRoom || "",
+    child6_11Sharing: item.child6_11Sharing || "",
+    c611s: item.child6_11Sharing || "",
+    child6_11Bed: item.child6_11Bed || "",
+    c611b: item.child6_11Bed || "",
+    child6_11OwnRoom: item.child6_11OwnRoom || "",
+    c611i: item.child6_11OwnRoom || "",
+    guideorDriver: item.guide || "",
+    child: ((item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 
+           (item.child6_11Sharing || 0) + (item.child6_11Bed || 0) + (item.child6_11OwnRoom || 0)) || ""
   }));
 
   const resolvedRateApplicable =
@@ -226,7 +258,7 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
 
   return {
     ...voucher,
-    voucherTypeLabel: voucher.voucherType.replace(/^\w/, (letter) => letter.toUpperCase()),
+    voucherTypeLabel: voucherTitle(voucher),
     page_number: voucher.pageNumber,
     Hotel_name: voucher.hotelName,
     HotelName: voucher.hotelName,
@@ -245,13 +277,14 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     required_date: firstLineItem ? formatDisplayDate(firstLineItem.requiredDate) : "",
     RoomCategory: firstLineItem?.roomCategory ?? "",
     "room-category": firstLineItem?.roomCategory ?? "",
+    roomCategor: firstLineItem?.roomCategory ?? "",
     basis: firstLineItem?.basis ?? "",
-    sgl: firstLineItem?.singleRooms ?? "",
-    dbl: firstLineItem?.doubleRooms ?? "",
-    twin: firstLineItem?.twinRooms ?? "",
-    tpl: firstLineItem?.tripleRooms ?? "",
-    Guide: firstLineItem?.guide ?? "",
-    guid: firstLineItem?.guide ?? "",
+    sgl: firstLineItem?.singleRooms || "",
+    dbl: firstLineItem?.doubleRooms || "",
+    twin: firstLineItem?.twinRooms || "",
+    tpl: firstLineItem?.tripleRooms || "",
+    Guide: firstLineItem?.guide || "",
+    guid: firstLineItem?.guide || "",
     GuideBasis: firstLineItem?.guideBasis ?? "",
     guideBasis: firstLineItem?.guideBasis ?? "",
     guide_basis: firstLineItem?.guideBasis ?? "",
@@ -267,12 +300,27 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
       : "",
     ArrivingFor: firstLineItem?.arrivingFor ?? "",
     arriving_for: firstLineItem?.arrivingFor ?? "",
+    child2_5Sharing: firstLineItem?.child2_5Sharing || "",
+    c25s: firstLineItem?.child2_5Sharing || "",
+    child2_5Bed: firstLineItem?.child2_5Bed || "",
+    c25b: firstLineItem?.child2_5Bed || "",
+    child2_5OwnRoom: firstLineItem?.child2_5OwnRoom || "",
+    c25i: firstLineItem?.child2_5OwnRoom || "",
+    child6_11Sharing: firstLineItem?.child6_11Sharing || "",
+    c611s: firstLineItem?.child6_11Sharing || "",
+    child6_11Bed: firstLineItem?.child6_11Bed || "",
+    c611b: firstLineItem?.child6_11Bed || "",
+    child6_11OwnRoom: firstLineItem?.child6_11OwnRoom || "",
+    c611i: firstLineItem?.child6_11OwnRoom || "",
+    guideorDriver: firstLineItem?.guide || "",
     isReservation: voucher.voucherType === "reservation",
     isAmendment: voucher.voucherType === "amendment",
     isPptp: voucher.voucherType === "pptp",
     generatedAt: new Date().toLocaleString(),
     totalRooms,
-    totalPax: voucher.totalPax ?? 0,
+    totalChildren: totalChildren || "",
+    child: totalChildren || "",
+    totalPax: voucher.totalPax || "",
     market: voucher.market ?? "",
     rateApplicable: resolvedRateApplicable,
     rateApplicableText: voucher.rateApplicableText ?? "",
@@ -351,9 +399,29 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
 
   const template = await fs.readFile(templatePath);
   const zip = new PizZip(template);
-  const documentXml = zip.file("word/document.xml")?.asText() ?? "";
+  let documentXml = zip.file("word/document.xml")?.asText() ?? "";
 
   if (docxtemplaterTagPattern.test(documentXml)) {
+    // Auto-fix legacy templates that use {RequiredDate} but lack a {#lineItems} loop
+    const rawText = documentXml.replace(/<[^>]+>/g, "");
+    if (!rawText.includes("{#lineItems}") && rawText.includes("{RequiredDate}")) {
+      const requiredDateRegex = /<w:tr[\s>](?:(?!<w:tr[\s>]).)*?R(?:<[^>]+>)*e(?:<[^>]+>)*q(?:<[^>]+>)*u(?:<[^>]+>)*i(?:<[^>]+>)*r(?:<[^>]+>)*e(?:<[^>]+>)*d(?:<[^>]+>)*D(?:<[^>]+>)*a(?:<[^>]+>)*t(?:<[^>]+>)*e(?:<[^>]+>)*.*?(?:<\/w:tr>)/g;
+      
+      const newXml = documentXml.replace(requiredDateRegex, (match) => {
+        let replaced = match.replace(/(<w:t(?: [^>]*)?>)/, "$1{#lineItems}");
+        const lastIndex = replaced.lastIndexOf("</w:t>");
+        if (lastIndex !== -1) {
+          replaced = replaced.substring(0, lastIndex) + "{/lineItems}" + replaced.substring(lastIndex);
+        }
+        return replaced;
+      });
+      
+      if (newXml !== documentXml) {
+        documentXml = newXml;
+        zip.file("word/document.xml", documentXml);
+      }
+    }
+
     assertTemplateTagsAreUsable(documentXml);
 
     const doc = new Docxtemplater(zip, {

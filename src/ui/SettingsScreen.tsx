@@ -82,7 +82,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
+    <div className="mx-auto max-w-4xl p-4 md:p-8">
       <div className="mb-8">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">System / Configuration</p>
         <h2 className="mt-1 font-display text-3xl font-bold text-navy">Settings</h2>
@@ -110,7 +110,7 @@ export function SettingsScreen() {
                 <p className="text-xs text-steel">Location where tour folders are organized</p>
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex-1 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
+                <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
                   {settings.toursFolderRoot || "Not set"}
                 </div>
                 <button
@@ -129,7 +129,7 @@ export function SettingsScreen() {
                 <p className="text-xs text-steel">Default location for generated PDF and DOCX files</p>
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex-1 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
+                <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
                   {settings.exportDirectory || "Documents/Meridian Voucher Studio"}
                 </div>
                 <button
@@ -145,11 +145,11 @@ export function SettingsScreen() {
         </section>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 justify-end">
+        <div className="flex flex-wrap gap-3 justify-end">
           <button
             type="button"
             onClick={loadSettings}
-            className="app-button-secondary"
+            className="app-button-secondary w-40"
           >
             <RotateCcw size={16} /> Reset
           </button>
@@ -157,7 +157,7 @@ export function SettingsScreen() {
             type="button"
             onClick={saveSettings}
             disabled={isSaving}
-            className="app-button-primary"
+            className="app-button-primary w-40"
           >
             <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
           </button>

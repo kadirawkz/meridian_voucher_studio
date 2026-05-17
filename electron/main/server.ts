@@ -29,7 +29,7 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const body = request.body as VoucherPayload | { voucher: VoucherPayload; format?: DocumentFormat };
       const voucher = "voucher" in body ? body.voucher : body;
       const format = "voucher" in body ? body.format : "pdf";
-      const savedVoucher = await saveVoucher(voucher);
+      const savedVoucher = await saveVoucher(voucher, "generated");
       const result = await generateDocuments({ ...voucher, id: savedVoucher.id }, format ?? "pdf");
       const documentRecord = await saveGeneratedDocumentRecord(savedVoucher.id, format ?? "pdf", result);
       response.json(documentRecord);

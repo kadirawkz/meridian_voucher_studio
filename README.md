@@ -1,125 +1,200 @@
-# Meridian Voucher Studio
+# 🗺️ Meridian Voucher Studio
 
-Cross-platform Electron desktop software for a Destination Management Company to create controlled DOCX and PDF vouchers from one Word template.
+<p align="center">
+  <strong>A premium, cross-platform Electron desktop application designed for Destination Management Companies (DMCs) to automate and control the generation of pristine DOCX and PDF reservation vouchers.</strong>
+</p>
 
-## Stack
+<p align="center">
+  <img src="https://img.shields.io/badge/Electron-41.5.0-blue.svg?style=flat-square&logo=electron" alt="Electron Badge">
+  <img src="https://img.shields.io/badge/React-18.3.1-61dafb.svg?style=flat-square&logo=react" alt="React Badge">
+  <img src="https://img.shields.io/badge/Tailwind-3.4.15-38bdf8.svg?style=flat-square&logo=tailwindcss" alt="Tailwind Badge">
+  <img src="https://img.shields.io/badge/Supabase-Cloud-3ecf8e.svg?style=flat-square&logo=supabase" alt="Supabase Badge">
+  <img src="https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square" alt="License Badge">
+</p>
 
-- Electron desktop shell with native Windows/macOS menus
-- React + Tailwind renderer
-- React Hook Form + Zod validation
-- Node.js + Express local backend
-- Docxtemplater for DOCX generation
-- LibreOffice headless conversion for PDF generation
-- Supabase for voucher persistence
-- electron-builder for Windows/macOS installers
+---
 
-## Project Structure
+## 🌟 Core Features
+
+*   **🖥️ Custom Native-Like Shell**: Wrapped in a sleek, high-performance Electron shell featuring customized Windows/macOS native-style menus and workspace management.
+*   **📊 Dynamic Entry Grid**: A powerful, spreadsheet-like multi-row entry system powered by **React Hook Form** and **Zod** schema validations.
+*   **🛌 Granular Occupancy Splits**: Custom inputs supporting occupancy breakdowns (Sgl, Dbl, Twin, Tpl) alongside dedicated child categories split by age groups (2–5 years and 6–11 years) with sub-options for sharing, extra bed, or individual room.
+*   **🏷️ Intelligent Rate Supplement Override**: Supports granular, manual supplement assignment per line-item (such as `HB` - Half Board, `FB` - Full Board, `AI` - All Inclusive). Selected supplements are cleanly formatted as 2-letter codes, joined by delimiters (e.g., `HB|FB`), and automatically appended to the rate applicable descriptions.
+*   **⚡ Automated Rate Matching Engine**: Dynamic lookups that scan the **Supabase** cloud datastore, auto-matching hotel contracts by reservation date, room category, client market, and age categories to suggest rates in real-time.
+*   **📄 High-Fidelity Document Generation**: Compiles standard Word templates using **Docxtemplater** with robust support for structural array loops (`{#lineItems}...{/lineItems}`), fallback legacy templating, and conditional section rendering (e.g., reservation vs. amendment).
+*   **🖨️ Headless PDF Compiler**: Integrates a background **LibreOffice** connection to programmatically render the compiled DOCX templates into production-ready PDFs.
+*   **⚙️ Workspace & Settings Manager**: Persists settings (such as local export directories, LibreOffice path overrides, and employee profile data) in local app storage.
+
+---
+
+## 📁 Repository Architecture
 
 ```text
-electron/
-  main/                 Electron main process, native menus, Express API, document generation
-  preload/              Secure IPC bridge exposed to the renderer
-  shared/               Shared app contracts
-src/
-  domain/               Voucher schema and default values
-  ui/                   React application
-templates/              Controlled DOCX template location
-supabase/               Database schema
+├── electron/
+│   ├── main/                 # Electron main process, native OS bindings
+│   │   ├── lib/              # Core business modules (document generator, Supabase API)
+│   │   └── config.ts         # Native path and settings configuration
+│   ├── preload/              # Secure IPC bridge (contextIsolation & sandbox)
+│   └── shared/               # Type contracts and interfaces shared between processes
+├── src/
+│   ├── domain/               # Voucher schemas, Zod validation models, and default values
+│   ├── ui/                   # React components and styling layers
+│   │   ├── App.tsx           # Application frame and routing manager
+│   │   ├── AppPanels.tsx     # Workspace layout grids and views
+│   │   ├── DashboardScreen.ts# Voucher logs, activity summaries, and search filters
+│   │   └── HotelRateMasterScreen.ts # Hotel rate rules, overrides, and supplements manager
+│   └── styles.css            # Tailwind CSS system integration
+├── templates/                # Word (.docx) templates folder
+├── supabase/                 # Cloud database schema configurations
+├── scripts/                  # Development utility and automated cleanup scripts
+└── package.json              # App configuration, build commands, and dependencies
 ```
 
-## Setup
+---
 
+## 🚀 Getting Started
+
+Follow these instructions to set up the development environment and launch the studio locally.
+
+### 📋 Prerequisites
+
+1.  **Node.js**: Recommended `v18.x` or `v20.x` LTS.
+2.  **LibreOffice**: Required to generate PDFs locally. Make sure the `soffice` executable is in your system's PATH, or configure `LIBREOFFICE_PATH` in your `.env` file.
+
+### 🔧 Installation & Configuration
+
+1.  **Clone the Repository & Install Dependencies**:
+    ```bash
+    npm install
+    ```
+
+2.  **Establish Environment Variables**:
+    Copy the example template file to create your local environment configuration:
+    ```bash
+    cp .env.example .env
+    ```
+    Populate the following variables inside `.env`:
+    ```ini
+    SUPABASE_URL=your_supabase_project_url
+    SUPABASE_ANON_KEY=your_supabase_anon_public_key
+    VOUCHER_API_PORT=5183
+    LIBREOFFICE_PATH="C:\\Program Files\\LibreOffice\\program\\soffice.exe" # Windows example
+    MERIDIAN_EMPLOYEE_EMAIL=operator@meridian.com
+    ```
+
+3.  **Synchronize Runtime Configurations**:
+    The build script uses a configuration synchronizer to feed non-sensitive settings to the Electron runner without exposing raw environmental files inside the package:
+    ```bash
+    npm run sync:public-config
+    ```
+
+### 💻 Running Locally
+
+To initiate concurrently the Vite dev server, TypeScript background compilers, and Electron app shell, simply run:
 ```bash
-npm install
-cp .env.example .env
 npm run dev
 ```
 
-Add your Supabase credentials to `.env`. If LibreOffice is not in PATH, set `LIBREOFFICE_PATH` to the `soffice` executable.
+---
 
-## Template
+## 📝 Word Document Templating
 
-Place the master template at `templates/voucher-template.docx`. See `templates/README.md` for the supported Docxtemplater tags.
+The application populates Word templates located at `templates/voucher-template.docx`. You can customize the document layout by inserting standard **Docxtemplater** tags.
 
-## Database
+### 🏷️ Supported General Tags
 
-Run `supabase/schema.sql` in Supabase SQL editor. In production, prefer authenticated employee access and avoid shipping a service-role key to employee machines. The current service layer supports development and should be connected to a proper auth/session flow before rollout.
+| Tag Name | Description |
+| :--- | :--- |
+| `{voucherTypeLabel}` | Resolves to "Hotel Reservation Voucher", "Amendment Voucher", etc. |
+| `{hotelName}` | The targeted hotel's name. |
+| `{requisitionNo}` | The voucher requisition tracking number. |
+| `{tourNo}` | The booking reference tour number. |
+| `{tourName}` | Name of the tourist group or itinerary. |
+| `{customerName}` | The primary guest or client's name. |
+| `{employeeName}` | Name of the creating Meridian operator. |
+| `{employeeEmail}` | Email address of the creating Meridian operator. |
+| `{totalRooms}` | Sum of all single, double, twin, and triple rooms booked. |
+| `{rateApplicable}` | The computed final billing rate text, including any manual supplement tags (e.g. `Rate: USD 150 (HB|FB)`). |
+| `{remarks}` | Freeform billing and coordinator notes. |
 
-## Build Installers
+### 🔄 Multi-Row Grid Table Loop
+
+To output booking rows, create a table in Word and place a Docxtemplater block inside the table cells. The engine will dynamically loop over the entries:
+
+| Date | Category | Basis | Sgl | Dbl | Twin | Tpl | Guide | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `{#lineItems}` | `{roomCategory}` | `{basis}` | `{sgl}` | `{dbl}` | `{twin}` | `{tpl}` | `{guideWithBasis}` | `{arrivingFor}` |
+| | | | | | | | | `{/lineItems}` |
+
+*   Use `{guideWithBasis}` to format a guide assignment cleanly (e.g. `1 (HB)`).
+*   Use `{requiredDateDisplay}` to format a voucher date in a readable layout (e.g. `14-Feb-2026`).
+
+### 🔀 Conditional Render Sections
+
+Wrap sections with simple booleans to control what content displays:
+```text
+{#isReservation}
+All payments will be settled by Meridian (Pvt) Ltd.
+{/isReservation}
+
+{#isAmendment}
+THIS IS AN AMENDING VOUCHER. Please discard previous updates.
+{/isAmendment}
+```
+
+---
+
+## 🏛️ Database Migrations
+
+Database tables are stored in **Supabase**. To initialize or migrate the database:
+1. Navigate to the Supabase SQL editor dashboard.
+2. Open and execute the schema initialization file: [schema.sql](file:///d:/repos/meridian_voucher_studio/supabase/schema.sql).
+
+---
+
+## 📦 Building Installers
+
+To package the studio into high-performance, standalone desktop installers (output to the `release/` folder):
 
 ```bash
+# Compile code assets and assemble installer packages
 npm run dist
+
+# Build production packages with code signatures (if certificates are configured)
+npm run dist:signed
 ```
 
-Installers are emitted to `release/`.
+---
 
-## Security Notes
+## 🧼 Public Distribution & Sanitization Checklist
 
-- Renderer uses `contextIsolation`, disabled Node integration, sandboxing, and a narrow preload API.
-- Express binds to `127.0.0.1`.
-- Supabase persistence is isolated in the main/backend layer.
-- Generated files are written to the user's Documents folder under `Meridian Voucher Studio`.
+Before pushing local branches to public mirrors, follow this standard security check:
 
-**Public Release Checklist**
+1.  **Run the Interactive Purge Tool**:
+    An interactive script has been provided to quickly strip common compilation caches, logs, and distributable folders:
+    ```powershell
+    ./scripts/cleanup-release.ps1
+    ```
+2.  **Verify Trailed Secrets**:
+    Confirm `.env` and `build-resources/config.json` are properly ignored by Git:
+    ```bash
+    git ls-files --error-unmatch .env || echo "Clean: .env is ignored"
+    git ls-files --error-unmatch build-resources/config.json || echo "Clean: config.json is ignored"
+    ```
+3.  **Perform Git Index Sanitization**:
+    If large binary installers or previous configuration cache was accidentally tracked, wipe them from cache before committing:
+    ```bash
+    git rm -r --cached release dist-electron build-resources dist out test-out.docx
+    git commit -m "chore: remove tracked build products and cached secrets"
+    ```
+4.  **Wipe Git History (Optional)**:
+    If large binaries or tokens were committed to the historical records in the past, clean them up locally using `git-filter-repo` and force push the cleaned history:
+    ```bash
+    git filter-repo --path release --path dist-electron --path build-resources --invert-paths
+    ```
 
-- **Remove build artifacts:** Run `scripts/cleanup-release.ps1` and inspect the results.
-- **Secrets:** Ensure no secrets or service keys exist in `.env` or `config.json`. Remove or replace with example files.
-- **.gitignore:** Confirm `node_modules`, build outputs, and environment files are ignored.
-- **Licensing:** Add a license (recommended: MIT) in `LICENSE`.
-- **README:** Remove internal-only notes and add public usage and contribution guidance.
-- **Personal data:** Verify `supabase/schema.sql` and other DB seeds contain no real user data.
-- **Minimize release size:** Remove `release/`, `dist-electron/`, and large `locales` or binary assets before publishing.
-- **History purge (optional):** If large binaries were previously committed, use `git filter-repo` or BFG to remove them from history.
-- **Security audit:** Ensure electron `preload` surface is intentionally minimal and audited.
-- **CI / Tests:** Add a basic CI (GitHub Actions) to run `npm test`, `npm run lint`, and `npm run build` on PRs.
+---
 
-**Public release steps**
-
-- Create a release branch: `git checkout -b release/public`
-- Run the cleanup script and commit changes.
-- Add `LICENSE` and a short `CONTRIBUTING.md`.
-- Review and remove any remaining secrets.
-- Push and open a PR for review.
-
-**Notes on removing history**
-
-If you committed large artifacts (installers, compiled builds), they remain in git history. Use a history rewrite tool (BFG or `git filter-repo`) and follow these steps locally, then force-push the cleaned branch:
-
-- Install `git-filter-repo` (recommended) or `bfg`.
-- Example with `git filter-repo`:
-
-```powershell
-# make a backup clone
-git clone --mirror <repo-url> repo-mirror.git
-cd repo-mirror.git
-
-# remove directories
-git filter-repo --path release --path dist-electron --path build-resources --invert-paths
-
-# push cleaned history
-git push --force
-```
-
-- After history rewrite, notify collaborators to re-clone.
-
-## Public Release Checklist
-
-- Remove all build artifacts and packaged installers from the repository (these are large, platform-specific binaries): `release/`, `dist-electron/`, `build-resources/`, `dist/`, `out/`.
-- Ensure no secrets or service-role keys are committed. Look for `.env`, `config.json` in the repo and remove or replace with examples.
-- Keep `config.public.example.json` and `.env.example` (or create them) so users can configure runtime values without secrets.
-- Add a license (`LICENSE`) appropriate for your project (e.g., MIT) and include contributor guidelines if needed.
-- Add `.gitattributes` (already present) to normalize line endings and run `git add --renormalize .` if not done.
-- Use `git rm -r --cached` to remove tracked large artifacts, then commit. To purge large files from history use tools such as BFG or `git filter-repo`.
-- Verify `templates/voucher-template.docx` doesn't contain any real customer data — use a sanitized template for public repos.
-- Update `README.md` (this file) to include build and privacy/security notes for public users.
-
-### Quick commands to remove tracked artifacts (manual step)
-
-```powershell
-# Remove tracked copies and commit (run from repo root)
-git rm -r --cached release dist-electron build-resources dist out
-git commit -m "Remove packaged build artifacts"
-# If files are very large and need history rewrite, use BFG or git filter-repo (manual step)
-```
-
-For convenience there is a safe cleanup script at `scripts/cleanup-release.ps1` that interactively deletes common build and release folders from the working copy. Use it locally, then run the git commands above to update the index.
+<p align="center">
+  Developed by <strong>Meridian Destination Management</strong>. All rights reserved.
+</p>

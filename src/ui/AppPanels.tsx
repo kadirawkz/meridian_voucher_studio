@@ -40,14 +40,20 @@ export function RevisionHistoryPanel({ voucherRevisions }: RevisionHistoryPanelP
       {voucherRevisions.length === 0 ? (
         <p className="text-sm text-steel">Save or open a voucher to see its audit trail.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
           {voucherRevisions.map((revision) => (
             <div key={revision.id} className="app-history-card">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-bold text-ink">Version {revision.versionNumber}</p>
                 <p className="text-[11px] font-bold uppercase tracking-wide text-navy">{revision.status}</p>
               </div>
-              <p className="mt-2 text-xs text-steel">{new Date(revision.createdAt).toLocaleString()}</p>
+              <p className="mt-1.5 text-[11px] text-steel">
+                {new Date(revision.createdAt).toLocaleString()}
+                {revision.changedBy && <span> • By <span className="font-medium text-navy">{revision.changedBy}</span></span>}
+              </p>
+              {revision.snapshotSummary && (
+                <p className="mt-1 text-[11px] text-steel italic leading-tight">{revision.snapshotSummary}</p>
+              )}
             </div>
           ))}
         </div>
@@ -88,19 +94,25 @@ export function DocumentHistoryPanel({ documentHistory, onOpenDocument }: Docume
       {documentHistory.length === 0 ? (
         <p className="text-sm text-steel">Generate a voucher document to track DOCX and PDF output here.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
           {documentHistory.slice(0, 5).map((documentRecord) => (
             <button
               key={documentRecord.id}
               type="button"
               className="app-history-card block w-full text-left hover:bg-blue-50"
-              onClick={() => onOpenDocument(documentRecord.docxPath)}
+              onClick={() => onOpenDocument(documentRecord.format === "pdf" && documentRecord.pdfPath ? documentRecord.pdfPath : documentRecord.docxPath)}
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-ink">{documentRecord.requisitionNo || documentRecord.tourNo || "Document"}</p>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-navy">{documentRecord.format}</p>
+                <p className="text-sm font-bold text-navy truncate">{documentRecord.requisitionNo || documentRecord.tourNo || "Document"}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-steel">{documentRecord.format}</p>
               </div>
-              <p className="mt-2 text-xs text-steel">{documentRecord.hotelName || documentRecord.customerName || new Date(documentRecord.createdAt).toLocaleString()}</p>
+              <div className="mt-1 flex justify-between text-[11px] text-steel">
+                <span className="truncate pr-2 font-medium">{documentRecord.hotelName}</span>
+                <span className="whitespace-nowrap">{new Date(documentRecord.createdAt).toLocaleDateString()}</span>
+              </div>
+              {documentRecord.customerName && (
+                <p className="mt-0.5 text-[11px] text-steel truncate">Client: {documentRecord.customerName}</p>
+              )}
             </button>
           ))}
         </div>

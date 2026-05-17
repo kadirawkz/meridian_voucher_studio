@@ -3,14 +3,29 @@ import {
   Search, 
   Minus, 
   Square, 
-  X
+  X,
+  Bell,
+  Trash2,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 import logo from "../assets/logo.png";
+
+export interface AppNotification {
+  id: string;
+  message: string;
+  type: "info" | "success" | "error";
+  timestamp: number;
+}
 
 interface MenuBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  notice: string;
+  notices: AppNotification[];
+  onClearNotice: (id: string) => void;
+  onClearAllNotices: () => void;
   onNavigate: (view: string) => void;
   onSignOut: () => void;
   onReportIssue: () => void;
@@ -19,7 +34,9 @@ interface MenuBarProps {
 export function MenuBar({ 
   searchQuery, 
   setSearchQuery, 
-  notice, 
+  notices,
+  onClearNotice,
+  onClearAllNotices,
   onNavigate,
   onSignOut,
   onReportIssue
@@ -27,7 +44,9 @@ export function MenuBar({
   const searchInputRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNoticesOpen, setIsNoticesOpen] = useState(false);
   const menuBarRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const noticeRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   // Expose search focus to window for shortcut Ctrl+K
   useEffect(() => {
@@ -42,6 +61,9 @@ export function MenuBar({
       if (menuBarRef.current && !menuBarRef.current.contains(event.target)) {
         setIsMenuOpen(false);
         setActiveMenu(null);
+      }
+      if (noticeRef.current && !noticeRef.current.contains(event.target)) {
+        setIsNoticesOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -178,14 +200,14 @@ export function MenuBar({
       </div>
 
       {/* Center: Search */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 px-4 no-drag">
-        <div className="relative pointer-events-auto mx-auto w-full">
+      <div className="flex-1 min-w-0 px-2 sm:px-4 max-w-lg no-drag transition-all">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-steel" size={13} />
           <input
             ref={searchInputRef}
             type="text"
-            className="w-full rounded-lg border border-line bg-cloud py-1 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-white transition-all shadow-sm"
-            placeholder="Search vouchers, tours, hotels... (Ctrl+K)"
+            className="w-full min-w-[120px] rounded-lg border border-line bg-cloud py-1 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-white transition-all shadow-sm"
+            placeholder="Search... (Ctrl+K)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -194,11 +216,88 @@ export function MenuBar({
 
       {/* Right: Feedback & Controls */}
       <div className="ml-auto flex items-center gap-2 no-drag pr-2 z-10">
-        <div className="flex items-center gap-2 rounded-full border border-line bg-cloud px-3 py-1 mr-2">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-bold text-steel truncate max-w-[120px]" title={notice}>
-            {notice}
-          </span>
+        <div className="relative" ref={noticeRef}>
+          <button
+            onClick={() => setIsNoticesOpen(!isNoticesOpen)}
+            className={`flex items-center gap-2 rounded-full border border-line px-3 py-1 mr-2 transition-all hover:bg-white active:scale-95 ${
+              isNoticesOpen ? "bg-white shadow-sm border-navy/30" : "bg-cloud"
+            }`}
+          >
+            <div className={`relative flex items-center justify-center`}>
+              <Bell size={14} className={notices.length > 0 ? "text-navy" : "text-steel"} />
+              {notices.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
+                  {notices.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold text-steel truncate max-w-[100px]">
+              {notices[0]?.message || "No notifications"}
+            </span>
+          </button>
+
+          {isNoticesOpen && (
+            <div className="absolute right-0 top-full z-[2000] mt-2 w-80 overflow-hidden rounded-xl border border-line bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between bg-cloud px-4 py-3 border-b border-line">
+                <h3 className="text-xs font-bold text-navy flex items-center gap-2">
+                  <Bell size={13} />
+                  Notifications
+                </h3>
+                {notices.length > 0 && (
+                  <button 
+                    onClick={onClearAllNotices}
+                    className="text-[10px] font-bold text-steel hover:text-red-500 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+              
+              <div className="max-h-[400px] overflow-y-auto">
+                {notices.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                    <div className="h-12 w-12 rounded-full bg-cloud flex items-center justify-center mb-3">
+                      <Bell size={24} className="text-steel/30" />
+                    </div>
+                    <p className="text-xs font-semibold text-steel">No notifications yet</p>
+                    <p className="text-[10px] text-steel/60 mt-1">Status updates and alerts will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-line/50">
+                    {notices.map((n) => (
+                      <div key={n.id} className="group relative flex gap-3 p-4 hover:bg-cloud/50 transition-colors">
+                        <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                          n.type === "error" ? "bg-red-50 text-red-500" :
+                          n.type === "success" ? "bg-emerald-50 text-emerald-500" :
+                          "bg-blue-50 text-blue-500"
+                        }`}>
+                          {n.type === "error" ? <AlertCircle size={14} /> :
+                           n.type === "success" ? <CheckCircle2 size={14} /> :
+                           <Info size={14} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-navy leading-relaxed break-words">
+                            {n.message}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-[9px] text-steel/60 font-semibold">
+                            <Clock size={10} />
+                            {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => onClearNotice(n.id)}
+                          className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center rounded-md text-steel hover:bg-red-50 hover:text-red-500 transition-all"
+                          title="Dismiss"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Window Controls */}

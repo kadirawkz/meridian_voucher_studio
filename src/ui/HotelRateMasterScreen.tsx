@@ -56,10 +56,12 @@ interface ChildRateRow {
   to: string;
   roomCategory: string;
   basis: string;
-  age2_5: string;
-  age6_11: string;
-  extraBed: string;
-  ownRoom: string;
+  age_2_5_sharing: string;
+  age_2_5_extra_bed: string;
+  age_2_5_own_room: string;
+  age_6_11_sharing: string;
+  age_6_11_extra_bed: string;
+  age_6_11_own_room: string;
 }
 
 
@@ -162,9 +164,10 @@ type Props = {
   onBack?: () => void;
   onManageRates?: () => void;
   initialEditId?: string;
+  addNotice?: (message: string, type?: "info" | "success" | "error") => void;
 };
 
-export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = {}) {
+export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice }: Props = {}) {
   const [contract, setContract] = useState<ContractDetails>({
     hotelName: "",
     market: "",
@@ -193,6 +196,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const [selectedHotelName, setSelectedHotelName] = useState("");
   const [hotelRateSummaries, setHotelRateSummaries] = useState<HotelRateRecordSummary[]>([]);
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>(initialEditId || "");
+  const [skippedSections, setSkippedSections] = useState<string[]>([]);
 
   useEffect(() => {
     if (!selectedHotelName || !window.meridian?.listHotelRates) {
@@ -300,10 +304,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         to: r.to || "",
         roomCategory: r.room_category || "",
         basis: r.basis || "",
-        age2_5: r.age2_5 == null ? "" : String(r.age2_5),
-        age6_11: r.age6_11 == null ? "" : String(r.age6_11),
-        extraBed: r.extra_bed == null ? "" : String(r.extra_bed),
-        ownRoom: r.own_room == null ? "" : String(r.own_room),
+        age_2_5_sharing: r.age_2_5_sharing == null ? "" : String(r.age_2_5_sharing),
+        age_2_5_extra_bed: r.age_2_5_extra_bed == null ? "" : String(r.age_2_5_extra_bed),
+        age_2_5_own_room: r.age_2_5_own_room == null ? "" : String(r.age_2_5_own_room),
+        age_6_11_sharing: r.age_6_11_sharing == null ? "" : String(r.age_6_11_sharing),
+        age_6_11_extra_bed: r.age_6_11_extra_bed == null ? "" : String(r.age_6_11_extra_bed),
+        age_6_11_own_room: r.age_6_11_own_room == null ? "" : String(r.age_6_11_own_room),
       }))
     );
 
@@ -355,6 +361,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       basis: String(record.foc_rules?.basis ?? "HB"),
     });
 
+    setSkippedSections(record.skipped_sections || []);
     setBillingText(record.billing_instruction ?? "");
   }
 
@@ -375,7 +382,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   const removeRate = (i: number) => setRates(rates.filter((_, idx) => idx !== i));
 
   const addChildRate = () =>
-    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age2_5: "", age6_11: "", extraBed: "", ownRoom: "" }]);
+    setChildRates([...childRates, { from: "", to: "", roomCategory: "", basis: "", age_2_5_sharing: "", age_2_5_extra_bed: "", age_2_5_own_room: "", age_6_11_sharing: "", age_6_11_extra_bed: "", age_6_11_own_room: "" }]);
 
   const updateChildRate = (i: number, field: keyof ChildRateRow, value: string) => {
     const copy = [...childRates];
@@ -452,6 +459,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
     setSeasonalSurcharges([]);
     setEvents([]);
     setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "" });
+    setSkippedSections([]);
     setBillingText("");
     setSaveNotice("Cleared");
   }
@@ -459,7 +467,16 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
 
   function sectionStatus(sectionName: string, isEmpty: boolean): SectionStatus {
+    if (skippedSections.includes(sectionName)) return "Skipped";
     return isEmpty ? "Empty" : "Completed";
+  }
+
+  function toggleSkip(sectionName: string) {
+    setSkippedSections((cur) =>
+      cur.includes(sectionName)
+        ? cur.filter((s) => s !== sectionName)
+        : [...cur, sectionName]
+    );
   }
 
   const sectionStates = useMemo(() => {
@@ -472,7 +489,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       !contract.validTo;
 
     const roomRatesEmpty = rates.length === 0 || rates.some((r) => !r.roomCategory || !r.basis || !r.sgl || !r.dbl || !r.twn || !r.tpl);
-    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || !r.age2_5 || !r.age6_11 || !r.extraBed || !r.ownRoom);
+    const childRatesEmpty = childRates.length === 0 || childRates.some((r) => !r.roomCategory || !r.basis || (!r.age_2_5_sharing && !r.age_2_5_extra_bed && !r.age_2_5_own_room && !r.age_6_11_sharing && !r.age_6_11_extra_bed && !r.age_6_11_own_room));
     const supplementsEmpty = roomSupplements.length === 0 || roomSupplements.some((s) => !s.supplementName || !s.supplementAmount);
     const guideRatesEmpty = guideRates.length === 0 || guideRates.some((r) => !r.basis.trim() || !r.amount.trim());
     const seasonalEmpty = seasonalSurcharges.length === 0 || seasonalSurcharges.some((s) => !s.name || !s.amount || !s.from || !s.to || !s.appliesTo);
@@ -491,7 +508,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       { name: "Compulsory Events", status: sectionStatus("Compulsory Events", eventsEmpty), empty: eventsEmpty },
       { name: "Billing Instructions", status: sectionStatus("Billing Instructions", billingEmpty), empty: billingEmpty },
     ] as const;
-  }, [billingText, contract, events, focRules, guideRates, rates, roomSupplements, seasonalSurcharges, childRates]);
+  }, [billingText, contract, events, focRules, guideRates, rates, roomSupplements, seasonalSurcharges, childRates, skippedSections]);
 
   const canSave = sectionStates.every((s) => s.status !== "Empty");
 
@@ -535,10 +552,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               to: contract.validTo,
               room_category: r.roomCategory,
               basis: r.basis,
-              age2_5: r.age2_5 || null,
-              age6_11: r.age6_11 || null,
-              extra_bed: r.extraBed || null,
-              own_room: r.ownRoom || null,
+              age_2_5_sharing: r.age_2_5_sharing || null,
+              age_2_5_extra_bed: r.age_2_5_extra_bed || null,
+              age_2_5_own_room: r.age_2_5_own_room || null,
+              age_6_11_sharing: r.age_6_11_sharing || null,
+              age_6_11_extra_bed: r.age_6_11_extra_bed || null,
+              age_6_11_own_room: r.age_6_11_own_room || null,
             })),
         room_supplements: roomSupplements
               .filter((s) => s.supplementName.trim() && s.supplementAmount.trim())
@@ -580,6 +599,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               foc_quantity: focRules.focQuantity ? Number(focRules.focQuantity) : null,
               basis: focRules.basis,
             },
+        skipped_sections: skippedSections,
         billing_instruction: billingText,
       };
 
@@ -595,9 +615,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
       setHotelMode("select");
       
       setSelectedHotelRateId(result.id);
-      setSaveNotice(`Saved (${result.id.slice(0, 8)})`);
+      setSaveNotice("");
+      if (addNotice) addNotice(`Rate master saved successfully (${result.id.slice(0, 8)})`, "success");
     } catch (error) {
-      setSaveNotice(error instanceof Error ? error.message : "Unable to save");
+      const msg = error instanceof Error ? error.message : "Unable to save";
+      setSaveNotice(msg);
+      if (addNotice) addNotice(`Save failed: ${msg}`, "error");
     } finally {
       setIsSaving(false);
     }
@@ -614,9 +637,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
   /* ---------- render ---------- */
 
   return (
-    <div className="mx-auto max-w-[1400px] p-8">
+    <div className="mx-auto max-w-[1400px] p-4 md:p-8">
       {/* Page header */}
-      <div className="mb-8 flex items-end justify-between gap-4">
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
             Operations / Data Management
@@ -630,20 +653,20 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         </div>
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           {onManageRates && (
-            <Button variant="secondary" onClick={onManageRates} className="h-10 shrink-0 whitespace-nowrap px-4">
+            <Button variant="secondary" onClick={onManageRates} className="h-10 shrink-0 whitespace-nowrap px-4 w-40">
               Manage Rates
             </Button>
           )}
-          <Button type="button" variant="primary" disabled={isSaving || !canSave} onClick={handleSave} className="h-10 shrink-0 whitespace-nowrap px-4">
+          <Button type="button" variant="primary" disabled={isSaving || !canSave} onClick={handleSave} className="h-10 shrink-0 whitespace-nowrap px-4 w-40">
             <Save size={17} /> {isSaving ? "Saving..." : "Save Data"}
           </Button>
-          <Button type="button" variant="secondary" disabled={isSaving} onClick={clearAll} className="h-10 shrink-0 whitespace-nowrap px-4">
+          <Button type="button" variant="secondary" disabled={isSaving} onClick={clearAll} className="h-10 shrink-0 whitespace-nowrap px-4 w-40">
             <RotateCcw size={17} /> Clear Form
           </Button>
           <Button
             type="button"
             variant="secondary"
-            className="h-10 shrink-0 whitespace-nowrap px-4"
+            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
             disabled={isSaving}
             onClick={async () => {
               if (!window.meridian?.seedRateMaster) {
@@ -654,13 +677,16 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               setSaveNotice("");
               try {
                 const result = await window.meridian.seedRateMaster();
-                setSaveNotice(`Seeded ${result.seeded} hotels`);
+                setSaveNotice("");
+                if (addNotice) addNotice(`Seeded ${result.seeded} hotels successfully`, "success");
                 if (window.meridian?.listHotelsFromRates) {
                   const items = await window.meridian.listHotelsFromRates();
                   setHotels(items);
                 }
               } catch (e) {
-                setSaveNotice(e instanceof Error ? e.message : "Seed failed");
+                const msg = e instanceof Error ? e.message : "Seed failed";
+                setSaveNotice(msg);
+                if (addNotice) addNotice(`Seed failed: ${msg}`, "error");
               } finally {
                 setIsSaving(false);
               }
@@ -801,7 +827,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
             {/* Row 3: Save Requirements & Status */}
             <div className="rounded-app border border-line bg-cloud p-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1">
                   <p className="text-xs font-bold uppercase tracking-wide text-steel">Save Requirements</p>
                   <p className="mt-1.5 text-xs text-steel">
@@ -847,7 +873,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <AlertTriangle size={16} /> This section is empty
             </p>
           )}
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:grid-cols-3">
             <Field label="Market">
               <Select className="w-full" title="Market" value={contract.market} onChange={(e) => updateContract("market", e.target.value)}>
                 <option value="">Select Market</option>
@@ -965,7 +991,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         {/* 3. Child Rates */}
         <Section title="3. Child Rates">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[2].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[2].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Child Rates")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Child Rates")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Child Rates") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[2].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -976,10 +1016,22 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             <table className="w-full min-w-[1000px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
-                  <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px]">Room Category</th>
-                  {["Basis", "Child (2-5)", "Child (6-11)", "Extra Bed", "Own Room", ""].map((h) => (
-                    <th className="px-2 py-3" key={h || "action"}>{h}</th>
-                  ))}
+                  <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px] w-[180px]">Room Category</th>
+                  <th className="px-2 py-3 w-[90px]">Basis</th>
+                  <th className="px-2 py-3 text-center border-x border-line bg-blue-50/50" colSpan={3}>Child (2 - 5.99 Years)</th>
+                  <th className="px-2 py-3 text-center bg-amber-50/50" colSpan={3}>Child (6 - 11.99 Years)</th>
+                  <th className="px-2 py-3 w-[50px]"></th>
+                </tr>
+                <tr className="border-b border-line bg-cloud/50 text-[10px] font-bold uppercase tracking-wider text-steel">
+                  <th className="px-4 py-1"></th>
+                  <th className="px-2 py-1"></th>
+                  <th className="px-2 py-1 text-center border-l border-line bg-blue-50/30">Sharing</th>
+                  <th className="px-2 py-1 text-center bg-blue-50/30">Bed</th>
+                  <th className="px-2 py-1 text-center border-r border-line bg-blue-50/30">ICON</th>
+                  <th className="px-2 py-1 text-center bg-amber-50/30">Sharing</th>
+                  <th className="px-2 py-1 text-center bg-amber-50/30">Bed</th>
+                  <th className="px-2 py-1 text-center bg-amber-50/30">ICON</th>
+                  <th className="px-2 py-1"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -1017,10 +1069,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                         ))}
                       </Select>
                     </td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 2-5 rate" title="Age 2-5 rate" value={rate.age2_5} onChange={(e) => updateChildRate(i, "age2_5", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Age 6-11 rate" title="Age 6-11 rate" value={rate.age6_11} onChange={(e) => updateChildRate(i, "age6_11", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Extra bed rate" title="Extra bed rate" value={rate.extraBed} onChange={(e) => updateChildRate(i, "extraBed", e.target.value)} /></td>
-                    <td className="px-2 py-2"><input className={controlClass} aria-label="Own room rate" title="Own room rate" value={rate.ownRoom} onChange={(e) => updateChildRate(i, "ownRoom", e.target.value)} /></td>
+                    <td className="px-2 py-2 border-l border-line bg-blue-50/10"><input className={cellControl} aria-label="2-5 sharing" value={rate.age_2_5_sharing} onChange={(e) => updateChildRate(i, "age_2_5_sharing", e.target.value)} /></td>
+                    <td className="px-2 py-2 bg-blue-50/10"><input className={cellControl} aria-label="2-5 bed" value={rate.age_2_5_extra_bed} onChange={(e) => updateChildRate(i, "age_2_5_extra_bed", e.target.value)} /></td>
+                    <td className="px-2 py-2 border-r border-line bg-blue-50/10"><input className={cellControl} aria-label="2-5 own room" value={rate.age_2_5_own_room} onChange={(e) => updateChildRate(i, "age_2_5_own_room", e.target.value)} /></td>
+                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 sharing" value={rate.age_6_11_sharing} onChange={(e) => updateChildRate(i, "age_6_11_sharing", e.target.value)} /></td>
+                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 bed" value={rate.age_6_11_extra_bed} onChange={(e) => updateChildRate(i, "age_6_11_extra_bed", e.target.value)} /></td>
+                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 own room" value={rate.age_6_11_own_room} onChange={(e) => updateChildRate(i, "age_6_11_own_room", e.target.value)} /></td>
                     <td className="px-2 py-2">
                       <button type="button" onClick={() => removeChildRate(i)} className="rounded-app p-2 text-steel hover:bg-red-50 hover:text-red-700" title="Remove row">
                         <Trash2 size={16} />
@@ -1039,7 +1093,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         {/* 4. Room Supplements */}
         <Section title="4. Room Supplements">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[3].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[3].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Room Supplements")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Room Supplements")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Room Supplements") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[3].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1050,7 +1118,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             Flat per-room-per-night uplift for upgraded room categories (e.g. Deluxe Supplement, Suite Supplement). These appear in the Rate Applicable text automatically.
           </p>
           <div className="thin-scrollbar overflow-x-auto">
-            <table className="w-full table-fixed border-collapse text-sm">
+            <table className="w-full min-w-[600px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Room Category</th>
@@ -1095,7 +1163,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
         <Section title="5. Guide Rates">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[4].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[4].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Guide Rates")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Guide Rates")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Guide Rates") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[4].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1103,7 +1185,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             </p>
           )}
           <div className="thin-scrollbar overflow-x-auto">
-            <table className="w-full table-fixed border-collapse text-sm">
+            <table className="w-full min-w-[500px] table-fixed border-collapse text-sm">
               <thead>
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-[11px] font-bold text-navy uppercase tracking-wider">Guide Basis</th>
@@ -1145,7 +1227,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         {/* 6. Guide FOC Rule */}
         <Section title="6. Guide FOC Rule">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[5].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[5].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Guide FOC Rule")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Guide FOC Rule")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Guide FOC Rule") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[5].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1160,7 +1256,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 Enable FOC
               </label>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Field label="Applies To">
                 <input className={controlClass} title="Applies To" value={focRules.appliesTo} onChange={(e) => setFocRules({ ...focRules, appliesTo: e.target.value })} placeholder="Guide" />
               </Field>
@@ -1171,7 +1267,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
                 <input type="number" step="1" className={controlClass} title="FOC Quantity" value={focRules.focQuantity} onChange={(e) => setFocRules({ ...focRules, focQuantity: e.target.value.replace(/\D/g, '') })} placeholder="1" />
               </Field>
               <Field label="Basis (select all that apply)">
-                <div className="flex items-center gap-4 py-2">
+                <div className="flex flex-wrap items-center gap-4 py-2">
                   {mealBasisOptions.map((opt) => {
                     const selected = focRules.basis.split(",").filter(Boolean);
                     const isChecked = selected.includes(opt);
@@ -1203,7 +1299,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
 
         <Section title="7. Seasonal Surcharges">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[6].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[6].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Seasonal Surcharges")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Seasonal Surcharges")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Seasonal Surcharges") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[6].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1211,7 +1321,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
             </p>
           )}
           <div className="space-y-3">
-            <div className="grid grid-cols-6 gap-3 px-3 text-[10px] font-bold uppercase tracking-wider text-steel">
+            <div className="hidden lg:grid grid-cols-6 gap-3 px-3 text-[10px] font-bold uppercase tracking-wider text-steel">
               <div>Name</div>
               <div>Amount</div>
               <div>From</div>
@@ -1220,7 +1330,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
               <div></div>
             </div>
             {seasonalSurcharges.map((s, i) => (
-              <div key={i} className="grid grid-cols-6 gap-3 rounded-app border border-line bg-cloud p-3">
+              <div key={i} className="grid grid-cols-1 lg:grid-cols-6 gap-3 rounded-app border border-line bg-cloud p-3">
                 <input className={cellControl} aria-label="Surcharge name" title="Surcharge name" placeholder="Name" value={s.name} onChange={(e) => updateSeasonalSurcharge(i, "name", e.target.value)} />
                 <input type="number" step="1" className={cellControl} aria-label="Surcharge amount" title="Surcharge amount" placeholder="Amount" value={s.amount} onChange={(e) => updateSeasonalSurcharge(i, "amount", e.target.value.replace(/\D/g, ''))} />
                 <input type="date" className={cellControl} aria-label="From" title="From" value={s.from} onChange={(e) => updateSeasonalSurcharge(i, "from", e.target.value)} />
@@ -1249,7 +1359,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         {/* 8. Compulsory Events */}
         <Section title="8. Compulsory Events / Gala Dinner">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[7].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[7].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Compulsory Events")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Compulsory Events")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Compulsory Events") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           {sectionStates[7].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1301,7 +1425,21 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId }: Props = 
         {/* 9. Billing Instructions */}
         <Section title="9. Billing Instructions">
           <div className="mb-5 flex items-center justify-between">
-            <StatusPill status={sectionStates[8].status} />
+            <div className="flex items-center gap-4">
+              <StatusPill status={sectionStates[8].status} />
+              <button
+                type="button"
+                onClick={() => toggleSkip("Billing Instructions")}
+                className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
+                  skippedSections.includes("Billing Instructions")
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
+                }`}
+              >
+                <SkipForward size={14} />
+                {skippedSections.includes("Billing Instructions") ? "Undo Skip" : "Skip Section"}
+              </button>
+            </div>
           </div>
           <div className="mb-4">
             <button

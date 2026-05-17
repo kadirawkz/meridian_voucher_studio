@@ -40,10 +40,17 @@ export interface VoucherLineItem {
   twinRooms: number;
   tripleRooms: number;
   child2_5?: number;
+  child2_5Sharing?: number;
+  child2_5Bed?: number;
+  child2_5OwnRoom?: number;
   child6_11?: number;
+  child6_11Sharing?: number;
+  child6_11Bed?: number;
+  child6_11OwnRoom?: number;
   guide?: number;
   guideBasis?: string;
   arrivingFor: string;
+  supplementary?: string[];
 }
 
 export interface VoucherPayload {
@@ -184,10 +191,12 @@ export type HotelRateChildRate = {
   room_category_id?: string;
   room_category: string;  // read-only, populated by JOIN
   basis: string;
-  age2_5?: string | null;
-  age6_11?: string | null;
-  extra_bed?: string | null;
-  own_room?: string | null;
+  age_2_5_sharing?: string | null;
+  age_2_5_extra_bed?: string | null;
+  age_2_5_own_room?: string | null;
+  age_6_11_sharing?: string | null;
+  age_6_11_extra_bed?: string | null;
+  age_6_11_own_room?: string | null;
 };
 
 export type HotelRateSeasonalSurcharge = {

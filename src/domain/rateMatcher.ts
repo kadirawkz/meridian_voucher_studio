@@ -139,8 +139,8 @@ function buildRateApplicableText(
   );
 
   if (childRate) {
-    const hasChild2_5 = (lineItem.child2_5 || 0) > 0;
-    const hasChild6_11 = (lineItem.child6_11 || 0) > 0;
+    const hasChild2_5 = (lineItem.child2_5Sharing || 0) + (lineItem.child2_5Bed || 0) + (lineItem.child2_5OwnRoom || 0) > 0;
+    const hasChild6_11 = (lineItem.child6_11Sharing || 0) + (lineItem.child6_11Bed || 0) + (lineItem.child6_11OwnRoom || 0) > 0;
 
     const formatVal = (val: string) => {
       const v = val.trim().toUpperCase();
@@ -149,11 +149,21 @@ function buildRateApplicableText(
       return `${cur} ${val}`;
     };
 
-    if (hasChild2_5 && childRate.age2_5) {
-      parts.push(`Child (2-5 Years) ${formatVal(childRate.age2_5)}`);
+    const formatGranular = (sharing: string | null | undefined, bed: string | null | undefined, own: string | null | undefined) => {
+      const bits = [];
+      if (sharing) bits.push(`Sharing ${formatVal(sharing)}`);
+      if (bed) bits.push(`Bed ${formatVal(bed)}`);
+      if (own) bits.push(`ICON ${formatVal(own)}`);
+      return bits.join(" / ");
+    };
+
+    if (hasChild2_5) {
+      const summary = formatGranular(childRate.age_2_5_sharing, childRate.age_2_5_extra_bed, childRate.age_2_5_own_room);
+      if (summary) parts.push(`Child (2-5 Years) ${summary}`);
     }
-    if (hasChild6_11 && childRate.age6_11) {
-      parts.push(`Child (6-11 Years) ${formatVal(childRate.age6_11)}`);
+    if (hasChild6_11) {
+      const summary = formatGranular(childRate.age_6_11_sharing, childRate.age_6_11_extra_bed, childRate.age_6_11_own_room);
+      if (summary) parts.push(`Child (6-11 Years) ${summary}`);
     }
   }
 
@@ -337,10 +347,10 @@ export function autoFillFromContract(
     status: "matched",
     warnings,
     matchedHotelRateId: record.id,
-    rateApplicableText: finalRateParts.join("\n"),
-    guideText: guideParts.join("\n"),
-    surchargeText: surchargeTexts.join("\n"),
-    eventSupplementText: eventTexts.join("\n"),
+    rateApplicableText: finalRateParts.join(" / "),
+    guideText: guideParts.join(" / "),
+    surchargeText: surchargeTexts.join(" / "),
+    eventSupplementText: eventTexts.join(" / "),
     billingInstructions: record.billing_instruction || undefined,
   };
 }

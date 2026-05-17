@@ -166,7 +166,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
   const uncoveredHotels = allHotelNames.filter((h) => !hotelsWithContracts.has(h));
 
   return (
-    <div className="mx-auto max-w-[1400px] p-8">
+    <div className="mx-auto max-w-[1400px] p-4 md:p-8">
       {/* Page header */}
       <div className="mb-8 flex items-end justify-between">
         <div>
@@ -199,7 +199,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
       </div>
 
       {/* ── Stat cards ── */}
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           icon={ReceiptText}
           label="Vouchers Today"
@@ -235,9 +235,9 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
       </div>
 
       {/* ── Status breakdown ── */}
-      <div className="mb-8 flex items-center gap-3 rounded-2xl border border-line bg-white px-6 py-4 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wide text-steel">Status Breakdown</p>
-        <div className="ml-4 flex items-center gap-2">
+      <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-white px-6 py-4 shadow-sm">
+        <p className="shrink-0 text-xs font-bold uppercase tracking-wide text-steel">Status Breakdown</p>
+        <div className="ml-0 md:ml-4 flex flex-wrap items-center gap-2">
           {(["draft", "generated", "sent"] as VoucherStatus[]).map((s) => {
             const c = STATUS_CONFIG[s];
             const pct = allVouchers.length > 0 ? Math.round((byStatus[s] / allVouchers.length) * 100) : 0;

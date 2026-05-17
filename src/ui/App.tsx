@@ -1,5 +1,6 @@
 import {
   FileDown,
+  FilePlus,
   FileText,
   History,
   Hotel,
@@ -14,7 +15,10 @@ import {
   Settings,
   Trash2,
   UserCircle,
-  ChevronLeft
+  ChevronLeft,
+  Minus,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import React, { useDeferredValue, useEffect, useMemo, useState, useRef } from "react";
 import logo from "../assets/logo.png";
@@ -25,14 +29,14 @@ import { hotels as fallbackHotels, markets as fallbackMarkets, mealBasisOptions,
 import type { HotelRef, MarketRef, RoomCategoryRef, CustomerRef } from "../../electron/shared/types";
 import { VoucherFormValues, voucherSchema } from "../domain/voucherSchema";
 import { AuthScreen } from "./AuthScreen";
-import { DocumentHistoryPanel, GeneratedFilesPanel, LifecyclePanel, RevisionHistoryPanel } from "./AppPanels";
+import { GeneratedFilesPanel } from "./AppPanels";
 import { HotelRateMasterScreen } from "./HotelRateMasterScreen";
 import { ManageRatesScreen } from "./ManageRatesScreen";
 import { DashboardScreen } from "./DashboardScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { TourExplorerPanel } from "./TourExplorerPanel";
-import { MenuBar } from "./MenuBar";
+import { MenuBar, AppNotification } from "./MenuBar";
 import { Button } from "./ui-kit/Button";
 import { Field } from "./ui-kit/Field";
 import { Select } from "./ui-kit/Inputs";
@@ -128,10 +132,15 @@ const lineItemColumns = [
   { name: "doubleRooms", type: "number", className: "min-w-[76px]" },
   { name: "twinRooms", type: "number", className: "min-w-[76px]" },
   { name: "tripleRooms", type: "number", className: "min-w-[76px]" },
-  { name: "child2_5", type: "number", className: "min-w-[86px]" },
-  { name: "child6_11", type: "number", className: "min-w-[86px]" },
+  { name: "child2_5Sharing", type: "number", className: "min-w-[66px]" },
+  { name: "child2_5Bed", type: "number", className: "min-w-[66px]" },
+  { name: "child2_5OwnRoom", type: "number", className: "min-w-[66px]" },
+  { name: "child6_11Sharing", type: "number", className: "min-w-[66px]" },
+  { name: "child6_11Bed", type: "number", className: "min-w-[66px]" },
+  { name: "child6_11OwnRoom", type: "number", className: "min-w-[66px]" },
   { name: "guide", type: "number", className: "min-w-[76px]" },
   { name: "guideBasis", type: "select-basis", className: "min-w-[96px]" },
+  { name: "supplementary", type: "select-supplementary", className: "min-w-[130px]" },
   { name: "arrivingFor", type: "text", className: "min-w-[150px]" }
 ] as const;
 
@@ -141,14 +150,116 @@ const roomCountFields = new Set([
   "doubleRooms",
   "twinRooms",
   "tripleRooms",
-  "child2_5",
-  "child6_11",
+  "child2_5Sharing",
+  "child2_5Bed",
+  "child2_5OwnRoom",
+  "child6_11Sharing",
+  "child6_11Bed",
+  "child6_11OwnRoom",
   "guide"
 ]);
+
+function SupplementaryDropdown({ 
+  value, 
+  onChange, 
+  options 
+}: { 
+  value: string[]; 
+  onChange: (val: string[]) => void; 
+  options: { name: string; label: string }[] 
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const display = value.length > 0 
+    ? value.map(v => v.slice(0, 2)).join(", ") 
+    : "Select";
+
+  return (
+    <div className="relative" ref={ref}>
+      <button 
+        type="button" 
+        onClick={() => setOpen(!open)}
+        className="app-table-control w-full text-left truncate bg-white"
+        title={value.join(", ")}
+      >
+        {display}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-line shadow-lg rounded-md z-50 max-h-48 overflow-y-auto">
+          {options.length === 0 ? (
+            <div className="p-2 text-xs text-steel">No supplements</div>
+          ) : (
+            options.map((opt) => (
+              <label key={opt.name} className="flex items-center gap-2 px-3 py-2 hover:bg-cloud cursor-pointer text-xs">
+                <input 
+                  type="checkbox" 
+                  checked={value.includes(opt.name)}
+                  onChange={(e) => {
+                    if (e.target.checked) onChange([...value, opt.name]);
+                    else onChange(value.filter(v => v !== opt.name));
+                  }}
+                  className="rounded text-navy focus:ring-navy"
+                />
+                <span className="truncate" title={opt.label}>{opt.label}</span>
+              </label>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
   const [actionState, setActionState] = useState<ActionState>("idle");
+  const [previewMode, setPreviewMode] = useState<"collapsed" | "thumbnail" | "expanded">("thumbnail");
+  const [previewPos, setPreviewPos] = useState(() => ({ x: 8, y: Math.max(8, window.innerHeight / 2 - 224) }));
+  const [isDraggingPreview, setIsDraggingPreview] = useState(false);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, startX: 0, startY: 0 });
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+
+
+  const startDragPreview = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingPreview(true);
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      startX: previewPos.x,
+      startY: previewPos.y
+    };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - dragStartRef.current.mouseX;
+      const dy = moveEvent.clientY - dragStartRef.current.mouseY;
+      setPreviewPos({
+        x: dragStartRef.current.startX + dx,
+        y: dragStartRef.current.startY + dy
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingPreview(false);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
   const [generated, setGenerated] = useState<GeneratedDocument | null>(null);
   const [documentHistory, setDocumentHistory] = useState<VoucherDocumentRecord[]>([]);
   const [voucherRevisions, setVoucherRevisions] = useState<VoucherRevisionRecord[]>([]);
@@ -161,7 +272,13 @@ export function App() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [searchResults, setSearchResults] = useState<WorkspaceSearchResult>({ vouchers: [], documents: [] });
   const [isSearching, setIsSearching] = useState(false);
-  const [notice, setNotice] = useState("Draft ready");
+  const [notices, setNotices] = useState<AppNotification[]>([]);
+  const addNotice = (message: string, type: AppNotification["type"] = "info") => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setNotices(prev => [{ id, message, type, timestamp: Date.now() }, ...prev].slice(0, 50));
+  };
+  const clearNotice = (id: string) => setNotices(prev => prev.filter(n => n.id !== id));
+  const clearAllNotices = () => setNotices([]);
   const accountMenuRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
@@ -179,6 +296,7 @@ export function App() {
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [hotelContracts, setHotelContracts] = useState<HotelRateRecordSummary[]>([]);
+  const [availableSupplements, setAvailableSupplements] = useState<{ supplement_name: string; room_category: string; supplement_amount: number; per: string; }[]>([]);
   const [manualRates, setManualRates] = useState(false);
   const [editHotelRateId, setEditHotelRateId] = useState<string | undefined>();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -193,6 +311,22 @@ export function App() {
     control: form.control,
     name: "lineItems"
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      setWindowSize({ width: w, height: window.innerHeight });
+      if (w < 1024) {
+        setNavCollapsed(true);
+      }
+      if (w < 1280) {
+        setExplorerCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Use native Event
   useEffect(() => {
@@ -247,7 +381,13 @@ export function App() {
       
       const children =
         Number(item.child2_5 || 0) +
-        Number(item.child6_11 || 0);
+        Number(item.child2_5Sharing || 0) +
+        Number(item.child2_5Bed || 0) +
+        Number(item.child2_5OwnRoom || 0) +
+        Number(item.child6_11 || 0) +
+        Number(item.child6_11Sharing || 0) +
+        Number(item.child6_11Bed || 0) +
+        Number(item.child6_11OwnRoom || 0);
       
       if (rooms > 0 || children > 0) {
         const existing = grouped.get(item.requiredDate) || { rooms: 0, children: 0 };
@@ -275,6 +415,21 @@ export function App() {
       setHotelContracts([]);
     }
   }, [hotelName]);
+
+  useEffect(() => {
+    if (hotelName && ratePeriod && hotelContracts.length > 0) {
+      const match = hotelContracts.find((c) => c.contract_name === ratePeriod);
+      if (match && match.id) {
+        window.meridian?.getHotelRates(match.id).then((rate) => {
+          setAvailableSupplements(rate.room_supplements || []);
+        });
+      } else {
+        setAvailableSupplements([]);
+      }
+    } else {
+      setAvailableSupplements([]);
+    }
+  }, [hotelName, ratePeriod, hotelContracts]);
 
 
 
@@ -304,7 +459,7 @@ export function App() {
       .listVoucherDocuments()
       .then(setDocumentHistory)
       .catch((error) => {
-        setNotice(friendlyErrorMessage(error, "Unable to load document history"));
+        addNotice(friendlyErrorMessage(error, "Unable to load document history"));
       });
   }, [authState.isAuthenticated]);
 
@@ -385,7 +540,7 @@ export function App() {
       const tree = await window.meridian.getToursFolderTree();
       setToursFolderTree(tree);
     } catch {
-      setNotice("Unable to scan Tours folder");
+      addNotice("Unable to scan Tours folder");
     } finally {
       setIsLoadingTree(false);
     }
@@ -418,7 +573,7 @@ export function App() {
         })
         .catch((error) => {
           if (!isCancelled) {
-            setNotice(friendlyErrorMessage(error, "Unable to search workspace"));
+            addNotice(friendlyErrorMessage(error, "Unable to search workspace"));
           }
         })
         .finally(() => {
@@ -443,7 +598,7 @@ export function App() {
       const history = await window.meridian.listVoucherDocuments();
       setDocumentHistory(history);
     } catch (error) {
-      setNotice(friendlyErrorMessage(error, "Unable to load document history"));
+      addNotice(friendlyErrorMessage(error, "Unable to load document history"));
     }
   }
 
@@ -457,7 +612,7 @@ export function App() {
       const vouchers = await window.meridian.listVouchers(nextFilters);
       setVoucherRegister(vouchers);
     } catch (error) {
-      setNotice(friendlyErrorMessage(error, "Unable to load vouchers"));
+      addNotice(friendlyErrorMessage(error, "Unable to load vouchers"));
     } finally {
       setIsLoadingRegister(false);
     }
@@ -472,7 +627,7 @@ export function App() {
       const revisions = await window.meridian.listVoucherRevisions(voucherId);
       setVoucherRevisions(revisions);
     } catch (error) {
-      setNotice(friendlyErrorMessage(error, "Unable to load voucher history"));
+      addNotice(friendlyErrorMessage(error, "Unable to load voucher history"));
     }
   }
 
@@ -480,7 +635,7 @@ export function App() {
     setAuthState(state);
     setAccountProfile(state.profile);
     form.reset(withAccountDefaults(defaultVoucher, state.profile));
-    setNotice("Logged in");
+    addNotice("Logged in");
   }
 
   async function handleSignOut() {
@@ -499,19 +654,19 @@ export function App() {
 
   async function handleSave(values: VoucherFormValues) {
     if (!window.meridian) {
-      setNotice("Desktop bridge unavailable; restart the application");
+      addNotice("Desktop bridge unavailable; restart the application");
       return;
     }
 
     setActionState("saving");
     try {
       const result = await window.meridian.saveVoucher(values);
-      setNotice(`Saved as ${result.status} (${result.id.slice(0, 8)})`);
+      addNotice(`Draft saved successfully (${result.id.slice(0, 8)})`);
       form.setValue("id", result.id);
       await refreshVoucherRevisions(result.id);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to save voucher");
+      addNotice(error instanceof Error ? error.message : "Unable to save voucher");
     } finally {
       setActionState("idle");
     }
@@ -519,7 +674,7 @@ export function App() {
 
   async function handleGenerateDocx(values: VoucherFormValues) {
     if (!window.meridian) {
-      setNotice("Desktop bridge unavailable; restart the application");
+      addNotice("Desktop bridge unavailable; restart the application");
       return;
     }
 
@@ -533,12 +688,12 @@ export function App() {
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      setNotice("DOCX generated");
+      addNotice("DOCX generated");
       await refreshDocumentHistory();
       await refreshVoucherRegister(voucherFilters);
       await refreshToursFolderTree();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to generate DOCX");
+      addNotice(error instanceof Error ? error.message : "Unable to generate DOCX");
     } finally {
       setActionState("idle");
     }
@@ -546,7 +701,7 @@ export function App() {
 
   async function handleGeneratePdf(values: VoucherFormValues) {
     if (!window.meridian) {
-      setNotice("Desktop bridge unavailable; restart the application");
+      addNotice("Desktop bridge unavailable; restart the application");
       return;
     }
 
@@ -560,12 +715,12 @@ export function App() {
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      setNotice("PDF generated");
+      addNotice("PDF generated");
       await refreshDocumentHistory();
       await refreshVoucherRegister(voucherFilters);
       await refreshToursFolderTree();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to generate PDF");
+      addNotice(error instanceof Error ? error.message : "Unable to generate PDF");
     } finally {
       setActionState("idle");
     }
@@ -573,18 +728,18 @@ export function App() {
 
   async function handleVoucherStatusUpdate(voucherId: string, status: VoucherStatus) {
     if (!window.meridian?.updateVoucherStatus) {
-      setNotice("Voucher status update is unavailable; restart the application");
+      addNotice("Voucher status update is unavailable; restart the application");
       return;
     }
 
     setStatusUpdatingId(voucherId);
     try {
       const result = await window.meridian.updateVoucherStatus(voucherId, status);
-      setNotice(`Voucher marked as ${result.status}`);
+      addNotice(`Voucher marked as ${result.status}`);
       await refreshVoucherRevisions(voucherId);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {
-      setNotice(friendlyErrorMessage(error, "Unable to update voucher status"));
+      addNotice(friendlyErrorMessage(error, "Unable to update voucher status"));
     } finally {
       setStatusUpdatingId(null);
     }
@@ -592,7 +747,7 @@ export function App() {
 
   async function openVoucherFromSearch(voucher: VoucherRecord) {
     if (!window.meridian?.getVoucher) {
-      setNotice("Voucher loading is unavailable; restart the application");
+      addNotice("Voucher loading is unavailable; restart the application");
       return;
     }
 
@@ -603,9 +758,9 @@ export function App() {
       await refreshVoucherRevisions(voucher.id);
       setActiveView("entry");
       setGenerated(null);
-      setNotice(`Loaded voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)}`);
+      addNotice(`Loaded voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)}`);
     } catch (error) {
-      setNotice(friendlyErrorMessage(error, "Unable to load voucher"));
+      addNotice(friendlyErrorMessage(error, "Unable to load voucher"));
     } finally {
       setOpeningVoucherId(null);
     }
@@ -613,7 +768,7 @@ export function App() {
 
   async function handleSelectToursFolder() {
     if (!window.meridian?.selectToursFolder) {
-      setNotice("Tours folder selection unavailable; restart the application");
+      addNotice("Tours folder selection unavailable; restart the application");
       return;
     }
 
@@ -621,11 +776,11 @@ export function App() {
       const result = await window.meridian.selectToursFolder();
       if (result) {
         setToursFolderPath(result.path);
-        setNotice(`Tours folder set: ${result.path}`);
+        addNotice(`Tours folder set: ${result.path}`);
         await refreshToursFolderTree();
       }
     } catch {
-      setNotice("Unable to select Tours folder");
+      addNotice("Unable to select Tours folder");
     }
   }
 
@@ -636,16 +791,16 @@ export function App() {
     try {
       const result = await window.meridian.migrateVouchersToTours();
       if (result.moved > 0) {
-        setNotice(`Migrated ${result.moved} voucher(s)`);
+        addNotice(`Migrated ${result.moved} voucher(s)`);
       } else {
-        setNotice("No vouchers to migrate");
+        addNotice("No vouchers to migrate");
       }
       if (result.errors.length > 0) {
-        setNotice(`Migration: ${result.moved} moved, ${result.failed} failed`);
+        addNotice(`Migration: ${result.moved} moved, ${result.failed} failed`);
       }
       await refreshToursFolderTree();
     } catch {
-      setNotice("Migration failed");
+      addNotice("Migration failed");
     } finally {
       setIsMigrating(false);
     }
@@ -661,7 +816,7 @@ export function App() {
     form.reset(withAccountDefaults(defaultVoucher, accountProfile));
     setGenerated(null);
     setVoucherRevisions([]);
-    setNotice("Form cleared");
+    addNotice("Form cleared");
   }
 
   useEffect(() => {
@@ -767,7 +922,9 @@ export function App() {
       <MenuBar 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        notice={notice}
+        notices={notices}
+        onClearNotice={clearNotice}
+        onClearAllNotices={clearAllNotices}
         onNavigate={(view) => setActiveView(view as ActiveView)}
         onSignOut={handleSignOut}
         onReportIssue={() => setShowReportIssue(true)}
@@ -888,7 +1045,7 @@ export function App() {
                   disabled={actionState !== "idle"}
                   onClick={handleClearForm}
                   variant="secondary"
-                  className="h-10 shrink-0 whitespace-nowrap px-4"
+                  className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
                 >
                   <RotateCcw size={17} /> Clear Form
                 </Button>
@@ -896,7 +1053,7 @@ export function App() {
                   type="submit"
                   disabled={actionState !== "idle"}
                   variant="primary"
-                  className="h-10 shrink-0 whitespace-nowrap px-4"
+                  className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
                 >
                   <Save size={17} /> {actionState === "saving" ? "Saving..." : "Save Voucher"}
                 </Button>
@@ -905,7 +1062,7 @@ export function App() {
                   disabled={actionState !== "idle"}
                   onClick={form.handleSubmit(handleGenerateDocx)}
                   variant="secondary"
-                  className="h-10 shrink-0 whitespace-nowrap px-4"
+                  className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
                 >
                   <FileText size={17} /> {actionState === "generating-docx" ? "Generating..." : "Generate DOCX"}
                 </Button>
@@ -914,18 +1071,18 @@ export function App() {
                   disabled={actionState !== "idle"}
                   onClick={form.handleSubmit(handleGeneratePdf)}
                   variant="secondary"
-                  className="h-10 shrink-0 whitespace-nowrap px-4"
+                  className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
                 >
                   <FileDown size={17} /> {actionState === "generating-pdf" ? "Generating..." : "Generate PDF"}
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-6">
+            <div className="flex flex-col gap-8">
               <div className="space-y-6">
                 <Panel className="app-panel-body-lg">
                   <h3 className="mb-5 app-section-title">Primary Configuration</h3>
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
                     <Field label="Tour Type">
                       <Select
                         className={`w-full ${form.formState.errors.tourType ? "border-red-500" : ""}`}
@@ -1001,7 +1158,7 @@ export function App() {
                     control={form.control}
                     name="voucherType"
                     render={({ field }) => (
-                      <div className="mt-5 grid grid-cols-3 gap-4">
+                      <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
                         {voucherTypes.map((type) => {
                           const Icon = type.icon;
                           const selected = field.value === type.value;
@@ -1027,7 +1184,7 @@ export function App() {
 
                 <section className="app-panel app-panel-body-lg">
                   <h3 className="mb-5 app-section-title">Booking Information</h3>
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
                     <label className="space-y-2">
                       <span className="app-label">Date</span>
                       <input type="date" className="app-input" {...form.register("date")} />
@@ -1081,36 +1238,76 @@ export function App() {
                           tripleRooms: 0,
                           child2_5: 0,
                           child6_11: 0,
+                          child2_5Sharing: 0,
+                          child2_5Bed: 0,
+                          child2_5OwnRoom: 0,
+                          child6_11Sharing: 0,
+                          child6_11Bed: 0,
+                          child6_11OwnRoom: 0,
                           guide: 0,
                           guideBasis: "",
-                          arrivingFor: ""
+                          arrivingFor: "",
+                          supplementary: []
                         })
                       }
                     >
                       <Plus size={16} /> Row
                     </button>
                   </div>
-                  <div className="thin-scrollbar overflow-x-auto">
-                    <table className="w-full min-w-[1180px] table-fixed border-collapse text-sm">
+                  <div className="thin-scrollbar overflow-x-auto pb-12">
+                    <table className="w-full min-w-[1440px] table-fixed border-collapse text-sm">
+                      <colgroup>
+                        <col className="w-[140px]" />
+                        <col className="w-[150px]" />
+                        <col className="w-[100px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[60px]" />
+                        <col className="w-[90px]" />
+                        <col className="w-[130px]" />
+                        <col className="w-[160px]" />
+                        <col className="w-[56px]" />
+                      </colgroup>
                       <thead>
                         <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
-                          {[
-                            ["Required Date", "w-[150px]"],
-                            ["Room Rate", "w-[170px]"],
-                            ["Basis (Room)", "w-[96px]"],
-                            ["SGL", "w-[76px]"],
-                            ["DBL", "w-[76px]"],
-                            ["TWN", "w-[76px]"],
-                            ["TPL", "w-[76px]"],
-                            ["Child (2-5)", "w-[86px]"],
-                            ["Child (6-11)", "w-[86px]"],
-                            ["Guide", "w-[76px]"],
-                            ["Basis (Guide)", "w-[96px]"],
-                            ["Arriving For", "w-[150px]"],
-                            ["", "w-[56px]"]
-                          ].map(([header, width]) => (
-                            <th className={`px-2 py-3 ${width}`} key={header}>{header}</th>
-                          ))}
+                          <th className="px-2 py-3">Required Date</th>
+                          <th className="px-2 py-3">Room Rate</th>
+                          <th className="px-2 py-3">Basis (Room)</th>
+                          <th className="px-2 py-3 text-center border-l border-line bg-navy/5" colSpan={4}>Rooms</th>
+                          <th className="px-2 py-3 text-center border-x border-line bg-blue-50/50" colSpan={3}>Child (2-5)</th>
+                          <th className="px-2 py-3 text-center border-r border-line bg-amber-50/50" colSpan={3}>Child (6-11)</th>
+                          <th className="px-2 py-3 text-center bg-emerald-50/50" colSpan={2}>Guide</th>
+                          <th className="px-2 py-3 border-l border-line">Supplementary</th>
+                          <th className="px-2 py-3 border-l border-line">Arriving For</th>
+                          <th className="px-2 py-3"></th>
+                        </tr>
+                        <tr className="border-b border-line bg-cloud/50 text-[10px] font-bold uppercase tracking-wider text-steel text-center">
+                          <th className="px-2 py-1"></th>
+                          <th className="px-2 py-1"></th>
+                          <th className="px-2 py-1"></th>
+                          <th className="px-2 py-1 border-l border-line">SGL</th>
+                          <th className="px-2 py-1">DBL</th>
+                          <th className="px-2 py-1">TWN</th>
+                          <th className="px-2 py-1">TPL</th>
+                          <th className="px-2 py-1 border-l border-line bg-blue-50/30">SHR</th>
+                          <th className="px-2 py-1 bg-blue-50/30">BED</th>
+                          <th className="px-2 py-1 bg-blue-50/30">OWN</th>
+                          <th className="px-2 py-1 border-l border-line bg-amber-50/30">SHR</th>
+                          <th className="px-2 py-1 bg-amber-50/30">BED</th>
+                          <th className="px-2 py-1 border-r border-line bg-amber-50/30">OWN</th>
+                          <th className="px-2 py-1 bg-emerald-50/30">QTY</th>
+                          <th className="px-2 py-1 bg-emerald-50/30">BASIS</th>
+                          <th className="px-2 py-1 border-l border-line"></th>
+                          <th className="px-2 py-1 border-l border-line"></th>
+                          <th className="px-2 py-1"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -1144,18 +1341,53 @@ export function App() {
                                     ))}
                                   </Select>
                                 )}
-                                {column.type !== "select-room-category" && column.type !== "select-basis" && (
-                                  <input
-                                    type={column.type}
-                                    min={roomCountFields.has(column.name) ? 0 : undefined}
-                                    step={roomCountFields.has(column.name) ? 1 : undefined}
-                                    className={tableControlClass}
-                                    {...form.register(`lineItems.${index}.${column.name}`)}
-                                    onBlur={(event) => {
-                                      if (roomCountFields.has(column.name) && Number(event.target.value) < 0) {
-                                        form.setValue(`lineItems.${index}.${column.name}`, 0, { shouldValidate: true });
-                                      }
+                                {column.type === "select-supplementary" && (
+                                  <Controller
+                                    control={form.control}
+                                    name={`lineItems.${index}.supplementary` as any}
+                                    render={({ field }) => {
+                                      const cat = lineItems[index]?.roomCategory || "";
+                                      const rowOpts = availableSupplements
+                                        .filter((s) => s.room_category.toLowerCase() === cat.toLowerCase())
+                                        .map((s) => ({ name: s.supplement_name, label: `${s.supplement_name} (${s.supplement_amount})` }));
+                                      return (
+                                        <SupplementaryDropdown
+                                          value={field.value || []}
+                                          onChange={field.onChange}
+                                          options={rowOpts}
+                                        />
+                                      );
                                     }}
+                                  />
+                                )}
+                                {column.type !== "select-room-category" && column.type !== "select-basis" && column.type !== "select-supplementary" && (
+                                  <Controller
+                                    control={form.control}
+                                    name={`lineItems.${index}.${column.name}` as any}
+                                    render={({ field }) => (
+                                      <input
+                                        {...field}
+                                        type={column.type}
+                                        min={roomCountFields.has(column.name) ? 0 : undefined}
+                                        step={roomCountFields.has(column.name) ? 1 : undefined}
+                                        className={tableControlClass}
+                                        value={roomCountFields.has(column.name) && field.value === 0 ? "" : field.value}
+                                        onChange={(e) => {
+                                          if (roomCountFields.has(column.name)) {
+                                            const val = e.target.value;
+                                            field.onChange(val === "" ? 0 : Number(val));
+                                          } else {
+                                            field.onChange(e.target.value);
+                                          }
+                                        }}
+                                        onBlur={(e) => {
+                                          field.onBlur();
+                                          if (roomCountFields.has(column.name) && Number(e.target.value) < 0) {
+                                            field.onChange(0);
+                                          }
+                                        }}
+                                      />
+                                    )}
                                   />
                                 )}
                               </td>
@@ -1216,7 +1448,7 @@ export function App() {
                         </label>
                       </div>
                       <textarea
-                        className={`app-textarea min-h-16 font-mono ${manualRates ? "border-line bg-white text-ink" : "border-navy/20 bg-blue-50/50 text-navy"}`}
+                        className={`app-textarea min-h-48 font-mono ${manualRates ? "border-line bg-white text-ink" : "border-navy/20 bg-blue-50/50 text-navy"}`}
                         readOnly={!manualRates}
                         {...form.register("rateApplicableText")}
                         placeholder="Select a hotel and fill room details to see rates"
@@ -1238,7 +1470,7 @@ export function App() {
                       <textarea className="app-textarea min-h-32" {...form.register("billingInstructions")} />
                     </label>
 
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <label className="space-y-2">
                         <span className="app-label">Employee Name</span>
                         <input className="app-input" placeholder="Employee name" {...form.register("employeeName")} />
@@ -1254,144 +1486,198 @@ export function App() {
                 </section>
               </div>
 
-              <aside className="space-y-6">
-                <section className="rounded-app border border-line bg-white shadow-panel">
-                  <div className="border-b border-line bg-cloud px-5 py-4">
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-navy">Voucher Preview</h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="aspect-[1/1.41] border border-line bg-white p-8 shadow-sm text-[10px] leading-tight overflow-hidden flex flex-col">
-                      {/* Header */}
-                      <div className="flex justify-between items-start border-b-2 border-navy pb-4 mb-4">
-                        <div>
-                          <div className="text-lg font-bold text-navy tracking-tighter">MERIDIAN</div>
-                          <div className="text-[8px] text-steel">EXPERIENCE LANKA (PVT) LTD</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs font-bold uppercase text-navy">
-                            {form.watch("voucherType") === "reservation" ? "Hotel Reservation Voucher" : 
-                             form.watch("voucherType") === "amendment" ? "Amendment Voucher" : "PPTP Voucher"}
-                          </div>
-                          <div className="text-[8px] text-steel mt-1">Page {form.watch("pageNumber")}</div>
-                        </div>
+              <aside className="pt-6 border-t border-line max-w-[400px]">
+                <GeneratedFilesPanel generated={generated} onOpenDocument={(filePath) => window.meridian.openDocument(filePath)} />
+              </aside>
+
+              {/* Floating Live Preview Widget */}
+              {(() => {
+                const targetWidth = previewMode === "expanded" ? 700 : previewMode === "collapsed" ? 180 : 308;
+                const targetHeight = previewMode === "expanded" ? 968 : previewMode === "collapsed" ? 32 : 448;
+                const safeX = Math.max(8, Math.min(previewPos.x, windowSize.width - targetWidth - 8));
+                const safeY = Math.max(48, Math.min(previewPos.y, windowSize.height - targetHeight - 8));
+                return (
+                  <div 
+                    className="fixed z-50 bg-white border border-line shadow-panel rounded-app overflow-hidden flex flex-col pointer-events-auto"
+                    style={{ 
+                      left: `${safeX}px`,
+                      top: `${safeY}px`,
+                      width: `${targetWidth}px`,
+                      height: `${targetHeight}px`,
+                      opacity: previewMode === "expanded" || isDraggingPreview ? 1 : 0.95,
+                      boxShadow: previewMode === "expanded" ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      transition: isDraggingPreview ? 'none' : 'left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out',
+                    }}
+                  >
+                    <div 
+                      className="border-b border-line bg-navy px-4 flex justify-between items-center text-white shrink-0 h-[32px] cursor-move select-none" 
+                      onMouseDown={startDragPreview}
+                      onDoubleClick={() => setPreviewMode(prev => prev === "collapsed" ? "thumbnail" : "collapsed")}
+                    >
+                      <div className="flex items-center gap-2 pointer-events-none">
+                        <FileText size={14} />
+                        <h3 className="text-[10px] font-bold uppercase tracking-wide">Live Preview</h3>
                       </div>
-
-                      {/* Primary Info Grid */}
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-4 border-b border-line pb-4">
-                        <div className="space-y-1">
-                          <p><span className="font-bold text-steel uppercase text-[8px]">Hotel:</span><br/><span className="text-navy font-bold truncate block">{form.watch("hotelName") || "—"}</span></p>
-                          <p><span className="font-bold text-steel uppercase text-[8px]">Market:</span><br/>{form.watch("market") || "—"}</p>
-                          <p><span className="font-bold text-steel uppercase text-[8px]">Rate Period:</span><br/>{form.watch("ratePeriod") || "—"}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between border-b border-cloud pb-1">
-                            <span className="font-bold text-steel uppercase text-[8px]">Date:</span>
-                            <span>{form.watch("date") || "—"}</span>
-                          </div>
-                          <div className="flex justify-between border-b border-cloud pb-1">
-                            <span className="font-bold text-steel uppercase text-[8px]">Requisition:</span>
-                            <span>{form.watch("requisitionNo") || "—"}</span>
-                          </div>
-                          <div className="flex justify-between border-b border-cloud pb-1">
-                            <span className="font-bold text-steel uppercase text-[8px]">Tour No:</span>
-                            <span>{form.watch("tourNo") || "—"}</span>
-                          </div>
-                          <div className="flex justify-between border-b border-cloud pb-1">
-                            <span className="font-bold text-steel uppercase text-[8px]">Customer:</span>
-                            <span className="truncate ml-2 max-w-[80px]">{form.watch("customerName") || "—"}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tour Name Bar */}
-                      <div className="bg-cloud p-2 mb-4 rounded border border-line">
-                        <span className="font-bold text-steel uppercase text-[8px] block mb-0.5">Tour Name</span>
-                        <div className="text-navy font-bold truncate">{form.watch("tourName") || "—"}</div>
-                      </div>
-
-                      {/* Line Items Table */}
-                      <div className="flex-1 overflow-hidden">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="border-b border-line text-left">
-                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Date</th>
-                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Category</th>
-                              <th className="py-1 pr-1 font-bold text-steel uppercase text-[6px]">Basis</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">SGL</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">DBL</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TWN</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">TPL</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">Child (2-5)</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">Child (6-11)</th>
-                              <th className="py-1 px-0.5 font-bold text-steel uppercase text-[6px] text-center">GUD</th>
-                              <th className="py-1 pl-1 font-bold text-steel uppercase text-[6px]">Arriving For</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-line">
-                            {(lineItems || []).map((item, idx) => (
-                              <tr key={idx} className="border-b border-cloud">
-                                <td className="py-1 pr-1 whitespace-nowrap text-[7px]">{item.requiredDate || "—"}</td>
-                                <td className="py-1 pr-1 truncate max-w-[60px] text-[7px]">{item.roomCategory || "—"}</td>
-                                <td className="py-1 pr-1 text-[7px]">{item.basis || "—"}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.singleRooms || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.doubleRooms || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.twinRooms || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.tripleRooms || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child2_5 || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.child6_11 || 0}</td>
-                                <td className="py-1 px-0.5 text-center text-[7px]">{item.guide || 0}</td>
-                                <td className="py-1 pl-1 truncate max-w-[70px] text-[7px]">{item.arrivingFor || "—"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Footer Info */}
-                      <div className="mt-4 pt-4 border-t border-line space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="font-bold text-steel uppercase text-[7px] mb-1">Confirmed By</p>
-                            <p className="font-medium border-b border-dotted border-line pb-1 truncate">{form.watch("confirmedBy") || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="font-bold text-steel uppercase text-[7px] mb-1">Prepared By</p>
-                            <p className="font-medium truncate">{form.watch("employeeName") || "—"}</p>
-                            <p className="text-[8px] text-steel truncate">{form.watch("employeeEmail")}</p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="font-bold text-steel uppercase text-[7px] mb-1">Rate Applicable</p>
-                          <p className="text-[8px] leading-relaxed line-clamp-2 italic text-navy">
-                            {form.watch("rateApplicableText") || "—"}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="font-bold text-steel uppercase text-[7px] mb-1">Billing Instructions</p>
-                          <p className="text-[7px] leading-snug line-clamp-3 text-steel">
-                            {(form.watch("billingInstructions") || "").trim() || "All payments will be made based on room categories provided above. All extras to be collected directly from the client."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex justify-between items-end pt-2 border-t border-cloud">
-                        <div className="text-[6px] text-steel">Generated Preview</div>
-                        <div className="text-[9px] font-bold text-navy tracking-widest uppercase opacity-50">MERIDIAN</div>
+                      
+                      <div className="flex items-center gap-1.5 ml-2">
+                        {previewMode !== "collapsed" && (
+                          <button 
+                            className="hover:bg-white/20 p-1 rounded transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setPreviewMode("collapsed"); }}
+                            title="Minimize"
+                          >
+                            <Minus size={16} />
+                          </button>
+                        )}
+                        {previewMode === "collapsed" && (
+                          <button 
+                            className="hover:bg-white/20 p-1 rounded transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setPreviewMode("thumbnail"); }}
+                            title="Restore"
+                          >
+                            <Maximize2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </section>
+                    
+                    <div 
+                      className="flex-1 bg-cloud overflow-hidden relative" 
+                      onClick={() => setPreviewMode(prev => prev === "thumbnail" ? "expanded" : "thumbnail")}
+                    >
+                      <div 
+                        className="origin-top-left transition-transform duration-300 ease-out absolute top-6 left-6"
+                        style={{ 
+                          transform: `scale(${previewMode === "expanded" ? 1 : 0.4})`, 
+                          width: '652px',
+                          height: '920px',
+                          cursor: previewMode === "thumbnail" ? 'zoom-in' : 'zoom-out'
+                        }}
+                      >
+                        <div className="w-full h-full bg-white p-10 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800">
+                          {/* Header Section */}
+                          <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
+                            <div className="flex gap-4">
+                               <img src={logo} className="w-12 h-12 object-contain opacity-40 grayscale" alt="Meridian Logo" />
+                               <div className="text-gray-500">
+                                 <div className="text-[12px]">Meridian</div>
+                                 <div>Colombo, Sri Lanka</div>
+                                 <div>Fax: +94-(0)11-2345678</div>
+                                 <div className="text-blue-400 underline decoration-blue-400">example@merid.com</div>
+                               </div>
+                            </div>
+                            <div className="text-gray-500 font-medium pt-1">
+                              Date: {form.watch("date") || "—"}
+                            </div>
+                          </div>
 
-                <LifecyclePanel />
-                <RevisionHistoryPanel voucherRevisions={voucherRevisions} />
-                <GeneratedFilesPanel generated={generated} onOpenDocument={(filePath) => window.meridian.openDocument(filePath)} />
-                <DocumentHistoryPanel
-                  documentHistory={documentHistory}
-                  onOpenDocument={(filePath) => window.meridian.openDocument(filePath)}
-                />
-              </aside>
+                          {/* Title */}
+                          <div className="text-center font-bold text-[14px] mb-8">
+                             <span className="border-b-2 border-black inline-block pb-0.5">
+                                {form.watch("voucherType") === "reservation" ? "Hotel Reservation Voucher" : 
+                                 form.watch("voucherType") === "amendment" ? "Amendment Voucher" : "PPTP Voucher"}
+                             </span>
+                          </div>
+
+                          {/* Top Body Grid */}
+                          <div className="mb-8">
+                            <div className="grid grid-cols-[110px_1fr] gap-y-1">
+                              <div className="font-bold">To</div>
+                              <div>: {form.watch("hotelName") || "—"}</div>
+                              
+                              <div className="font-bold">Requisition No</div>
+                              <div>: {form.watch("requisitionNo") || "—"}</div>
+                              
+                              <div className="font-bold">Tour No</div>
+                              <div>: {form.watch("tourNo") || "—"}</div>
+                              
+                              <div className="font-bold">Tour Name</div>
+                              <div>: {form.watch("tourName") || "—"}</div>
+                              
+                              <div className="font-bold">Customer</div>
+                              <div>: {form.watch("customerName") || "—"}</div>
+                            </div>
+                          </div>
+
+                          {/* Table */}
+                          <div className="mb-8 flex-1 overflow-hidden">
+                            <table className="w-full text-left">
+                              <thead>
+                                <tr className="font-bold text-[9px]">
+                                  <th className="py-2 px-2 whitespace-nowrap">Required Date</th>
+                                  <th className="py-2 px-2 whitespace-nowrap">Room Category</th>
+                                  <th className="py-2 px-2">Basis</th>
+                                  <th className="py-2 px-1 text-center">SGL</th>
+                                  <th className="py-2 px-1 text-center">DBL</th>
+                                  <th className="py-2 px-1 text-center">TWN</th>
+                                  <th className="py-2 px-1 text-center">TPL</th>
+                                  <th className="py-2 px-1 text-center">Child</th>
+                                  <th className="py-2 px-1 text-center">Guide</th>
+                                  <th className="py-2 px-2 whitespace-nowrap">Arriving for</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(lineItems || []).map((item, idx) => (
+                                  <tr key={idx} className={idx % 2 === 0 ? 'bg-[#f5f5f5]' : 'bg-white'}>
+                                    <td className="py-1.5 px-2">{item.requiredDate || "—"}</td>
+                                    <td className="py-1.5 px-2 whitespace-pre-wrap">{item.roomCategory || "—"}</td>
+                                    <td className="py-1.5 px-2">{item.basis || "—"}</td>
+                                    <td className="py-1.5 px-1 text-center">{item.singleRooms || ""}</td>
+                                    <td className="py-1.5 px-1 text-center">{item.doubleRooms || ""}</td>
+                                    <td className="py-1.5 px-1 text-center">{item.twinRooms || ""}</td>
+                                    <td className="py-1.5 px-1 text-center">{item.tripleRooms || ""}</td>
+                                    <td className="py-1.5 px-1 text-center">
+                                      {(() => {
+                                        const cc = (Number(item.child2_5) || 0) + (Number(item.child2_5Sharing) || 0) + (Number(item.child2_5Bed) || 0) + (Number(item.child2_5OwnRoom) || 0) + (Number(item.child6_11) || 0) + (Number(item.child6_11Sharing) || 0) + (Number(item.child6_11Bed) || 0) + (Number(item.child6_11OwnRoom) || 0);
+                                        return cc > 0 ? cc : "";
+                                      })()}
+                                    </td>
+                                    <td className="py-1.5 px-1 text-center">{item.guide ? `${item.guide} ${item.guideBasis || ""}`.trim() : ""}</td>
+                                    <td className="py-1.5 px-2">{item.arrivingFor || ""}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Bottom Sections */}
+                          <div className="space-y-4">
+                            <div>
+                              <div className="font-bold mb-1">Confirmed By - {form.watch("confirmedBy") || "Team"}</div>
+                            </div>
+                            
+                            <div>
+                              <div className="font-bold mb-1">Rate Applicable -</div>
+                              <div className="whitespace-pre-wrap leading-[1.5]">
+                                {form.watch("rateApplicableText") || "—"}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="font-bold mb-1">Remarks -</div>
+                              <div className="whitespace-pre-wrap">{form.watch("remarks") || "No"}</div>
+                            </div>
+
+                            <div>
+                              <div className="font-bold mb-1">Billing Instruction -</div>
+                              <div className="whitespace-pre-wrap leading-[1.5]">
+                                {form.watch("billingInstructions") || "• All payments will be made based on the room rates provided above.\n• All extras to be collected directly from the client.\n• Please forward the Tax Invoice addressed to Meridian (Pvt) Ltd along with the signed off voucher."}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div className="mt-8 pt-4 text-gray-400 font-medium">
+                            <div>{form.watch("employeeName") || "kadira"}</div>
+                            <div>{form.watch("employeeEmail") || "dilshanstoregiriulla@gmail.com"}</div>
+                            <div className="font-bold text-gray-500 mt-0.5">Meridian (Pvt.) Ltd.</div>
+                          </div>
+                        </div>
+                  </div>
+                </div>
+              </div>
+                );
+              })()}
             </div>
           </form>
         ) : activeView === "dashboard" ? (
@@ -1400,7 +1686,7 @@ export function App() {
               form.reset(withAccountDefaults(defaultVoucher, accountProfile));
               setGenerated(null);
               setVoucherRevisions([]);
-              setNotice("New voucher ready");
+              addNotice("New voucher ready");
               setActiveView("entry");
             }}
             onOpenVoucher={(id: string) => void openVoucherFromSearch({ id } as VoucherRecord)}
@@ -1438,7 +1724,7 @@ export function App() {
                 onProfileUpdated={(profile) => setAccountProfile(profile)}
               />
             ) : activeView === "register" ? (
-          <div className="mx-auto max-w-[1400px] p-8">
+          <div className="mx-auto max-w-[1400px] p-4 md:p-8">
             <div className="mb-8 flex items-start gap-4">
               <button 
                 onClick={() => setActiveView("dashboard")}
@@ -1455,7 +1741,7 @@ export function App() {
             </div>
 
             <div className="app-panel app-panel-body-lg">
-              <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <label className="space-y-2">
                   <span className="app-label">Status</span>
                   <Select
@@ -1502,7 +1788,7 @@ export function App() {
                 </label>
                 <label className="space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wide text-steel">Quick Filters</span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       className="rounded-app border border-line px-3 py-2 text-sm font-bold text-navy hover:bg-blue-50"
@@ -1525,13 +1811,13 @@ export function App() {
                 <p className="text-center text-steel">No vouchers found.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
+                  <table className="w-full min-w-[800px] border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-line text-left text-xs font-bold uppercase tracking-wide text-steel">
                         <th className="px-4 py-3">Requisition / Tour</th>
                         <th className="px-4 py-3">Hotel</th>
                         <th className="px-4 py-3">Customer</th>
-                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Created On</th>
                         <th className="px-4 py-3 w-[160px]">Status</th>
                         <th className="px-4 py-3">Actions</th>
                       </tr>
@@ -1539,10 +1825,19 @@ export function App() {
                     <tbody className="divide-y divide-line">
                       {voucherRegister.map((voucher) => (
                         <tr key={voucher.id} className="hover:bg-cloud">
-                          <td className="px-4 py-3 font-bold text-navy">{voucher.requisitionNo || voucher.tourNo}</td>
-                          <td className="px-4 py-3">{voucher.hotelName}</td>
+                          <td className="px-4 py-3">
+                            <p className="font-bold text-navy">{voucher.requisitionNo || voucher.tourNo}</p>
+                            {voucher.tourName && <p className="text-[11px] text-steel truncate max-w-[150px]">{voucher.tourName}</p>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p>{voucher.hotelName}</p>
+                            <p className="text-[11px] text-steel capitalize">{voucher.voucherType}</p>
+                          </td>
                           <td className="px-4 py-3">{voucher.customerName}</td>
-                          <td className="px-4 py-3">{new Date(voucher.voucherDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
+                            <p>{new Date(voucher.createdAt).toLocaleDateString()}</p>
+                            <p className="text-[11px] text-steel">{new Date(voucher.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                          </td>
                           <td className="px-4 py-3">
                             <label className="sr-only" htmlFor={`voucher-status-${voucher.id}`}>
                               Update voucher status for {voucher.requisitionNo || voucher.tourNo || voucher.id}
@@ -1652,6 +1947,8 @@ export function App() {
         <TourExplorerPanel
           toursFolderPath={toursFolderPath}
           toursFolderTree={toursFolderTree}
+          documentHistory={documentHistory}
+          voucherRevisions={voucherRevisions}
           isLoading={isLoadingTree}
           isMigrating={isMigrating}
           collapsed={explorerCollapsed}
@@ -1659,6 +1956,7 @@ export function App() {
           onSelectFolder={handleSelectToursFolder}
           onRefresh={refreshToursFolderTree}
           onOpenFile={(filePath) => window.meridian?.openDocument(filePath)}
+          onOpenDocument={(filePath) => window.meridian?.openDocument(filePath)}
           onRevealFile={handleRevealFile}
           onMigrate={handleMigrateVouchers}
         />

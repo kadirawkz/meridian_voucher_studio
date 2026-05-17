@@ -144,6 +144,7 @@ body {
 
 /* Specific overrides for common draggable elements */
 img, a, button {
+  -webkit-user-drag: none;
 }
 
 /* Allow text selection ONLY in input and textarea */
@@ -175,14 +176,79 @@ textarea:focus {
   border-color: #12345a;
 }
 
+/* Global Scrollbar overrides for better UX */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Ensure stable gutter where explicitly requested */
+.thin-scrollbar {
+  scrollbar-gutter: stable;
+}
+
 .thin-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 14px;
+  height: 14px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: #c7d0dd;
-  border-radius: 999px;
+  background: #cbd5e1;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Explicit scrollbar states to bypass Chrome pseudo-element repaint bugs */
+.hide-scrollbar {
+  scrollbar-gutter: stable;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+
+.show-scrollbar {
+  scrollbar-gutter: stable;
+}
+.show-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.show-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 0px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+.show-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ==========================================================================
@@ -230,9 +296,11 @@ textarea:focus {
 }
 
 .drag {
+  -webkit-app-region: drag;
 }
 
 .no-drag {
+  -webkit-app-region: no-drag;
 }
 
 /* ---- Text selection ---- */
@@ -508,7 +576,6 @@ button, [role="button"], .drag {
   flex: 1;
   text-align: left;
 }
-  -webkit-user-select: none;
 
 .tour-tree-indent-guide {
   position: absolute;

@@ -66,7 +66,7 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
+    <div className="mx-auto max-w-2xl p-4 md:p-8">
       <div className="mb-8">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">User / Account</p>
         <h2 className="mt-1 font-display text-3xl font-bold text-navy">Profile</h2>
@@ -86,13 +86,13 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
       <div className="space-y-6">
         {/* Profile Information */}
         <section className="app-panel app-panel-body-lg">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="app-section-title">Account Information</h3>
             {!isEditing && (
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="app-button-secondary text-sm"
+                className="app-button-secondary text-sm w-40"
               >
                 Edit Profile
               </button>
@@ -125,11 +125,11 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
                   placeholder="your.email@company.com"
                 />
               </label>
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-wrap gap-3 justify-end">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="app-button-secondary"
+                  className="app-button-secondary w-40"
                 >
                   Cancel
                 </button>
@@ -137,7 +137,7 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="app-button-primary"
+                  className="app-button-primary w-40"
                 >
                   <Save size={16} /> {isSaving ? "Saving..." : "Save Changes"}
                 </button>
@@ -145,18 +145,18 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4">
-                <User size={20} className="text-navy" />
-                <div>
+              <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4 overflow-hidden">
+                <User size={20} className="text-navy shrink-0" />
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold uppercase text-steel">Employee Name</p>
-                  <p className="text-base font-semibold text-navy">{profile.employeeName}</p>
+                  <p className="text-base font-semibold text-navy truncate">{profile.employeeName}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4">
-                <Mail size={20} className="text-navy" />
-                <div>
+              <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4 overflow-hidden">
+                <Mail size={20} className="text-navy shrink-0" />
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold uppercase text-steel">Email Address</p>
-                  <p className="text-base font-semibold text-navy">{profile.employeeEmail}</p>
+                  <p className="text-base font-semibold text-navy truncate">{profile.employeeEmail}</p>
                 </div>
               </div>
             </div>

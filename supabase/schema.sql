@@ -128,7 +128,8 @@ create table if not exists public.hotel_rate_child_prices (
   check (valid_to >= valid_from),
   room_category_id uuid not null references public.room_categories(id),
   basis text not null check (basis in ('BB','HB','FB')),
-  age_2_5 text, age_6_11 text, extra_bed text
+  age_2_5_sharing text, age_2_5_extra_bed text, age_2_5_own_room text,
+  age_6_11_sharing text, age_6_11_extra_bed text, age_6_11_own_room text
 );
 create index if not exists hotel_rate_child_prices_rate_idx on public.hotel_rate_child_prices (hotel_rate_id);
 

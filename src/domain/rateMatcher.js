@@ -154,10 +154,10 @@ export function autoFillFromContract(voucher, contracts, forcedContractId) {
         status: "matched",
         warnings,
         matchedContractId: contract.id,
-        rateApplicableText: rateTexts.join("\n"),
+        rateApplicableText: rateTexts.join(" / "),
         guideText,
-        surchargeText: surchargeTexts.join("\n"),
-        eventSupplementText: eventTexts.join("\n"),
+        surchargeText: surchargeTexts.join(" / "),
+        eventSupplementText: eventTexts.join(" / "),
         billingInstructions: contract.billingTemplate || undefined,
     };
 }
