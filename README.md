@@ -9,18 +9,19 @@
   <img src="https://img.shields.io/badge/React-18.3.1-61dafb.svg?style=flat-square&logo=react" alt="React Badge">
   <img src="https://img.shields.io/badge/Tailwind-3.4.15-38bdf8.svg?style=flat-square&logo=tailwindcss" alt="Tailwind Badge">
   <img src="https://img.shields.io/badge/Supabase-Cloud-3ecf8e.svg?style=flat-square&logo=supabase" alt="Supabase Badge">
-  <img src="https://img.shields.io/badge/License-Proprietary-red.svg?style=flat-square" alt="License Badge">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License Badge">
 </p>
 
 ---
 
 ## 🌟 Core Features
 
-*   **🖥️ Custom Native-Like Shell**: Wrapped in a sleek, high-performance Electron shell featuring customized Windows/macOS native-style menus and workspace management.
+*   **🖥️ Custom Native-Like Shell & Anchor Steel Theme**: Wrapped in a sleek, high-performance Electron shell featuring customized native-style menus, combined with a premium metallic **Anchor Steel Dark Theme** designed for low-light operator comfort.
 *   **📊 Dynamic Entry Grid**: A powerful, spreadsheet-like multi-row entry system powered by **React Hook Form** and **Zod** schema validations.
 *   **🛌 Granular Occupancy Splits**: Custom inputs supporting occupancy breakdowns (Sgl, Dbl, Twin, Tpl) alongside dedicated child categories split by age groups (2–5 years and 6–11 years) with sub-options for sharing, extra bed, or individual room.
-*   **🏷️ Intelligent Rate Supplement Override**: Supports granular, manual supplement assignment per line-item (such as `HB` - Half Board, `FB` - Full Board, `AI` - All Inclusive). Selected supplements are cleanly formatted as 2-letter codes, joined by delimiters (e.g., `HB|FB`), and automatically appended to the rate applicable descriptions.
+*   **🏷️ Premium Supplementary Overrides**: High-fidelity, custom multi-select dropdowns featuring checkbox click indicators for assignable board supplements (e.g. `HB`, `FB`). Selected supplements are joined dynamically as 2-letter tokens (e.g., `HB|FB`) and cleanly appended to rate descriptions without layout clipping.
 *   **⚡ Automated Rate Matching Engine**: Dynamic lookups that scan the **Supabase** cloud datastore, auto-matching hotel contracts by reservation date, room category, client market, and age categories to suggest rates in real-time.
+*   **📂 Resilient Folder Integrity & Explorer**: Includes a secure directory verification system. If the designated Tours folder is missing on the filesystem, it serves a gorgeous "Folder Not Found" interactive recovery state in the Tour Explorer pane for rapid, one-click relocation.
 *   **📄 High-Fidelity Document Generation**: Compiles standard Word templates using **Docxtemplater** with robust support for structural array loops (`{#lineItems}...{/lineItems}`), fallback legacy templating, and conditional section rendering (e.g., reservation vs. amendment).
 *   **🖨️ Headless PDF Compiler**: Integrates a background **LibreOffice** connection to programmatically render the compiled DOCX templates into production-ready PDFs.
 *   **⚙️ Workspace & Settings Manager**: Persists settings (such as local export directories, LibreOffice path overrides, and employee profile data) in local app storage.
@@ -196,5 +197,5 @@ Before pushing local branches to public mirrors, follow this standard security c
 ---
 
 <p align="center">
-  Developed by <strong>Meridian Destination Management</strong>. All rights reserved.
+  Developed by <strong>Meridian Destination Management</strong>. Released under the <a href="LICENSE">MIT License</a>.
 </p>
