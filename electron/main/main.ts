@@ -261,6 +261,32 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("app:version", () => app.getVersion());
 
+  /* ---------- Reference Data IPC handlers ---------- */
+
+  ipcMain.handle("reference:hotels", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/hotels`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:markets", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/markets`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:room-categories", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/room-categories`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:customers", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/customers`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
   /* ---------- Rate Master IPC handlers ---------- */
 
   ipcMain.handle("rate-master:save", async (_event, contract: HotelRateRecord) => {

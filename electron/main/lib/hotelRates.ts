@@ -289,7 +289,7 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
   ]);
 
   // 3. Insert children with FK IDs
-  const inserts: PromiseLike<unknown>[] = [];
+  const inserts: PromiseLike<any>[] = [];
 
   if (record.room_rates?.length) {
     inserts.push(supabase.from("hotel_rate_room_prices").insert(
