@@ -1,9 +1,6 @@
 export const tourTypes = ["SL", "ASL", "WSL", "FSS", "CSL", "DSL", "SLH"] as const;
 
-export const hotels = [
-  "Heritance Kandalama - Dambulla",
-  "Galle Face Hotel - Colombo"
-] as const;
+export const hotels = [] as const;
 
 export const roomCategories = [
   "Standard Room",
@@ -20,4 +17,4 @@ export const roomCategories = [
 
 export const mealBasisOptions = ["BB", "FB", "HB"] as const;
 
-export const markets = ["LOCAL", "UK", "GERMAN", "CHINESE", "INDIAN", "FRANCE", "VIKINER", "ITALY", "JAPAN"] as const;
+export const markets = ["LOCAL", "UK", "GERMAN", "CHINESE", "INDIAN", "FRANCE", "ITALY", "JAPAN"] as const;

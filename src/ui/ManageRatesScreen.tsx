@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Edit2, Trash2, ChevronLeft, AlertTriangle } from "lucide-react";
 import type { HotelRateRecord } from "../../electron/shared/types";
+import { friendlyErrorMessage } from "./errors";
 
 type Props = {
   onBack: () => void;
@@ -21,7 +22,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
       const data = await window.meridian.getAllHotelRates();
       setRates(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load rates");
+      setError(friendlyErrorMessage(err, "Failed to load rates"));
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
       setDeleteId(null);
       loadRates();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Failed to delete rate");
+      window.alert(friendlyErrorMessage(err, "Failed to delete rate"));
     }
   };
 

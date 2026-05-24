@@ -39,23 +39,27 @@ create table if not exists public.customers (
   created_at timestamptz not null default now()
 );
 
--- Seed reference data
-insert into public.hotels (name) values
-  ('Heritance Kandalama - Dambulla'),
-  ('Galle Face Hotel - Colombo')
-on conflict (name) do nothing;
+create table if not exists public.tour_types (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null default '',
+  created_at timestamptz not null default now()
+);
 
-insert into public.markets (code, name) values
-  ('LOCAL', 'Local'), ('UK', 'United Kingdom'), ('GERMAN', 'Germany'),
-  ('CHINESE', 'China'), ('INDIAN', 'India'), ('FRANCE', 'France'),
-  ('VIKINER', 'Vikiner'), ('ITALY', 'Italy'), ('JAPAN', 'Japan')
-on conflict (code) do nothing;
+create table if not exists public.meal_basis (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null default '',
+  created_at timestamptz not null default now()
+);
 
-insert into public.room_categories (name) values
-  ('Standard Room'), ('Deluxe Room'), ('Super Deluxe'), ('Suite Room'),
-  ('Luxury Suite'), ('Luxury Grand'), ('Luxury Super'),
-  ('Executive Room'), ('Family Room'), ('Superior Room')
-on conflict (name) do nothing;
+create table if not exists public.currencies (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null default '',
+  created_at timestamptz not null default now()
+);
+
 
 -- 3. HOTEL RATES (parent) — FK to hotels, markets
 -- Drop old legacy tables
@@ -95,6 +99,9 @@ create table if not exists public.hotel_rates (
   foc_minimum_persons integer not null default 0,
   foc_quantity integer not null default 1,
   foc_basis text not null default '',
+  foc_count_adults boolean not null default true,
+  foc_count_child_2_5 boolean not null default false,
+  foc_count_child_6_11 boolean not null default false,
   created_by uuid not null references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -113,7 +120,7 @@ create table if not exists public.hotel_rate_room_prices (
   valid_to date not null,
   check (valid_to >= valid_from),
   room_category_id uuid not null references public.room_categories(id),
-  basis text not null check (basis in ('BB','HB','FB')),
+  basis text not null,
   sgl numeric, dbl numeric, twn numeric, tpl numeric
 );
 create index if not exists hotel_rate_room_prices_rate_idx on public.hotel_rate_room_prices (hotel_rate_id);
@@ -127,7 +134,7 @@ create table if not exists public.hotel_rate_child_prices (
   valid_to date not null,
   check (valid_to >= valid_from),
   room_category_id uuid not null references public.room_categories(id),
-  basis text not null check (basis in ('BB','HB','FB')),
+  basis text not null,
   age_2_5_sharing text, age_2_5_extra_bed text, age_2_5_own_room text,
   age_6_11_sharing text, age_6_11_extra_bed text, age_6_11_own_room text
 );
@@ -156,7 +163,7 @@ create index if not exists hotel_rate_events_rate_idx on public.hotel_rate_event
 create table if not exists public.hotel_rate_guide_prices (
   id uuid primary key default gen_random_uuid(),
   hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  basis text not null check (basis in ('BB','HB','FB')),
+  basis text not null,
   rate numeric
 );
 create index if not exists hotel_rate_guide_prices_rate_idx on public.hotel_rate_guide_prices (hotel_rate_id);
@@ -176,7 +183,7 @@ create index if not exists hotel_rate_room_supplements_rate_idx on public.hotel_
 create table if not exists public.vouchers (
   id uuid primary key default gen_random_uuid(),
   voucher_type text not null check (voucher_type in ('reservation', 'amendment', 'pptp')),
-  tour_type text not null check (tour_type in ('SL', 'ASL', 'WSL', 'FSS', 'CSL', 'DSL', 'SLH')),
+  tour_type text not null,
   status text not null default 'draft' check (status in ('draft', 'generated', 'sent')),
   created_by uuid not null references auth.users(id),
   voucher_date date,
@@ -300,6 +307,9 @@ alter table public.hotels enable row level security;
 alter table public.markets enable row level security;
 alter table public.room_categories enable row level security;
 alter table public.customers enable row level security;
+alter table public.tour_types enable row level security;
+alter table public.meal_basis enable row level security;
+alter table public.currencies enable row level security;
 
 -- Employee Profiles RLS
 drop policy if exists "Employees can read own profile" on public.employee_profiles;
@@ -336,6 +346,25 @@ create policy "Employees can manage room categories" on public.room_categories f
   using (public.current_employee_is_active()) with check (public.current_employee_is_active());
 create policy "Anyone can read customers" on public.customers for select to authenticated using (true);
 create policy "Employees can manage customers" on public.customers for all to authenticated
+  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+
+drop policy if exists "Anyone can read tour types" on public.tour_types;
+drop policy if exists "Employees can manage tour types" on public.tour_types;
+drop policy if exists "Anyone can read meal basis" on public.meal_basis;
+drop policy if exists "Employees can manage meal basis" on public.meal_basis;
+drop policy if exists "Anyone can read currencies" on public.currencies;
+drop policy if exists "Employees can manage currencies" on public.currencies;
+
+create policy "Anyone can read tour types" on public.tour_types for select to authenticated using (true);
+create policy "Employees can manage tour types" on public.tour_types for all to authenticated
+  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+
+create policy "Anyone can read meal basis" on public.meal_basis for select to authenticated using (true);
+create policy "Employees can manage meal basis" on public.meal_basis for all to authenticated
+  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+
+create policy "Anyone can read currencies" on public.currencies for select to authenticated using (true);
+create policy "Employees can manage currencies" on public.currencies for all to authenticated
   using (public.current_employee_is_active()) with check (public.current_employee_is_active());
 
 -- Vouchers RLS

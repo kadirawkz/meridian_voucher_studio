@@ -203,10 +203,7 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
   );
   const firstLineItem = voucher.lineItems[0];
   const billingInstructions =
-    voucher.billingInstructions?.trim() ||
-    "All payments will be made based on the room categories provided above.\n" +
-      "All extras to be collected directly from the client.\n" +
-      "Please forward the Tax Invoice addressed to Meridian (Pvt) Ltd along with the signed off voucher.";
+    voucher.billingInstructions?.trim() || "";
 
   const totalChildren = voucher.lineItems.reduce(
     (total, item) => total + (item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 

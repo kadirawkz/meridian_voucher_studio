@@ -179,17 +179,23 @@ function buildGuideText(
   
   // 1. Check FOC Rules
   if (record.foc_rules?.enabled) {
-    const totalPax = voucher.lineItems.reduce(
-      (sum, li) =>
-        sum +
-        (li.singleRooms || 0) +
-        (li.doubleRooms || 0) * 2 +
-        (li.twinRooms || 0) * 2 +
-        (li.tripleRooms || 0) * 3 +
-        (li.child2_5 || 0) +
-        (li.child6_11 || 0),
-      0
-    );
+    const countAdults = record.foc_rules.count_adults ?? true;
+    const countChild25 = record.foc_rules.count_child_2_5 ?? false;
+    const countChild611 = record.foc_rules.count_child_6_11 ?? false;
+
+    const totalPax = voucher.lineItems.reduce((sum, li) => {
+      let count = 0;
+      if (countAdults) {
+        count += Number(li.singleRooms || 0) + (Number(li.doubleRooms || 0) * 2) + (Number(li.twinRooms || 0) * 2) + (Number(li.tripleRooms || 0) * 3);
+      }
+      if (countChild25) {
+        count += Number(li.child2_5 || 0) + Number(li.child2_5Sharing || 0) + Number(li.child2_5Bed || 0) + Number(li.child2_5OwnRoom || 0);
+      }
+      if (countChild611) {
+        count += Number(li.child6_11 || 0) + Number(li.child6_11Sharing || 0) + Number(li.child6_11Bed || 0) + Number(li.child6_11OwnRoom || 0);
+      }
+      return sum + count;
+    }, 0);
     
     const minPax = record.foc_rules.minimum_persons || 0;
     if (totalPax >= minPax) {

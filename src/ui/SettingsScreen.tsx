@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor } from "lucide-react";
+import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor, Trash2, Plus, AlertTriangle } from "lucide-react";
+import type { TourTypeRef, MarketRef, RoomCategoryRef, CustomerRef, MealBasisRef, CurrencyRef } from "../../electron/shared/types";
 
 interface AppSettings {
   toursFolderRoot?: string;
@@ -17,8 +18,26 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
+  const [activeMainTab, setActiveMainTab] = useState<"system" | "references">("system");
+  const [activeSubTab, setActiveSubTab] = useState<"tour-types" | "markets" | "customers" | "room-categories" | "meal-basis" | "currencies">("tour-types");
+
+  // Reference States
+  const [tourTypes, setTourTypes] = useState<TourTypeRef[]>([]);
+  const [markets, setMarkets] = useState<MarketRef[]>([]);
+  const [roomCategories, setRoomCategories] = useState<RoomCategoryRef[]>([]);
+  const [customers, setCustomers] = useState<CustomerRef[]>([]);
+  const [mealBasis, setMealBasis] = useState<MealBasisRef[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyRef[]>([]);
+
+  const [newCode, setNewCode] = useState("");
+  const [newName, setNewName] = useState("");
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; label: string } | null>(null);
+
   useEffect(() => {
     loadSettings();
+    loadAllReferences();
   }, []);
 
   async function loadSettings() {
@@ -34,10 +53,41 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
     }
   }
 
+  async function loadAllReferences() {
+    try {
+      if (window.meridian.listTourTypes) {
+        const res = await window.meridian.listTourTypes();
+        setTourTypes(res || []);
+      }
+      if (window.meridian.listMarkets) {
+        const res = await window.meridian.listMarkets();
+        setMarkets(res || []);
+      }
+      if (window.meridian.listRoomCategories) {
+        const res = await window.meridian.listRoomCategories();
+        setRoomCategories(res || []);
+      }
+      if (window.meridian.listCustomers) {
+        const res = await window.meridian.listCustomers();
+        setCustomers(res || []);
+      }
+      if (window.meridian.listMealBasis) {
+        const res = await window.meridian.listMealBasis();
+        setMealBasis(res || []);
+      }
+      if (window.meridian.listCurrencies) {
+        const res = await window.meridian.listCurrencies();
+        setCurrencies(res || []);
+      }
+    } catch (error) {
+      console.error("Failed to load references:", error);
+    }
+  }
+
   async function saveSettings() {
     try {
       setIsSaving(true);
-      await window.meridian.saveSettings(settings);
+      await window.meridian.saveSettings(settings as Record<string, unknown>);
       setFeedback("Settings saved successfully");
       setTimeout(() => setFeedback(""), 3000);
     } catch (error) {
@@ -75,6 +125,75 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
     }
   }
 
+  async function handleAddItem(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      if (activeSubTab === "tour-types") {
+        if (!newCode.trim()) return;
+        await window.meridian.saveTourType({ code: newCode.trim().toUpperCase(), name: newName.trim() || newCode.trim().toUpperCase() });
+      } else if (activeSubTab === "markets") {
+        if (!newCode.trim()) return;
+        await window.meridian.saveMarket({ code: newCode.trim().toUpperCase(), name: newName.trim() || newCode.trim().toUpperCase() });
+      } else if (activeSubTab === "meal-basis") {
+        if (!newCode.trim()) return;
+        await window.meridian.saveMealBasis({ code: newCode.trim().toUpperCase(), name: newName.trim() || newCode.trim().toUpperCase() });
+      } else if (activeSubTab === "customers") {
+        if (!newName.trim()) return;
+        await window.meridian.saveCustomer({ name: newName.trim(), is_active: true });
+      } else if (activeSubTab === "room-categories") {
+        if (!newName.trim()) return;
+        await window.meridian.saveRoomCategory({ name: newName.trim() });
+      } else if (activeSubTab === "currencies") {
+        if (!newCode.trim()) return;
+        await window.meridian.saveCurrency({ code: newCode.trim().toUpperCase(), name: newName.trim() || newCode.trim().toUpperCase() });
+      }
+      
+      setNewCode("");
+      setNewName("");
+      setFeedback("Item added successfully");
+      setTimeout(() => setFeedback(""), 3000);
+      await loadAllReferences();
+    } catch (error) {
+      console.error("Failed to add item:", error);
+      setFeedback("Failed to add item");
+    }
+  }
+
+  function triggerDelete(type: string, id: string, label: string) {
+    setDeleteTarget({ type, id, label });
+    setShowDeleteConfirm(true);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    try {
+      const { type, id } = deleteTarget;
+      if (type === "tour-types") {
+        await window.meridian.deleteTourType(id);
+      } else if (type === "markets") {
+        await window.meridian.deleteMarket(id);
+      } else if (type === "meal-basis") {
+        await window.meridian.deleteMealBasis(id);
+      } else if (type === "customers") {
+        await window.meridian.deleteCustomer(id);
+      } else if (type === "room-categories") {
+        await window.meridian.deleteRoomCategory(id);
+      } else if (type === "currencies") {
+        await window.meridian.deleteCurrency(id);
+      }
+
+      setFeedback("Item deleted successfully");
+      setTimeout(() => setFeedback(""), 3000);
+      await loadAllReferences();
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      setFeedback("Failed to delete item");
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -85,10 +204,36 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
-      <div className="mb-8">
+      <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">System / Configuration</p>
         <h2 className="mt-1 font-display text-3xl font-bold text-navy">Settings</h2>
-        <p className="mt-2 text-sm text-steel">Configure workspace defaults and system behavior.</p>
+        <p className="mt-2 text-sm text-steel">Configure workspace defaults, system behavior, and reference tables.</p>
+      </div>
+
+      {/* Main Tab Navigation */}
+      <div className="flex gap-6 border-b border-line mb-6">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("system")}
+          className={`pb-3 font-semibold text-sm transition-all border-b-2 -mb-[2px] ${
+            activeMainTab === "system"
+              ? "border-navy text-navy font-bold"
+              : "border-transparent text-steel hover:text-navy"
+          }`}
+        >
+          System Configuration
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("references")}
+          className={`pb-3 font-semibold text-sm transition-all border-b-2 -mb-[2px] ${
+            activeMainTab === "references"
+              ? "border-navy text-navy font-bold"
+              : "border-transparent text-steel hover:text-navy"
+          }`}
+        >
+          Reference Lists
+        </button>
       </div>
 
       {feedback && (
@@ -101,118 +246,413 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
         </div>
       )}
 
-      <div className="space-y-6">
-        {/* Workspace Settings */}
-        <section className="app-panel app-panel-body-lg">
-          <h3 className="mb-5 app-section-title">Workspace</h3>
-          <div className="space-y-5">
-            <div>
-              <label className="block space-y-2 mb-3">
-                <span className="app-label">Tours Folder Root</span>
-                <p className="text-xs text-steel">Location where tour folders are organized</p>
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
-                  {settings.toursFolderRoot || "Not set"}
+      {activeMainTab === "system" ? (
+        <div className="space-y-6">
+          {/* Workspace Settings */}
+          <section className="app-panel app-panel-body-lg">
+            <h3 className="mb-5 app-section-title">Workspace</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="block space-y-2 mb-3">
+                  <span className="app-label">Tours Folder Root</span>
+                  <p className="text-xs text-steel">Location where tour folders are organized</p>
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
+                    {settings.toursFolderRoot || "Not set"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={selectToursFolder}
+                    className="app-button-secondary whitespace-nowrap"
+                  >
+                    <FolderOpen size={16} /> Select
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={selectToursFolder}
-                  className="app-button-secondary whitespace-nowrap"
-                >
-                  <FolderOpen size={16} /> Select
-                </button>
               </div>
-            </div>
 
-            <div>
-              <label className="block space-y-2 mb-3">
-                <span className="app-label">Export Directory</span>
-                <p className="text-xs text-steel">Default location for generated PDF and DOCX files</p>
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
-                  {settings.exportDirectory || "Documents/Meridian Voucher Studio"}
+              <div>
+                <label className="block space-y-2 mb-3">
+                  <span className="app-label">Export Directory</span>
+                  <p className="text-xs text-steel">Default location for generated PDF and DOCX files</p>
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
+                    {settings.exportDirectory || "Documents/Meridian Voucher Studio"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={selectExportDirectory}
+                    className="app-button-secondary whitespace-nowrap"
+                  >
+                    <FolderOpen size={16} /> Select
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={selectExportDirectory}
-                  className="app-button-secondary whitespace-nowrap"
-                >
-                  <FolderOpen size={16} /> Select
-                </button>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Appearance Settings */}
-        <section className="app-panel app-panel-body-lg">
-          <h3 className="mb-5 app-section-title">Appearance</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block space-y-2 mb-3">
-                <span className="app-label">Application Theme</span>
-                <p className="text-xs text-steel">Choose how Meridian Voucher Studio looks on your screen</p>
-              </label>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { value: "light", label: "Light Theme", icon: Sun, desc: "Clean and classic, ideal for bright workspaces." },
-                  { value: "dark", label: "Dark Theme", icon: Moon, desc: "A sleek, low-glare dark palette optimized for clarity." },
-                  { value: "system", label: "System Sync", icon: Monitor, desc: "Automatically match your computer's OS theme." }
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = (settings.theme || "system") === item.value;
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        const nextSettings = { ...settings, theme: item.value as "light" | "dark" | "system" };
-                        setSettings(nextSettings);
-                        if (onThemeChange) {
-                          onThemeChange(item.value as "light" | "dark" | "system");
-                        }
-                      }}
-                      className={`flex flex-col items-start rounded-app border p-4 text-left transition-all ${
-                        isSelected 
-                          ? "border-navy bg-[var(--color-accent-bg)] text-navy shadow-sm" 
-                          : "border-line bg-surface text-ink hover:border-steel"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-bold text-sm">
-                        <Icon size={18} className={isSelected ? "text-navy" : "text-steel"} />
-                        <span>{item.label}</span>
-                      </div>
-                      <p className="mt-2 text-xs text-steel leading-relaxed">{item.desc}</p>
-                    </button>
-                  );
-                })}
+          {/* Appearance Settings */}
+          <section className="app-panel app-panel-body-lg">
+            <h3 className="mb-5 app-section-title">Appearance</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block space-y-2 mb-3">
+                  <span className="app-label">Application Theme</span>
+                  <p className="text-xs text-steel">Choose how Meridian Voucher Studio looks on your screen</p>
+                </label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { value: "light", label: "Light Theme", icon: Sun, desc: "Clean and classic, ideal for bright workspaces." },
+                    { value: "dark", label: "Dark Theme", icon: Moon, desc: "A sleek, low-glare dark palette optimized for clarity." },
+                    { value: "system", label: "System Sync", icon: Monitor, desc: "Automatically match your computer's OS theme." }
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const isSelected = (settings.theme || "system") === item.value;
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => {
+                          const nextSettings = { ...settings, theme: item.value as "light" | "dark" | "system" };
+                          setSettings(nextSettings);
+                          if (onThemeChange) {
+                            onThemeChange(item.value as "light" | "dark" | "system");
+                          }
+                        }}
+                        className={`flex flex-col items-start rounded-app border p-4 text-left transition-all ${
+                          isSelected 
+                            ? "border-navy bg-[var(--color-accent-bg)] text-navy shadow-sm" 
+                            : "border-line bg-surface text-ink hover:border-steel"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 font-bold text-sm">
+                          <Icon size={18} className={isSelected ? "text-navy" : "text-steel"} />
+                          <span>{item.label}</span>
+                        </div>
+                        <p className="mt-2 text-xs text-steel leading-relaxed">{item.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3 justify-end">
-          <button
-            type="button"
-            onClick={loadSettings}
-            className="app-button-secondary w-40"
-          >
-            <RotateCcw size={16} /> Reset
-          </button>
-          <button
-            type="button"
-            onClick={saveSettings}
-            disabled={isSaving}
-            className="app-button-primary w-40"
-          >
-            <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
-          </button>
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 justify-end">
+            <button
+              type="button"
+              onClick={loadSettings}
+              className="app-button-secondary w-40"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+            <button
+              type="button"
+              onClick={saveSettings}
+              disabled={isSaving}
+              className="app-button-primary w-40"
+            >
+              <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Side Subtabs Navigation */}
+          <div className="md:col-span-1 flex flex-col gap-1 border-r border-line pr-4">
+            {[
+              { id: "tour-types", label: "Tour Types" },
+              { id: "markets", label: "Markets" },
+              { id: "customers", label: "Customers" },
+              { id: "room-categories", label: "Room Categories" },
+              { id: "meal-basis", label: "Meal Basis" },
+              { id: "currencies", label: "Currencies" }
+            ].map((subTab) => (
+              <button
+                key={subTab.id}
+                type="button"
+                onClick={() => {
+                  setActiveSubTab(subTab.id as any);
+                  setNewCode("");
+                  setNewName("");
+                }}
+                className={`w-full text-left px-3 py-2 text-sm font-semibold rounded-app transition-all ${
+                  activeSubTab === subTab.id
+                    ? "bg-navy text-white shadow-sm"
+                    : "text-steel hover:bg-cloud hover:text-navy"
+                }`}
+              >
+                {subTab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Subtab Contents panel */}
+          <div className="md:col-span-3 space-y-6">
+            <section className="app-panel app-panel-body-lg">
+              <h3 className="mb-4 app-section-title font-bold text-lg text-navy capitalize">
+                Manage {activeSubTab.replace("-", " ")}
+              </h3>
+
+              {/* Form to add item */}
+              <form onSubmit={handleAddItem} className="bg-cloud p-4 rounded-app border border-line mb-6">
+                <h4 className="font-bold text-xs uppercase text-steel tracking-wider mb-3">Add New Entry</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  {/* Tour types, markets, meal basis need code + optional name */}
+                  {["tour-types", "markets", "meal-basis", "currencies"].includes(activeSubTab) ? (
+                    <>
+                      <div>
+                        <label className="block mb-1.5 text-xs font-bold text-navy">Code *</label>
+                        <input
+                          type="text"
+                          required
+                          value={newCode}
+                          onChange={(e) => setNewCode(e.target.value)}
+                          placeholder={
+                            activeSubTab === "tour-types" ? "e.g. WSL" :
+                            activeSubTab === "markets" ? "e.g. UK" :
+                            activeSubTab === "meal-basis" ? "e.g. BB" : "e.g. USD"
+                          }
+                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1.5 text-xs font-bold text-navy">Name (Optional)</label>
+                        <input
+                          type="text"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          placeholder={
+                            activeSubTab === "tour-types" ? "e.g. Winter Tour" :
+                            activeSubTab === "markets" ? "e.g. United Kingdom" :
+                            activeSubTab === "meal-basis" ? "e.g. Bed & Breakfast" : "e.g. US Dollar"
+                          }
+                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    /* Customers and room categories only need name */
+                    <div className="sm:col-span-2">
+                      <label className="block mb-1.5 text-xs font-bold text-navy">Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder={activeSubTab === "customers" ? "Customer / Agent Name" : "e.g. Executive Suite"}
+                        className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button type="submit" className="app-button-primary py-1.5 px-4 text-sm font-semibold flex items-center gap-1">
+                    <Plus size={16} /> Add Entry
+                  </button>
+                </div>
+              </form>
+
+              {/* Items List Table */}
+              <div className="overflow-hidden border border-line rounded-app bg-surface shadow-sm">
+                <table className="w-full border-collapse text-left text-sm text-navy">
+                  <thead>
+                    <tr className="bg-cloud border-b border-line text-xs font-bold uppercase tracking-wider text-steel">
+                      {["tour-types", "markets", "meal-basis", "currencies"].includes(activeSubTab) ? (
+                        <>
+                          <th className="px-4 py-2.5">Code</th>
+                          <th className="px-4 py-2.5">Name</th>
+                        </>
+                      ) : (
+                        <th className="px-4 py-2.5">Name</th>
+                      )}
+                      <th className="px-4 py-2.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {/* Rendering Tour Types */}
+                    {activeSubTab === "tour-types" && (
+                      tourTypes.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No tour types seeded in database.</td></tr>
+                      ) : (
+                        tourTypes.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-bold">{item.code}</td>
+                            <td className="px-4 py-3 text-steel">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("tour-types", item.id, item.code)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+
+                    {/* Rendering Markets */}
+                    {activeSubTab === "markets" && (
+                      markets.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No markets seeded in database.</td></tr>
+                      ) : (
+                        markets.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-bold">{item.code}</td>
+                            <td className="px-4 py-3 text-steel">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("markets", item.id, item.code)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+
+                    {/* Rendering Room Categories */}
+                    {activeSubTab === "room-categories" && (
+                      roomCategories.length === 0 ? (
+                        <tr><td colSpan={2} className="px-4 py-8 text-center text-steel italic">No room categories seeded in database.</td></tr>
+                      ) : (
+                        roomCategories.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-semibold">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("room-categories", item.id, item.name)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+
+                    {/* Rendering Customers */}
+                    {activeSubTab === "customers" && (
+                      customers.length === 0 ? (
+                        <tr><td colSpan={2} className="px-4 py-8 text-center text-steel italic">No customer/agents loaded in database.</td></tr>
+                      ) : (
+                        customers.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-semibold">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("customers", item.id, item.name)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+
+                    {/* Rendering Meal Basis */}
+                    {activeSubTab === "meal-basis" && (
+                      mealBasis.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No meal basis options seeded in database.</td></tr>
+                      ) : (
+                        mealBasis.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-bold">{item.code}</td>
+                            <td className="px-4 py-3 text-steel">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("meal-basis", item.id, item.code)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+
+                    {/* Rendering Currencies */}
+                    {activeSubTab === "currencies" && (
+                      currencies.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No currencies loaded in database.</td></tr>
+                      ) : (
+                        currencies.map((item) => (
+                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                            <td className="px-4 py-3 font-bold">{item.code}</td>
+                            <td className="px-4 py-3 text-steel">{item.name}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => triggerDelete("currencies", item.id, item.code)}
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showDeleteConfirm && deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-surface rounded-app border border-line p-6 shadow-xl">
+            <div className="flex gap-4 items-start">
+              <div className="p-3 bg-red-500/10 text-red-500 rounded-full">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display font-bold text-lg text-navy">Confirm Deletion</h3>
+                <p className="mt-2 text-sm text-steel leading-relaxed">
+                  Are you sure you want to delete <strong className="text-navy">"{deleteTarget.label}"</strong>? This will permanently remove it from the system and sync immediately with the database.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteTarget(null);
+                }}
+                className="app-button-secondary px-5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="app-button-primary bg-red-500 hover:bg-red-600 border-transparent text-white px-5"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

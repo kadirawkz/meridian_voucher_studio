@@ -287,6 +287,132 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
+  ipcMain.handle("reference:tour-types", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/tour-types`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-tour-type", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/tour-types`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-tour-type", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/tour-types/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:meal-basis", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/meal-basis`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-meal-basis", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/meal-basis`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-meal-basis", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/meal-basis/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-market", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/markets`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-market", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/markets/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-customer", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/customers`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-customer", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/customers/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-room-category", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/room-categories`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-room-category", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/room-categories/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:currencies", async () => {
+    const response = await fetch(`${serverUrl}/api/reference/currencies`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-currency", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/currencies`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-currency", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/currencies/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
   /* ---------- Rate Master IPC handlers ---------- */
 
   ipcMain.handle("rate-master:save", async (_event, contract: HotelRateRecord) => {
@@ -338,15 +464,6 @@ app.whenReady().then(async () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
-    });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  });
-
-  ipcMain.handle("rate-master:seed", async () => {
-    const response = await fetch(`${serverUrl}/api/rate-master/seed`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();

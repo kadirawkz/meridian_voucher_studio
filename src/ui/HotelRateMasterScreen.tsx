@@ -10,12 +10,13 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { HotelRateRecord, HotelRateRecordSummary, HotelRef, MarketRef, RoomCategoryRef, SectionStatus } from "../../electron/shared/types";
+import type { CustomerRef, HotelRateRecord, HotelRateRecordSummary, HotelRef, MarketRef, RoomCategoryRef, MealBasisRef, CurrencyRef, SectionStatus } from "../../electron/shared/types";
 import { hotels as fallbackHotels, markets as fallbackMarkets, roomCategories as fallbackRoomCategories, mealBasisOptions } from "../domain/referenceData";
 import { Button } from "./ui-kit/Button";
 import { Field as UiField } from "./ui-kit/Field";
 import { Select } from "./ui-kit/Inputs";
 import { Panel } from "./ui-kit/Panel";
+import { friendlyErrorMessage } from "./errors";
 
 /* ---------- shared design tokens ---------- */
 
@@ -25,11 +26,7 @@ const controlClass =
 const selectClass = "app-select";
 
 
-/* ---------- default billing instruction ---------- */
 
-const defaultBillingText = `• All payments will be made based on the room rates provided above.
-• All extras to be collected directly from the client.
-• Please forward the Tax Invoice addressed to Meridian (Pvt) Ltd along with the signed off voucher.`;
 
 /* ---------- helper types ---------- */
 
@@ -97,19 +94,10 @@ type FocRules = {
   minimumPersons: string;
   focQuantity: string;
   basis: string;
+  countAdults: boolean;
+  countChild2_5: boolean;
+  countChild6_11: boolean;
 };
-
-/* ---------- text generators ---------- */
-
-function createRateApplicableText(rate: Pick<RateRow, "basis" | "sgl" | "dbl" | "twn" | "tpl"> | null, currency = "USD"): string {
-  if (!rate) return "No matching rate selected";
-  const parts: string[] = [];
-  if (rate.sgl) parts.push(`Single-${rate.basis} ${currency} ${rate.sgl}`);
-  if (rate.dbl) parts.push(`Double-${rate.basis} ${currency} ${rate.dbl}`);
-  if (rate.twn) parts.push(`Twin-${rate.basis} ${currency} ${rate.twn}`);
-  if (rate.tpl) parts.push(`Triple-${rate.basis} ${currency} ${rate.tpl}`);
-  return parts.length ? parts.join(" / ") : "This section is empty";
-}
 
 function createFocRuleText(rule: FocRules): string {
   if (!rule.enabled) return "Guide FOC not applied";
@@ -117,7 +105,14 @@ function createFocRuleText(rule: FocRules): string {
   const qtyText = rule.focQuantity || "1";
   const who = rule.appliesTo || "Guide";
   const basisText = rule.basis ? ` on ${rule.basis.split(",").join("/")}` : "";
-  return `${qtyText} ${who} FOC${basisText} ${personText}`;
+  
+  const categories = [];
+  if (rule.countAdults) categories.push("Adults");
+  if (rule.countChild2_5) categories.push("Child (2-5)");
+  if (rule.countChild6_11) categories.push("Child (6-11)");
+  const countDesc = categories.length > 0 ? ` (counting ${categories.join("+")})` : " (counting none)";
+
+  return `${qtyText} ${who} FOC${basisText} ${personText}${countDesc}`;
 }
 
 /* ---------- reusable sub-components ---------- */
@@ -176,44 +171,26 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
 
   const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string }>>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
-  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "" });
+  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
   const [billingText, setBillingText] = useState("");
   const [saveNotice, setSaveNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [hotels, setHotels] = useState<string[]>([...fallbackHotels]);
   const [marketOptions, setMarketOptions] = useState<readonly string[]>(fallbackMarkets);
   const [roomCategoryOptions, setRoomCategoryOptions] = useState<readonly string[]>(fallbackRoomCategories);
+  const [mealBasisOptionsState, setMealBasisOptionsState] = useState<readonly string[]>([...mealBasisOptions]);
+  const [currencyOptions, setCurrencyOptions] = useState<readonly string[]>([]);
   const [hotelMode, setHotelMode] = useState<"select" | "create">("select");
   const [hotelSelectValue, setHotelSelectValue] = useState("");
   const [selectedHotelName, setSelectedHotelName] = useState("");
-  const [hotelRateSummaries, setHotelRateSummaries] = useState<HotelRateRecordSummary[]>([]);
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>(initialEditId || "");
   const [skippedSections, setSkippedSections] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!selectedHotelName || !window.meridian?.listHotelRates) {
-      setHotelRateSummaries([]);
-      setSelectedHotelRateId("");
-      return;
-    }
-    void window.meridian
-      .listHotelRates(selectedHotelName)
-      .then((items) => setHotelRateSummaries(items.filter((i) => i.hotel_name === selectedHotelName)))
-      .catch(() => setHotelRateSummaries([]));
-  }, [selectedHotelName]);
 
   useEffect(() => {
     if (initialEditId) {
       void loadSelectedRateRecord(initialEditId);
     }
   }, [initialEditId]);
-
-  /* ---------- previews ---------- */
-
-  const previewRateText = useMemo(
-    () => createRateApplicableText(rates[0] ?? null, contract.currency || "USD"),
-    [rates, contract.currency]
-  );
 
   const previewFocText = useMemo(
     () => createFocRuleText(focRules),
@@ -251,6 +228,26 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
         .then((refs: RoomCategoryRef[]) => {
           const names = refs.map((r) => r.name).filter(Boolean);
           if (names.length > 0) setRoomCategoryOptions(names);
+        })
+        .catch(() => {});
+    }
+
+    // Load meal basis from API
+    if (window.meridian?.listMealBasis) {
+      void window.meridian.listMealBasis()
+        .then((refs: MealBasisRef[]) => {
+          const codes = refs.map((b) => b.code).filter(Boolean);
+          if (codes.length > 0) setMealBasisOptionsState(codes);
+        })
+        .catch(() => {});
+    }
+
+    // Load currencies from API
+    if (window.meridian?.listCurrencies) {
+      void window.meridian.listCurrencies()
+        .then((refs: CurrencyRef[]) => {
+          const codes = refs.map((c) => c.code).filter(Boolean);
+          if (codes.length > 0) setCurrencyOptions(codes);
         })
         .catch(() => {});
     }
@@ -351,6 +348,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
       minimumPersons: record.foc_rules?.minimum_persons == null ? "" : String(record.foc_rules.minimum_persons),
       focQuantity: record.foc_rules?.foc_quantity == null ? "1" : String(record.foc_rules.foc_quantity),
       basis: String(record.foc_rules?.basis ?? "HB"),
+      countAdults: Boolean(record.foc_rules?.count_adults ?? true),
+      countChild2_5: Boolean(record.foc_rules?.count_child_2_5 ?? false),
+      countChild6_11: Boolean(record.foc_rules?.count_child_6_11 ?? false),
     });
 
     setSkippedSections(record.skipped_sections || []);
@@ -441,7 +441,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
   function clearAll() {
     setSelectedHotelName("");
     setHotelSelectValue("");
-    setHotelRateSummaries([]);
     setSelectedHotelRateId("");
     setContract({ hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" });
     setRates([]);
@@ -450,10 +449,11 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
     setGuideRates([]);
     setSeasonalSurcharges([]);
     setEvents([]);
-    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "" });
+    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
     setSkippedSections([]);
     setBillingText("");
     setSaveNotice("Cleared");
+    if (addNotice) addNotice("Rate master form cleared", "info");
   }
 
 
@@ -590,6 +590,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               minimum_persons: focRules.minimumPersons ? Number(focRules.minimumPersons) : null,
               foc_quantity: focRules.focQuantity ? Number(focRules.focQuantity) : null,
               basis: focRules.basis,
+              count_adults: focRules.countAdults,
+              count_child_2_5: focRules.countChild2_5,
+              count_child_6_11: focRules.countChild6_11,
             },
         skipped_sections: skippedSections,
         billing_instruction: billingText,
@@ -610,9 +613,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
       setSaveNotice("");
       if (addNotice) addNotice(`Rate master saved successfully (${result.id.slice(0, 8)})`, "success");
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unable to save";
+      const msg = friendlyErrorMessage(error, "Unable to save rates");
       setSaveNotice(msg);
-      if (addNotice) addNotice(`Save failed: ${msg}`, "error");
+      if (addNotice) addNotice(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -637,10 +640,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             Operations / Data Management
           </p>
           <h2 className="mt-1 font-display text-3xl font-bold text-navy">
-            Rate Master Seed
+            Rate Master
           </h2>
           <p className="mt-2 text-sm text-steel">
-            Create or update one hotel + one market + one contract record in `hotel_rates`.
+            Create or update hotel contract rates, room categories, markets, and seasonal surcharges in the rate master.
           </p>
         </div>
         <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
@@ -654,37 +657,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
           </Button>
           <Button type="button" variant="secondary" disabled={isSaving} onClick={clearAll} className="h-10 shrink-0 whitespace-nowrap px-4 w-40">
             <RotateCcw size={17} /> Clear Form
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
-            disabled={isSaving}
-            onClick={async () => {
-              if (!window.meridian?.seedRateMaster) {
-                setSaveNotice("Desktop bridge unavailable");
-                return;
-              }
-              setIsSaving(true);
-              setSaveNotice("");
-              try {
-                const result = await window.meridian.seedRateMaster();
-                setSaveNotice("");
-                if (addNotice) addNotice(`Seeded ${result.seeded} hotels successfully`, "success");
-                if (window.meridian?.listHotelsFromRates) {
-                  const items = await window.meridian.listHotelsFromRates();
-                  setHotels(items);
-                }
-              } catch (e) {
-                const msg = e instanceof Error ? e.message : "Seed failed";
-                setSaveNotice(msg);
-                if (addNotice) addNotice(`Seed failed: ${msg}`, "error");
-              } finally {
-                setIsSaving(false);
-              }
-            }}
-          >
-            Seed Hotels
           </Button>
           {saveNotice && (
             <span className="w-full text-right text-sm font-medium text-steel">{saveNotice}</span>
@@ -735,7 +707,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               </div>
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                {/* Select mode */}
                 {hotelMode === "select" && (
                   <Select
                     className="w-full"
@@ -745,7 +716,24 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       const value = e.target.value;
                       setHotelSelectValue(value);
                       setSelectedHotelName(value);
-                      setContract((cur) => ({ ...cur, hotelName: value }));
+                      setSelectedHotelRateId("");
+                      setContract({
+                        hotelName: value,
+                        market: "",
+                        currency: "",
+                        contractName: "",
+                        validFrom: "",
+                        validTo: "",
+                      });
+                      setRates([]);
+                      setChildRates([]);
+                      setRoomSupplements([]);
+                      setGuideRates([]);
+                      setSeasonalSurcharges([]);
+                      setEvents([]);
+                      setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
+                      setSkippedSections([]);
+                      setBillingText("");
                     }}
                   >
                     <option value="">— select a hotel —</option>
@@ -777,46 +765,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               </div>
             </div>
 
-            {/* Row 2: Market/Contract Selection */}
-            <div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-steel">Market & Contract</p>
-              <Select
-                className="w-full"
-                aria-label="Select market/contract record"
-                value={selectedHotelRateId}
-                disabled={!selectedHotelName}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setSelectedHotelRateId(id);
-                  if (id) {
-                    void loadSelectedRateRecord(id);
-                  } else {
-                    setRates([]);
-                    setSeasonalSurcharges([]);
-                    setEvents([]);
-                    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "" });
-                    setBillingText("");
-                    setContract((cur) => ({ ...cur, market: "", currency: "", contractName: "", validFrom: "", validTo: "" }));
-                  }
-                }}
-              >
-                <option value="">+ New market / contract</option>
-                {hotelRateSummaries.map((s) => (
-                  <option value={s.id} key={s.id}>
-                    {s.market} — {s.contract_name} ({s.valid_from} → {s.valid_to})
-                  </option>
-                ))}
-              </Select>
-              <div className="mt-2 flex gap-3 text-xs text-steel">
-                {!selectedHotelName && (
-                  <p>Select a hotel first</p>
-                )}
-                {selectedHotelName && hotelRateSummaries.length === 0 && (
-                  <p>No contracts — create one below</p>
-                )}
-              </div>
-            </div>
-
             {/* Row 3: Save Requirements & Status */}
             <div className="rounded-app border border-line bg-cloud p-4">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -844,17 +792,6 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
           </div>
         </Panel>
 
-        {/* Live preview */}
-        <Panel className="app-panel-body-lg">
-          <h3 className="mb-4 app-section-title">Live Voucher Preview</h3>
-          <div className="rounded-app border border-line bg-cloud p-5 text-sm">
-            <p className="font-bold text-steel">Rate Applicable:</p>
-            <p className="mt-1 text-ink">{previewRateText}</p>
-            <p className="mt-4 font-bold text-steel">FOC Rule:</p>
-            <p className="mt-1 text-ink">{previewFocText}</p>
-          </div>
-        </Panel>
-
         {/* 1. Basic Hotel Rate Info */}
         <Section title="1. Basic Information">
           <div className="mb-5 flex items-center justify-between">
@@ -877,8 +814,9 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
             <Field label="Currency">
               <Select className="w-full" title="Currency" value={contract.currency} onChange={(e) => updateContract("currency", e.target.value)}>
                 <option value="">Select Currency</option>
-                <option value="USD">USD</option>
-                <option value="LKR">LKR</option>
+                {currencyOptions.map((c) => (
+                  <option value={c} key={c}>{c}</option>
+                ))}
               </Select>
             </Field>
             <Field label="Contract Name">
@@ -955,7 +893,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                         onChange={(e) => updateRate(i, "basis", e.target.value)}
                       >
                         <option value="">Select Basis</option>
-                        {mealBasisOptions.map((opt) => (
+                        {mealBasisOptionsState.map((opt) => (
                           <option value={opt} key={opt}>
                             {opt}
                           </option>
@@ -1010,19 +948,19 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px] w-[180px]">Room Category</th>
                   <th className="px-2 py-3 w-[90px]">Basis</th>
-                  <th className="px-2 py-3 text-center border-x border-line bg-blue-50/50" colSpan={3}>Child (2 - 5.99 Years)</th>
-                  <th className="px-2 py-3 text-center bg-amber-50/50" colSpan={3}>Child (6 - 11.99 Years)</th>
+                  <th className="px-2 py-3 text-center border-x border-line" colSpan={3}>Child (2-5)</th>
+                  <th className="px-2 py-3 text-center" colSpan={3}>Child (6-11)</th>
                   <th className="px-2 py-3 w-[50px]"></th>
                 </tr>
                 <tr className="border-b border-line bg-cloud/50 text-[10px] font-bold uppercase tracking-wider text-steel">
                   <th className="px-4 py-1"></th>
                   <th className="px-2 py-1"></th>
-                  <th className="px-2 py-1 text-center border-l border-line bg-blue-50/30">Sharing</th>
-                  <th className="px-2 py-1 text-center bg-blue-50/30">Bed</th>
-                  <th className="px-2 py-1 text-center border-r border-line bg-blue-50/30">ICON</th>
-                  <th className="px-2 py-1 text-center bg-amber-50/30">Sharing</th>
-                  <th className="px-2 py-1 text-center bg-amber-50/30">Bed</th>
-                  <th className="px-2 py-1 text-center bg-amber-50/30">ICON</th>
+                  <th className="px-2 py-1 text-center border-l border-line">Sharing</th>
+                  <th className="px-2 py-1 text-center">Bed</th>
+                  <th className="px-2 py-1 text-center border-r border-line">ICON</th>
+                  <th className="px-2 py-1 text-center">Sharing</th>
+                  <th className="px-2 py-1 text-center">Bed</th>
+                  <th className="px-2 py-1 text-center">ICON</th>
                   <th className="px-2 py-1"></th>
                 </tr>
               </thead>
@@ -1054,19 +992,19 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                         onChange={(e) => updateChildRate(i, "basis", e.target.value)}
                       >
                         <option value="">Select Basis</option>
-                        {mealBasisOptions.map((opt) => (
+                        {mealBasisOptionsState.map((opt) => (
                           <option value={opt} key={opt}>
                             {opt}
                           </option>
                         ))}
                       </Select>
                     </td>
-                    <td className="px-2 py-2 border-l border-line bg-blue-50/10"><input className={cellControl} aria-label="2-5 sharing" value={rate.age_2_5_sharing} onChange={(e) => updateChildRate(i, "age_2_5_sharing", e.target.value)} /></td>
-                    <td className="px-2 py-2 bg-blue-50/10"><input className={cellControl} aria-label="2-5 bed" value={rate.age_2_5_extra_bed} onChange={(e) => updateChildRate(i, "age_2_5_extra_bed", e.target.value)} /></td>
-                    <td className="px-2 py-2 border-r border-line bg-blue-50/10"><input className={cellControl} aria-label="2-5 own room" value={rate.age_2_5_own_room} onChange={(e) => updateChildRate(i, "age_2_5_own_room", e.target.value)} /></td>
-                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 sharing" value={rate.age_6_11_sharing} onChange={(e) => updateChildRate(i, "age_6_11_sharing", e.target.value)} /></td>
-                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 bed" value={rate.age_6_11_extra_bed} onChange={(e) => updateChildRate(i, "age_6_11_extra_bed", e.target.value)} /></td>
-                    <td className="px-2 py-2 bg-amber-50/10"><input className={cellControl} aria-label="6-11 own room" value={rate.age_6_11_own_room} onChange={(e) => updateChildRate(i, "age_6_11_own_room", e.target.value)} /></td>
+                    <td className="px-2 py-2 border-l border-line"><input className={cellControl} aria-label="2-5 sharing" value={rate.age_2_5_sharing} onChange={(e) => updateChildRate(i, "age_2_5_sharing", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="2-5 bed" value={rate.age_2_5_extra_bed} onChange={(e) => updateChildRate(i, "age_2_5_extra_bed", e.target.value)} /></td>
+                    <td className="px-2 py-2 border-r border-line"><input className={cellControl} aria-label="2-5 own room" value={rate.age_2_5_own_room} onChange={(e) => updateChildRate(i, "age_2_5_own_room", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="6-11 sharing" value={rate.age_6_11_sharing} onChange={(e) => updateChildRate(i, "age_6_11_sharing", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="6-11 bed" value={rate.age_6_11_extra_bed} onChange={(e) => updateChildRate(i, "age_6_11_extra_bed", e.target.value)} /></td>
+                    <td className="px-2 py-2"><input className={cellControl} aria-label="6-11 own room" value={rate.age_6_11_own_room} onChange={(e) => updateChildRate(i, "age_6_11_own_room", e.target.value)} /></td>
                     <td className="px-2 py-2">
                       <button type="button" onClick={() => removeChildRate(i)} className="rounded-app p-2 text-steel hover:bg-red-500/10 hover:text-red-500" title="Remove row">
                         <Trash2 size={16} />
@@ -1191,7 +1129,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                     <td className="px-4 py-2">
                       <Select className={cellSelect} aria-label="Guide basis" title="Guide basis" value={rate.basis} onChange={(e) => updateGuideRate(i, "basis", e.target.value)}>
                         <option value="">Select basis</option>
-                        {mealBasisOptions.map((basis) => (
+                        {mealBasisOptionsState.map((basis) => (
                           <option key={basis} value={basis}>
                             {basis}
                           </option>
@@ -1260,7 +1198,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               </Field>
               <Field label="Basis (select all that apply)">
                 <div className="flex flex-wrap items-center gap-4 py-2">
-                  {mealBasisOptions.map((opt) => {
+                  {mealBasisOptionsState.map((opt) => {
                     const selected = focRules.basis.split(",").filter(Boolean);
                     const isChecked = selected.includes(opt);
                     return (
@@ -1280,6 +1218,37 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       </label>
                     );
                   })}
+                </div>
+              </Field>
+              <Field label="Count Towards Minimum Persons (select all that apply)">
+                <div className="flex flex-wrap items-center gap-4 py-2">
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-navy cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-navy"
+                      checked={focRules.countAdults}
+                      onChange={(e) => setFocRules({ ...focRules, countAdults: e.target.checked })}
+                    />
+                    Adults / Rooms
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-navy cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-navy"
+                      checked={focRules.countChild2_5}
+                      onChange={(e) => setFocRules({ ...focRules, countChild2_5: e.target.checked })}
+                    />
+                    Child (2-5)
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-navy cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-navy"
+                      checked={focRules.countChild6_11}
+                      onChange={(e) => setFocRules({ ...focRules, countChild6_11: e.target.checked })}
+                    />
+                    Child (6-11)
+                  </label>
                 </div>
               </Field>
               <Field label="Generated Rule Preview">
@@ -1433,15 +1402,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               </button>
             </div>
           </div>
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setBillingText(defaultBillingText)}
-              className="flex items-center gap-2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-bold text-navy"
-            >
-              <Circle size={16} /> Use Default Billing Instruction
-            </button>
-          </div>
+
           {sectionStates[8].status === "Empty" && (
             <p className="mb-4 flex items-center gap-2 rounded-app border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500">
               <AlertTriangle size={16} /> This section is empty

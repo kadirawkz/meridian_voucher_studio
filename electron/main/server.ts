@@ -3,8 +3,34 @@ import type { AddressInfo } from "node:net";
 import type { DocumentFormat, VoucherListFilters, VoucherPayload, VoucherStatus } from "../shared/types.js";
 import { generateDocuments } from "./lib/documentGenerator.js";
 import { getVoucher, listVoucherDocuments, listVoucherRevisions, listVouchers, saveGeneratedDocumentRecord, saveVoucher, searchWorkspace, updateVoucherStatus } from "./lib/supabase.js";
-import { autoFillVoucherFromHotelRates, getHotelRates, listHotelRates, listHotelsFromRates, saveHotelRates, getAllHotelRates, deleteHotelRate, listHotels, listMarkets, listRoomCategories, listCustomers } from "./lib/hotelRates.js";
-import { seedAllHotelContracts } from "./lib/seedRateMaster.js";
+import {
+  autoFillVoucherFromHotelRates,
+  getHotelRates,
+  listHotelRates,
+  listHotelsFromRates,
+  saveHotelRates,
+  getAllHotelRates,
+  deleteHotelRate,
+  listHotels,
+  listMarkets,
+  listRoomCategories,
+  listCustomers,
+  listTourTypes,
+  saveTourType,
+  deleteTourType,
+  listMealBasis,
+  saveMealBasis,
+  deleteMealBasis,
+  saveMarket,
+  deleteMarket,
+  saveCustomer,
+  deleteCustomer,
+  saveRoomCategory,
+  deleteRoomCategory,
+  listCurrencies,
+  saveCurrency,
+  deleteCurrency,
+} from "./lib/hotelRates.js";
 
 export async function createVoucherServer(): Promise<{ url: string; close: () => Promise<void> }> {
   const app = express();
@@ -127,6 +153,24 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
     }
   });
 
+  app.post("/api/reference/markets", async (request, response) => {
+    try {
+      await saveMarket(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save market");
+    }
+  });
+
+  app.delete("/api/reference/markets/:id", async (request, response) => {
+    try {
+      await deleteMarket(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete market");
+    }
+  });
+
   app.get("/api/reference/room-categories", async (_request, response) => {
     try {
       const result = await listRoomCategories();
@@ -136,12 +180,129 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
     }
   });
 
+  app.post("/api/reference/room-categories", async (request, response) => {
+    try {
+      await saveRoomCategory(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save room category");
+    }
+  });
+
+  app.delete("/api/reference/room-categories/:id", async (request, response) => {
+    try {
+      await deleteRoomCategory(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete room category");
+    }
+  });
+
   app.get("/api/reference/customers", async (_request, response) => {
     try {
       const result = await listCustomers();
       response.json(result);
     } catch (error) {
       response.status(500).send(error instanceof Error ? error.message : "Unable to load customers");
+    }
+  });
+
+  app.post("/api/reference/customers", async (request, response) => {
+    try {
+      await saveCustomer(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save customer");
+    }
+  });
+
+  app.delete("/api/reference/customers/:id", async (request, response) => {
+    try {
+      await deleteCustomer(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete customer");
+    }
+  });
+
+  app.get("/api/reference/tour-types", async (_request, response) => {
+    try {
+      const result = await listTourTypes();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load tour types");
+    }
+  });
+
+  app.post("/api/reference/tour-types", async (request, response) => {
+    try {
+      await saveTourType(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save tour type");
+    }
+  });
+
+  app.delete("/api/reference/tour-types/:id", async (request, response) => {
+    try {
+      await deleteTourType(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete tour type");
+    }
+  });
+
+  app.get("/api/reference/meal-basis", async (_request, response) => {
+    try {
+      const result = await listMealBasis();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load meal basis options");
+    }
+  });
+
+  app.post("/api/reference/meal-basis", async (request, response) => {
+    try {
+      await saveMealBasis(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save meal basis option");
+    }
+  });
+
+  app.delete("/api/reference/meal-basis/:id", async (request, response) => {
+    try {
+      await deleteMealBasis(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete meal basis option");
+    }
+  });
+
+  app.get("/api/reference/currencies", async (_request, response) => {
+    try {
+      const result = await listCurrencies();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load currencies");
+    }
+  });
+
+  app.post("/api/reference/currencies", async (request, response) => {
+    try {
+      await saveCurrency(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to save currency");
+    }
+  });
+
+  app.delete("/api/reference/currencies/:id", async (request, response) => {
+    try {
+      await deleteCurrency(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to delete currency");
     }
   });
 
@@ -209,15 +370,6 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       response.json(result);
     } catch (error) {
       response.status(500).send(error instanceof Error ? error.message : "Unable to auto-fill voucher");
-    }
-  });
-
-  app.post("/api/rate-master/seed", async (_request, response) => {
-    try {
-      const result = await seedAllHotelContracts();
-      response.json(result);
-    } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to seed rate master data");
     }
   });
 

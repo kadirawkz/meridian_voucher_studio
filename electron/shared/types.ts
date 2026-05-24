@@ -1,5 +1,5 @@
 export type VoucherType = "reservation" | "amendment" | "pptp";
-export type TourType = "SL" | "ASL" | "WSL" | "FSS" | "CSL" | "DSL" | "SLH";
+export type TourType = string;
 export type VoucherStatus = "draft" | "generated" | "sent";
 export type DocumentFormat = "docx" | "pdf";
 
@@ -26,6 +26,24 @@ export interface CustomerRef {
   id: string;
   name: string;
   is_active: boolean;
+}
+
+export interface TourTypeRef {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface MealBasisRef {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface CurrencyRef {
+  id: string;
+  code: string;
+  name: string;
 }
 
 /* ---------- Voucher types ---------- */
@@ -225,6 +243,9 @@ export type HotelRateFocRules = {
   minimum_persons?: number | null;
   foc_quantity?: number | null;
   basis?: string | null;
+  count_adults?: boolean | null;
+  count_child_2_5?: boolean | null;
+  count_child_6_11?: boolean | null;
 };
 
 export type HotelRateGuidePrice = {
@@ -337,8 +358,22 @@ export interface AppApi {
   listMarkets: () => Promise<MarketRef[]>;
   listRoomCategories: () => Promise<RoomCategoryRef[]>;
   listCustomers: () => Promise<CustomerRef[]>;
+  listTourTypes: () => Promise<TourTypeRef[]>;
+  saveTourType: (ref: { code: string; name: string }) => Promise<void>;
+  deleteTourType: (id: string) => Promise<void>;
+  listMealBasis: () => Promise<MealBasisRef[]>;
+  saveMealBasis: (ref: { code: string; name: string }) => Promise<void>;
+  deleteMealBasis: (id: string) => Promise<void>;
+  saveMarket: (ref: { code: string; name: string }) => Promise<void>;
+  deleteMarket: (id: string) => Promise<void>;
+  saveCustomer: (ref: { name: string; is_active?: boolean }) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
+  saveRoomCategory: (ref: { name: string }) => Promise<void>;
+  deleteRoomCategory: (id: string) => Promise<void>;
+  listCurrencies: () => Promise<CurrencyRef[]>;
+  saveCurrency: (ref: { code: string; name: string }) => Promise<void>;
+  deleteCurrency: (id: string) => Promise<void>;
   autoFillVoucher: (voucher: VoucherPayload, contractId?: string) => Promise<AutoFillResult>;
-  seedRateMaster: () => Promise<{ seeded: number; ids: string[] }>;
   selectToursFolder: () => Promise<{ path: string } | null>;
   getToursFolder: () => Promise<string | null>;
   getToursFolderTree: () => Promise<FolderTreeNode[]>;

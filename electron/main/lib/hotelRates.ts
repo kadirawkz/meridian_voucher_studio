@@ -8,6 +8,10 @@ import type {
   MarketRef,
   RoomCategoryRef,
   VoucherPayload,
+  TourTypeRef,
+  MealBasisRef,
+  CurrencyRef,
+  HotelRateFocRules,
 } from "../../shared/types.js";
 import { getAuthenticatedSupabaseClient, getCurrentEmployeeProfile, getCurrentUser } from "./auth.js";
 
@@ -121,6 +125,114 @@ export async function listCustomers(): Promise<CustomerRef[]> {
   return (data ?? []) as CustomerRef[];
 }
 
+export async function listTourTypes(): Promise<TourTypeRef[]> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("tour_types").select("id,code,name").order("code");
+  if (error) throw new Error(`Unable to load tour types: ${error.message}`);
+  return (data ?? []) as TourTypeRef[];
+}
+
+export async function saveTourType(ref: { code: string; name: string }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("tour_types").upsert(ref, { onConflict: "code" });
+  if (error) throw new Error(`Unable to save tour type: ${error.message}`);
+}
+
+export async function deleteTourType(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("tour_types").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete tour type: ${error.message}`);
+}
+
+export async function listMealBasis(): Promise<MealBasisRef[]> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("meal_basis").select("id,code,name").order("code");
+  if (error) throw new Error(`Unable to load meal basis: ${error.message}`);
+  return (data ?? []) as MealBasisRef[];
+}
+
+export async function saveMealBasis(ref: { code: string; name: string }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("meal_basis").upsert(ref, { onConflict: "code" });
+  if (error) throw new Error(`Unable to save meal basis: ${error.message}`);
+}
+
+export async function deleteMealBasis(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("meal_basis").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete meal basis: ${error.message}`);
+}
+
+export async function saveMarket(ref: { code: string; name: string }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("markets").upsert(ref, { onConflict: "code" });
+  if (error) throw new Error(`Unable to save market: ${error.message}`);
+}
+
+export async function deleteMarket(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("markets").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete market: ${error.message}`);
+}
+
+export async function saveCustomer(ref: { name: string; is_active?: boolean }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("customers").upsert(ref, { onConflict: "name" });
+  if (error) throw new Error(`Unable to save customer: ${error.message}`);
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("customers").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete customer: ${error.message}`);
+}
+
+export async function saveRoomCategory(ref: { name: string }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("room_categories").upsert(ref, { onConflict: "name" });
+  if (error) throw new Error(`Unable to save room category: ${error.message}`);
+}
+
+export async function deleteRoomCategory(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("room_categories").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete room category: ${error.message}`);
+}
+
+export async function listCurrencies(): Promise<CurrencyRef[]> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("currencies").select("id,code,name").order("code");
+  if (error) throw new Error(`Unable to load currencies: ${error.message}`);
+  return (data ?? []) as CurrencyRef[];
+}
+
+export async function saveCurrency(ref: { code: string; name: string }): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("currencies").upsert(ref, { onConflict: "code" });
+  if (error) throw new Error(`Unable to save currency: ${error.message}`);
+}
+
+export async function deleteCurrency(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("currencies").delete().eq("id", id);
+  if (error) throw new Error(`Unable to delete currency: ${error.message}`);
+}
+
 /* ---------- Hotel Rates CRUD ---------- */
 
 async function assembleHotelRateRecord(
@@ -164,6 +276,9 @@ async function assembleHotelRateRecord(
       minimum_persons: (parentRow.foc_minimum_persons ?? 0) as number,
       foc_quantity: (parentRow.foc_quantity ?? 1) as number,
       basis: (parentRow.foc_basis ?? "") as string,
+      count_adults: Boolean(parentRow.foc_count_adults ?? true),
+      count_child_2_5: Boolean(parentRow.foc_count_child_2_5 ?? false),
+      count_child_6_11: Boolean(parentRow.foc_count_child_6_11 ?? false),
     },
     room_rates: ((roomPricesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
       id: r.id as string,
@@ -267,6 +382,9 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
     foc_minimum_persons: record.foc_rules?.minimum_persons ?? 0,
     foc_quantity: record.foc_rules?.foc_quantity ?? 1,
     foc_basis: record.foc_rules?.basis ?? "",
+    foc_count_adults: record.foc_rules?.count_adults ?? true,
+    foc_count_child_2_5: record.foc_rules?.count_child_2_5 ?? false,
+    foc_count_child_6_11: record.foc_rules?.count_child_6_11 ?? false,
     created_by: userId,
   };
 
@@ -427,6 +545,26 @@ export async function listHotelsFromRates(): Promise<string[]> {
   return Array.from(set).sort();
 }
 
+function calculateFocPersonCount(voucher: VoucherPayload, focRules: HotelRateFocRules | undefined): number {
+  const countAdults = focRules?.count_adults ?? true;
+  const countChild25 = focRules?.count_child_2_5 ?? false;
+  const countChild611 = focRules?.count_child_6_11 ?? false;
+
+  return voucher.lineItems.reduce((sum, li) => {
+    let count = 0;
+    if (countAdults) {
+      count += Number(li.singleRooms || 0) + (Number(li.doubleRooms || 0) * 2) + (Number(li.twinRooms || 0) * 2) + (Number(li.tripleRooms || 0) * 3);
+    }
+    if (countChild25) {
+      count += Number(li.child2_5 || 0) + Number(li.child2_5Sharing || 0) + Number(li.child2_5Bed || 0) + Number(li.child2_5OwnRoom || 0);
+    }
+    if (countChild611) {
+      count += Number(li.child6_11 || 0) + Number(li.child6_11Sharing || 0) + Number(li.child6_11Bed || 0) + Number(li.child6_11OwnRoom || 0);
+    }
+    return sum + count;
+  }, 0);
+}
+
 function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecord): string {
   const currency = record.currency || "USD";
   const usedCategories = Array.from(new Set(
@@ -570,9 +708,7 @@ function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecor
 
     // ④ Guide / FOC (Check if it applies to this basis/category context)
     const focRules = record.foc_rules;
-    const totalPax = voucher.lineItems.reduce((sum, li) =>
-      sum + Number(li.singleRooms || 0) + (Number(li.doubleRooms || 0) * 2) + (Number(li.twinRooms || 0) * 2) + (Number(li.tripleRooms || 0) * 3), 0
-    );
+    const totalPax = calculateFocPersonCount(voucher, focRules);
     const hasGuideInVoucher = voucher.lineItems.some((li) => Number(li.guide || 0) > 0);
     if (hasGuideInVoucher && focRules?.enabled && focRules.minimum_persons != null && totalPax >= focRules.minimum_persons) {
       const qty = focRules.foc_quantity ?? 1;
@@ -617,9 +753,7 @@ function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecor
 
   // ⑦ Guide / FOC (At the very end)
   const focRules = record.foc_rules;
-  const totalPax = voucher.lineItems.reduce((sum, li) =>
-    sum + Number(li.singleRooms || 0) + (Number(li.doubleRooms || 0) * 2) + (Number(li.twinRooms || 0) * 2) + (Number(li.tripleRooms || 0) * 3), 0
-  );
+  const totalPax = calculateFocPersonCount(voucher, focRules);
   const hasGuideInVoucher = voucher.lineItems.some((li) => Number(li.guide || 0) > 0);
 
   if (hasGuideInVoucher) {

@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, type ElementType } from "react";
 import { hotels as fallbackHotels } from "../domain/referenceData";
 import type { HotelRateRecordSummary, HotelRef, VoucherRecord, VoucherStatus } from "../../electron/shared/types";
+import { Button } from "./ui-kit/Button";
 
 interface DashboardProps {
   onNewVoucher: () => void;
@@ -168,7 +169,7 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
   return (
     <div className="mx-auto max-w-[1400px] p-4 md:p-8">
       {/* Page header */}
-      <div className="mb-8 flex items-end justify-between">
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">Operations</p>
           <h2 className="mt-1 font-display text-3xl font-bold text-navy">Dashboard</h2>
@@ -178,23 +179,24 @@ export function DashboardScreen({ onNewVoucher, onOpenVoucher, onGoToRateMaster,
               : "Loading…"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+          <Button
             type="button"
             onClick={load}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-bold text-steel shadow-sm hover:text-navy disabled:opacity-50"
+            variant="secondary"
+            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
           >
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
-          <button
+            <RefreshCw size={17} className={loading ? "animate-spin" : ""} /> Refresh
+          </Button>
+          <Button
             type="button"
             onClick={onNewVoucher}
-            className="flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-navy/90"
+            variant="primary"
+            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
           >
-            <Plus size={15} /> New Voucher
-          </button>
+            <Plus size={17} /> New Voucher
+          </Button>
         </div>
       </div>
 

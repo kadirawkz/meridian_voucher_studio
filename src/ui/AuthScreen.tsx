@@ -1,44 +1,9 @@
 import { useState, type FormEvent } from "react";
 import logo from "../assets/logo.png";
 import type { AuthState } from "../../electron/shared/types";
+import { friendlyErrorMessage } from "./errors";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function friendlyErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) {
-    return fallback;
-  }
-
-  const message = error.message
-    .replace(/^Error invoking remote method '[^']+':\s*/u, "")
-    .replace(/^Error:\s*/u, "");
-
-  const normalizedMessage = message.toLowerCase();
-
-  if (
-    normalizedMessage.includes("password") &&
-    (normalizedMessage.includes("pwned") ||
-      normalizedMessage.includes("haveibeenpwned") ||
-      normalizedMessage.includes("compromised") ||
-      normalizedMessage.includes("leaked"))
-  ) {
-    return "Choose a stronger password that has not appeared in known data breaches.";
-  }
-
-  if (normalizedMessage.includes("email rate limit exceeded")) {
-    return "Too many email requests were sent. Wait a few minutes and try again.";
-  }
-
-  if (normalizedMessage.includes("invalid login credentials")) {
-    return "Email or password is incorrect.";
-  }
-
-  if (normalizedMessage.includes("user already registered")) {
-    return "An account already exists for this email address.";
-  }
-
-  return message;
-}
 
 interface AuthScreenProps {
   onAuthenticated: (state: AuthState) => void;

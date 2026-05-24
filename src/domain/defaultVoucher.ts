@@ -10,7 +10,7 @@ export const defaultVoucher: VoucherFormValues = {
   market: "",
   ratePeriod: "",
   requisitionNo: "REQ-0000",
-  tourNo: "T/000",
+  tourNo: "T/0000",
   tourName: "",
   customerName: "",
   confirmedBy: "",
