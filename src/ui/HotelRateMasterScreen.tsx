@@ -16,7 +16,7 @@ import { Button } from "./ui-kit/Button";
 import { Field as UiField } from "./ui-kit/Field";
 import { Select } from "./ui-kit/Inputs";
 import { Panel } from "./ui-kit/Panel";
-import { friendlyErrorMessage } from "./errors";
+import { friendlyErrorMessage } from "../utils/errors";
 
 /* ---------- shared design tokens ---------- */
 

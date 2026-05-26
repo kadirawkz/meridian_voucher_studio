@@ -104,7 +104,7 @@ export async function listHotels(): Promise<HotelRef[]> {
 export async function listMarkets(): Promise<MarketRef[]> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("markets").select("id,code,name").order("code");
+  const { data, error } = await supabase.from("markets").select("id,code,name").eq("is_active", true).order("code");
   if (error) throw new Error(`Unable to load markets: ${error.message}`);
   return (data ?? []) as MarketRef[];
 }
@@ -112,7 +112,7 @@ export async function listMarkets(): Promise<MarketRef[]> {
 export async function listRoomCategories(): Promise<RoomCategoryRef[]> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("room_categories").select("id,name").order("name");
+  const { data, error } = await supabase.from("room_categories").select("id,name").eq("is_active", true).order("name");
   if (error) throw new Error(`Unable to load room categories: ${error.message}`);
   return (data ?? []) as RoomCategoryRef[];
 }
@@ -128,7 +128,7 @@ export async function listCustomers(): Promise<CustomerRef[]> {
 export async function listTourTypes(): Promise<TourTypeRef[]> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("tour_types").select("id,code,name").order("code");
+  const { data, error } = await supabase.from("tour_types").select("id,code,name").eq("is_active", true).order("code");
   if (error) throw new Error(`Unable to load tour types: ${error.message}`);
   return (data ?? []) as TourTypeRef[];
 }
@@ -143,14 +143,14 @@ export async function saveTourType(ref: { code: string; name: string }): Promise
 export async function deleteTourType(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("tour_types").delete().eq("id", id);
+  const { error } = await supabase.from("tour_types").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete tour type: ${error.message}`);
 }
 
 export async function listMealBasis(): Promise<MealBasisRef[]> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("meal_basis").select("id,code,name").order("code");
+  const { data, error } = await supabase.from("meal_basis").select("id,code,name").eq("is_active", true).order("code");
   if (error) throw new Error(`Unable to load meal basis: ${error.message}`);
   return (data ?? []) as MealBasisRef[];
 }
@@ -165,7 +165,7 @@ export async function saveMealBasis(ref: { code: string; name: string }): Promis
 export async function deleteMealBasis(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("meal_basis").delete().eq("id", id);
+  const { error } = await supabase.from("meal_basis").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete meal basis: ${error.message}`);
 }
 
@@ -179,7 +179,7 @@ export async function saveMarket(ref: { code: string; name: string }): Promise<v
 export async function deleteMarket(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("markets").delete().eq("id", id);
+  const { error } = await supabase.from("markets").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete market: ${error.message}`);
 }
 
@@ -193,7 +193,7 @@ export async function saveCustomer(ref: { name: string; is_active?: boolean }): 
 export async function deleteCustomer(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("customers").delete().eq("id", id);
+  const { error } = await supabase.from("customers").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete customer: ${error.message}`);
 }
 
@@ -207,14 +207,14 @@ export async function saveRoomCategory(ref: { name: string }): Promise<void> {
 export async function deleteRoomCategory(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("room_categories").delete().eq("id", id);
+  const { error } = await supabase.from("room_categories").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete room category: ${error.message}`);
 }
 
 export async function listCurrencies(): Promise<CurrencyRef[]> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("currencies").select("id,code,name").order("code");
+  const { data, error } = await supabase.from("currencies").select("id,code,name").eq("is_active", true).order("code");
   if (error) throw new Error(`Unable to load currencies: ${error.message}`);
   return (data ?? []) as CurrencyRef[];
 }
@@ -229,8 +229,36 @@ export async function saveCurrency(ref: { code: string; name: string }): Promise
 export async function deleteCurrency(id: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("currencies").delete().eq("id", id);
+  const { error } = await supabase.from("currencies").update({ is_active: false }).eq("id", id);
   if (error) throw new Error(`Unable to delete currency: ${error.message}`);
+}
+
+/* ---------- Generic Soft-Delete Restore Helpers ---------- */
+
+const REFERENCE_TABLES = ["markets", "room_categories", "customers", "tour_types", "meal_basis", "currencies"] as const;
+type ReferenceTable = (typeof REFERENCE_TABLES)[number];
+
+function assertReferenceTable(table: string): asserts table is ReferenceTable {
+  if (!(REFERENCE_TABLES as readonly string[]).includes(table)) {
+    throw new Error(`Invalid reference table: ${table}`);
+  }
+}
+
+export async function listInactiveReferences(table: string): Promise<Record<string, unknown>[]> {
+  assertReferenceTable(table);
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(table).select("*").eq("is_active", false).order("id");
+  if (error) throw new Error(`Unable to load inactive ${table}: ${error.message}`);
+  return (data ?? []) as Record<string, unknown>[];
+}
+
+export async function restoreReference(table: string, id: string): Promise<void> {
+  assertReferenceTable(table);
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from(table).update({ is_active: true }).eq("id", id);
+  if (error) throw new Error(`Unable to restore ${table} item: ${error.message}`);
 }
 
 /* ---------- Hotel Rates CRUD ---------- */
@@ -342,6 +370,7 @@ async function assembleHotelRateRecord(
     })),
     created_at: (parentRow.created_at ?? "") as string,
     updated_at: (parentRow.updated_at ?? "") as string,
+    is_active: Boolean(parentRow.is_active ?? true),
   };
 }
 
@@ -501,6 +530,7 @@ export async function listHotelRates(hotelName?: string): Promise<HotelRateRecor
   let query = supabase
     .from("hotel_rates")
     .select("id,hotel_id,market_id,currency,contract_name,valid_from,valid_to,hotels(name),markets(code)")
+    .eq("is_active", true)
     .order("valid_from", { ascending: false });
 
   if (hotelName) {
@@ -757,8 +787,13 @@ export async function autoFillVoucherFromHotelRates(voucher: VoucherPayload, hot
   let record: HotelRateRecord | undefined;
 
   if (hotelRateId) {
-    record = await getHotelRates(hotelRateId);
-  } else {
+    const candidate = await getHotelRates(hotelRateId);
+    if (candidate && candidate.is_active) {
+      record = candidate;
+    }
+  }
+
+  if (!record) {
     const market = (voucher.market || "").trim();
     const ratePeriod = (voucher.ratePeriod || "").trim();
     const firstRequiredDate = voucher.lineItems.map((li) => li.requiredDate).filter(Boolean).sort()[0] ?? voucher.date;
@@ -807,8 +842,43 @@ export async function autoFillVoucherFromHotelRates(voucher: VoucherPayload, hot
 export async function deleteHotelRate(hotelRateId: string): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
-  const { error } = await supabase.from("hotel_rates").delete().eq("id", hotelRateId);
+  const { error } = await supabase.from("hotel_rates").update({ is_active: false }).eq("id", hotelRateId);
   if (error) throw new Error(`Unable to delete hotel rate: ${error.message}`);
+}
+
+export async function listInactiveHotelRates(): Promise<HotelRateRecord[]> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data, error } = await supabase
+    .from("hotel_rates")
+    .select("*, hotels(name), markets(code)")
+    .eq("is_active", false)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Unable to load inactive hotel rates: ${error.message}`);
+
+  return (data ?? []).map((parentRow) => {
+    const hotelName = ((parentRow.hotels as Record<string, unknown> | null)?.name ?? "") as string;
+    const marketCode = ((parentRow.markets as Record<string, unknown> | null)?.code ?? "") as string;
+    return {
+      id: parentRow.id as string,
+      hotel_id: parentRow.hotel_id as string,
+      hotel_name: hotelName,
+      market: marketCode,
+      currency: parentRow.currency as string,
+      contract_name: parentRow.contract_name as string,
+      valid_from: parentRow.valid_from as string,
+      valid_to: parentRow.valid_to as string,
+    } as HotelRateRecord;
+  });
+}
+
+export async function restoreHotelRate(hotelRateId: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("hotel_rates").update({ is_active: true }).eq("id", hotelRateId);
+  if (error) throw new Error(`Unable to restore hotel rate: ${error.message}`);
 }
 
 export async function getAllHotelRates(): Promise<HotelRateRecord[]> {
@@ -817,7 +887,7 @@ export async function getAllHotelRates(): Promise<HotelRateRecord[]> {
 
   // 1 query for parents + 6 bulk queries for all children = 7 total (was 1+5N)
   const [parentsRes, roomPricesRes, childPricesRes, surchargesRes, eventsRes, guidePricesRes, supplementsRes] = await Promise.all([
-    supabase.from("hotel_rates").select("*, hotels(name), markets(code)").order("created_at", { ascending: false }),
+    supabase.from("hotel_rates").select("*, hotels(name), markets(code)").eq("is_active", true).order("created_at", { ascending: false }),
     supabase.from("hotel_rate_room_prices").select("*, room_categories(name)").order("valid_from"),
     supabase.from("hotel_rate_child_prices").select("*, room_categories(name)").order("valid_from"),
     supabase.from("hotel_rate_surcharges").select("*"),

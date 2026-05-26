@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Edit2, Trash2, ChevronLeft, AlertTriangle } from "lucide-react";
+import { Edit2, Trash2, ChevronLeft, AlertTriangle, Archive, RotateCw } from "lucide-react";
 import type { HotelRateRecord } from "../../electron/shared/types";
-import { friendlyErrorMessage } from "./errors";
+import { friendlyErrorMessage } from "../utils/errors";
 
 type Props = {
   onBack: () => void;
@@ -16,16 +16,41 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Archived (inactive) items states
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedRates, setArchivedRates] = useState<HotelRateRecord[]>([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
+  const [restoringIds, setRestoringIds] = useState<string[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const loadRates = async () => {
     try {
-      setLoading(true);
+      if (rates.length === 0) {
+        setLoading(true);
+      }
       if (!window.meridian?.getAllHotelRates) throw new Error("API not available");
       const data = await window.meridian.getAllHotelRates();
-      setRates(data);
+      setRates(data || []);
     } catch (err) {
       setError(friendlyErrorMessage(err, "Failed to load rates"));
     } finally {
       setLoading(false);
+      setIsInitialLoad(false);
+    }
+  };
+
+  const loadArchivedRates = async () => {
+    try {
+      setLoadingArchived(true);
+      if (!window.meridian?.listInactiveHotelRates) throw new Error("API not available");
+      const data = await window.meridian.listInactiveHotelRates();
+      setArchivedRates(data || []);
+    } catch (err) {
+      console.error("Failed to load archived rates:", err);
+      setArchivedRates([]);
+    } finally {
+      setLoadingArchived(false);
     }
   };
 
@@ -35,17 +60,54 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const targetId = deleteId;
     try {
-      await window.meridian?.deleteHotelRate(deleteId);
       setDeleteId(null);
-      loadRates();
+      setDeletingIds((prev) => [...prev, targetId]);
+
+      // Run deletion API call and transition delay concurrently
+      await Promise.all([
+        window.meridian?.deleteHotelRate(targetId),
+        new Promise((resolve) => setTimeout(resolve, 350))
+      ]);
+
+      await loadRates();
+      if (showArchived) await loadArchivedRates();
       if (onRatesChanged) onRatesChanged();
     } catch (err) {
       window.alert(friendlyErrorMessage(err, "Failed to delete rate"));
+    } finally {
+      setDeletingIds((prev) => prev.filter((id) => id !== targetId));
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      setRestoringIds((prev) => [...prev, id]);
+
+      // Run restore API call and transition delay concurrently
+      await Promise.all([
+        window.meridian?.restoreHotelRate(id),
+        new Promise((resolve) => setTimeout(resolve, 350))
+      ]);
+
+      await loadRates();
+      await loadArchivedRates();
+      if (onRatesChanged) onRatesChanged();
+    } catch (err) {
+      window.alert(friendlyErrorMessage(err, "Failed to restore rate"));
+    } finally {
+      setRestoringIds((prev) => prev.filter((item) => item !== id));
     }
   };
 
   const filteredRates = rates.filter((r) => 
+    r.hotel_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.market?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.contract_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredArchived = archivedRates.filter((r) =>
     r.hotel_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.market?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.contract_name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -64,9 +126,9 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
         </button>
         <div>
           <h1 className="text-lg font-black tracking-tight text-navy">Manage Existing Rates</h1>
-          <p className="text-xs font-semibold text-steel">View, update, or delete hotel rate master entries</p>
+          <p className="text-xs font-semibold text-steel">View, update, or deactivate hotel rate master entries</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
           <input 
             type="text" 
             placeholder="Search hotel or market..." 
@@ -77,16 +139,14 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {error && (
-          <div className="mb-4 rounded border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
+          <div className="rounded border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500">
             {error}
           </div>
         )}
 
-        {loading ? (
-          <div className="flex h-32 items-center justify-center text-steel">Loading rates...</div>
-        ) : (
+        <div className="space-y-6">
           <div className="rounded-app border border-line bg-surface shadow-sm overflow-hidden">
             <table className="w-full text-left text-sm">
               <thead className="bg-cloud text-xs font-bold uppercase tracking-wide text-steel">
@@ -100,13 +160,29 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filteredRates.length === 0 ? (
+                {(loading && isInitialLoad) ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <tr key={`skeleton-${idx}`} className="animate-pulse">
+                      <td className="px-4 py-4"><div className="h-4 w-32 rounded bg-cloud"></div></td>
+                      <td className="px-4 py-4"><div className="h-4 w-12 rounded bg-cloud"></div></td>
+                      <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-cloud"></div></td>
+                      <td className="px-4 py-4"><div className="h-4 w-36 rounded bg-cloud"></div></td>
+                      <td className="px-4 py-4"><div className="h-4 w-12 rounded bg-cloud"></div></td>
+                      <td className="px-4 py-4 text-right"><div className="ml-auto h-8 w-16 rounded bg-cloud"></div></td>
+                    </tr>
+                  ))
+                ) : filteredRates.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-steel">No rates found.</td>
                   </tr>
                 ) : (
                   filteredRates.map((r) => (
-                    <tr key={r.id} className="hover:bg-sand/30">
+                    <tr 
+                      key={r.id} 
+                      className={`reference-row-transition hover:bg-sand/30 ${
+                        deletingIds.includes(r.id!) ? "reference-row-exit" : ""
+                      }`}
+                    >
                       <td className="px-4 py-3 font-semibold text-navy">{r.hotel_name}</td>
                       <td className="px-4 py-3">{r.market || "-"}</td>
                       <td className="px-4 py-3">{r.contract_name || "-"}</td>
@@ -114,10 +190,20 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
                       <td className="px-4 py-3">{r.currency || "USD"}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => onEdit(r.id!)} className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" aria-label={`Edit rate for ${r.hotel_name}`} title={`Edit rate for ${r.hotel_name}`}>
+                          <button 
+                            onClick={() => onEdit(r.id!)} 
+                            className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" 
+                            aria-label={`Edit rate for ${r.hotel_name}`} 
+                            title={`Edit rate for ${r.hotel_name}`}
+                          >
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => setDeleteId(r.id!)} className="rounded p-1.5 text-steel hover:bg-red-500/10 hover:text-red-500 transition-colors" aria-label={`Delete rate for ${r.hotel_name}`} title={`Delete rate for ${r.hotel_name}`}>
+                          <button 
+                            onClick={() => setDeleteId(r.id!)} 
+                            className="rounded p-1.5 text-steel hover:bg-red-500/10 hover:text-red-500 transition-colors" 
+                            aria-label={`Delete rate for ${r.hotel_name}`} 
+                            title={`Delete rate for ${r.hotel_name}`}
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -128,31 +214,109 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
               </tbody>
             </table>
           </div>
-        )}
+
+            {/* Show Archived Toggle */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showArchived;
+                  setShowArchived(next);
+                  if (next) loadArchivedRates();
+                }}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-app border transition-all ${
+                  showArchived
+                    ? "border-amber-400/20 bg-amber-400/5 text-amber-500"
+                    : "border-line bg-surface text-steel hover:text-navy hover:bg-cloud shadow-sm"
+                }`}
+              >
+                <Archive size={14} />
+                {showArchived ? "Hide Archived Rates" : "Show Archived Rates"}
+              </button>
+            </div>
+
+            {/* Archived Rates */}
+            {showArchived && (
+              <div className="overflow-hidden border border-amber-400/15 rounded-app bg-amber-50/30 shadow-sm animate-fade-in">
+                <div className="px-4 py-2.5 bg-amber-400/5 border-b border-amber-400/15">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600/80 flex items-center gap-1.5">
+                    <Archive size={14} /> Archived Rates (Inactive)
+                  </h4>
+                </div>
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-amber-400/5 text-xs font-bold uppercase tracking-wide text-amber-600/60 border-b border-amber-400/10">
+                    <tr>
+                      <th className="px-4 py-2">Hotel Name</th>
+                      <th className="px-4 py-2">Market</th>
+                      <th className="px-4 py-2">Contract</th>
+                      <th className="px-4 py-2">Valid Period</th>
+                      <th className="px-4 py-2">Currency</th>
+                      <th className="px-4 py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-400/8">
+                    {loadingArchived ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-steel italic">Loading archived rates...</td>
+                      </tr>
+                    ) : filteredArchived.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-steel italic">No archived rates.</td>
+                      </tr>
+                    ) : (
+                      filteredArchived.map((r) => (
+                        <tr 
+                          key={r.id} 
+                          className={`reference-row-transition hover:bg-amber-400/5 ${
+                            restoringIds.includes(r.id!) ? "reference-row-restore-exit" : ""
+                          }`}
+                        >
+                          <td className="px-4 py-3 font-semibold text-steel/60">{r.hotel_name}</td>
+                          <td className="px-4 py-3 text-steel/60">{r.market || "-"}</td>
+                          <td className="px-4 py-3 text-steel/60">{r.contract_name || "-"}</td>
+                          <td className="px-4 py-3 text-steel/60">{r.valid_from} to {r.valid_to}</td>
+                          <td className="px-4 py-3 text-steel/60">{r.currency || "USD"}</td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRestore(r.id!)}
+                              className="text-amber-500 hover:text-green-500 rounded p-1 hover:bg-green-500/8 transition-colors flex items-center gap-1 ml-auto text-xs font-semibold"
+                            >
+                              <RotateCw size={14} /> Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
       </div>
 
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-surface p-6 shadow-xl">
-            <div className="mb-4 flex items-center gap-3 text-red-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-surface rounded-app border border-line p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3 text-red-500">
               <AlertTriangle size={24} />
-              <h2 className="text-lg font-bold">Delete Rate Master Entry</h2>
+              <h2 className="text-lg font-bold">Deactivate Rate Contract</h2>
             </div>
-            <p className="mb-6 text-sm text-steel">
-              Are you sure you want to delete this hotel rate? This action cannot be undone and may affect vouchers currently using this rate.
+            <p className="mb-6 text-sm text-steel leading-relaxed">
+              Are you sure you want to delete this hotel rate? This will deactivate it, removing it from active contract matching while preserving historical voucher references.
             </p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setDeleteId(null)}
-                className="rounded-app border border-line bg-surface px-4 py-2 text-sm font-bold text-navy hover:bg-cloud transition-colors"
+                className="app-button-secondary px-4 py-2 text-sm"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDelete}
-                className="rounded-app bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition-colors"
+                className="app-button-primary bg-red-500 hover:bg-red-600 border-transparent text-white px-4 py-2 text-sm"
               >
-                Delete Rate
+                Deactivate Rate
               </button>
             </div>
           </div>

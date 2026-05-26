@@ -65,44 +65,44 @@ BEGIN
     delete from public.hotel_rates where hotel_id = v_hotel_id;
 
     -- 3. Seed Markets
-    insert into public.markets (code, name)
-    values ('LOCAL', 'Local Market'),
-           ('UK', 'United Kingdom'),
-           ('EUROPE', 'European Union')
-    on conflict (code) do nothing;
+    insert into public.markets (code, name, is_active)
+    values ('LOCAL', 'Local Market', true),
+           ('UK', 'United Kingdom', true),
+           ('EUROPE', 'European Union', true)
+    on conflict (code) do update set name = excluded.name, is_active = true;
     
     select id into v_market_id from public.markets where code = 'LOCAL';
 
     -- 4. Seed Room Categories
-    insert into public.room_categories (name)
-    values ('Superior Room'),
-           ('Deluxe Room'),
-           ('Heritage Suite')
-    on conflict (name) do nothing;
+    insert into public.room_categories (name, is_active)
+    values ('Superior Room', true),
+           ('Deluxe Room', true),
+           ('Heritage Suite', true)
+    on conflict (name) do update set is_active = true;
     
     select id into v_superior_cat_id from public.room_categories where name = 'Superior Room';
     select id into v_deluxe_cat_id from public.room_categories where name = 'Deluxe Room';
     select id into v_suite_cat_id from public.room_categories where name = 'Heritage Suite';
 
     -- 5. Seed Currencies
-    insert into public.currencies (code, name)
-    values ('USD', 'US Dollar'),
-           ('LKR', 'Sri Lankan Rupee'),
-           ('EUR', 'Euro')
-    on conflict (code) do nothing;
+    insert into public.currencies (code, name, is_active)
+    values ('USD', 'US Dollar', true),
+           ('LKR', 'Sri Lankan Rupee', true),
+           ('EUR', 'Euro', true)
+    on conflict (code) do update set name = excluded.name, is_active = true;
 
     -- 6. Seed Tour Types & Meal Basis Reference Lists (empty by default, seeded here for testing)
-    insert into public.tour_types (code, name)
-    values ('SL', 'Standard Leisure'),
-           ('WSL', 'Winter Special Leisure'),
-           ('CSL', 'Classic Sri Lanka')
-    on conflict (code) do nothing;
+    insert into public.tour_types (code, name, is_active)
+    values ('SL', 'Standard Leisure', true),
+           ('WSL', 'Winter Special Leisure', true),
+           ('CSL', 'Classic Sri Lanka', true)
+    on conflict (code) do update set name = excluded.name, is_active = true;
 
-    insert into public.meal_basis (code, name)
-    values ('BB', 'Bed & Breakfast'),
-           ('HB', 'Half Board'),
-           ('FB', 'Full Board')
-    on conflict (code) do nothing;
+    insert into public.meal_basis (code, name, is_active)
+    values ('BB', 'Bed & Breakfast', true),
+           ('HB', 'Half Board', true),
+           ('FB', 'Full Board', true)
+    on conflict (code) do update set name = excluded.name, is_active = true;
 
     -- 7. Seed Parent Hotel Rate with Active FOC Rules (Galle Face Hotel, LOCAL market, FIT Rate Contract, USD)
     insert into public.hotel_rates (
@@ -110,14 +110,14 @@ BEGIN
         valid_from, valid_to, billing_instruction, created_by,
         foc_enabled, foc_applies_to, foc_minimum_persons, foc_quantity, foc_basis,
         foc_count_adults, foc_count_child_2_5_99, foc_count_child_6_11_99,
-        foc_pax_custom_text, foc_guide_custom_text
+        foc_pax_custom_text, foc_guide_custom_text, is_active
     )
     values (
         v_hotel_id, v_market_id, 'USD', 'FIT Special Contract 2026', 
         '2026-01-01', '2026-12-31', 'All rates are net and inclusive of taxes.', v_employee_id,
         true, 'Pax,Guide', 15, 1, 'HB',
         true, false, false,
-        '1 Pax FOC on HB basis for minimum 15 Pax', '1 Guide FOC on HB basis for minimum 15 Pax'
+        '1 Pax FOC on HB basis for minimum 15 Pax', '1 Guide FOC on HB basis for minimum 15 Pax', true
     )
     on conflict (hotel_id, market_id, contract_name, valid_from, valid_to) 
     do update set 
@@ -131,7 +131,8 @@ BEGIN
         foc_count_child_2_5_99 = excluded.foc_count_child_2_5_99,
         foc_count_child_6_11_99 = excluded.foc_count_child_6_11_99,
         foc_pax_custom_text = excluded.foc_pax_custom_text,
-        foc_guide_custom_text = excluded.foc_guide_custom_text
+        foc_guide_custom_text = excluded.foc_guide_custom_text,
+        is_active = true
     returning id into v_rate_id;
 
     -- 8. Seed Room Prices (Superior & Deluxe Rooms for both BB and HB)

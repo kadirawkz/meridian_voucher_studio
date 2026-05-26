@@ -289,6 +289,7 @@ export interface HotelRateRecord {
   guide_prices?: HotelRateGuidePrice[];
   created_at?: string;
   updated_at?: string;
+  is_active?: boolean;
 }
 
 export type HotelRateRecordSummary = Pick<
@@ -352,6 +353,8 @@ export interface AppApi {
   onMenuAccount: (callback: (action: string) => void) => () => void;
   saveHotelRates: (record: HotelRateRecord) => Promise<{ id: string }>;
   deleteHotelRate: (hotelRateId: string) => Promise<void>;
+  listInactiveHotelRates: () => Promise<HotelRateRecord[]>;
+  restoreHotelRate: (hotelRateId: string) => Promise<void>;
   listHotelRates: (hotelName?: string) => Promise<HotelRateRecordSummary[]>;
   getAllHotelRates: () => Promise<HotelRateRecord[]>;
   getHotelRates: (hotelRateId: string) => Promise<HotelRateRecord>;
@@ -375,6 +378,8 @@ export interface AppApi {
   listCurrencies: () => Promise<CurrencyRef[]>;
   saveCurrency: (ref: { code: string; name: string }) => Promise<void>;
   deleteCurrency: (id: string) => Promise<void>;
+  listInactiveReferences: (table: string) => Promise<Record<string, unknown>[]>;
+  restoreReference: (table: string, id: string) => Promise<void>;
   autoFillVoucher: (voucher: VoucherPayload, contractId?: string) => Promise<AutoFillResult>;
   selectToursFolder: () => Promise<{ path: string } | null>;
   getToursFolder: () => Promise<string | null>;

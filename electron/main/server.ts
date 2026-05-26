@@ -11,6 +11,8 @@ import {
   saveHotelRates,
   getAllHotelRates,
   deleteHotelRate,
+  listInactiveHotelRates,
+  restoreHotelRate,
   listHotels,
   listMarkets,
   listRoomCategories,
@@ -30,6 +32,8 @@ import {
   listCurrencies,
   saveCurrency,
   deleteCurrency,
+  listInactiveReferences,
+  restoreReference,
 } from "./lib/hotelRates.js";
 
 export async function createVoucherServer(): Promise<{ url: string; close: () => Promise<void> }> {
@@ -330,6 +334,26 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
     }
   });
 
+  /* ---------- Soft-Delete Archive & Restore endpoints ---------- */
+
+  app.get("/api/reference/:table/inactive", async (request, response) => {
+    try {
+      const result = await listInactiveReferences(request.params.table);
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load inactive references");
+    }
+  });
+
+  app.patch("/api/reference/:table/:id/restore", async (request, response) => {
+    try {
+      await restoreReference(request.params.table, request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to restore reference");
+    }
+  });
+
   /* ---------- Rate Master endpoints ---------- */
 
   app.post("/api/rate-master", async (request, response) => {
@@ -357,6 +381,24 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       response.json(result);
     } catch (error) {
       response.status(500).send(error instanceof Error ? error.message : "Unable to load rate master contracts");
+    }
+  });
+
+  app.get("/api/rate-master/inactive", async (_request, response) => {
+    try {
+      const result = await listInactiveHotelRates();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to load inactive rate master contracts");
+    }
+  });
+
+  app.patch("/api/rate-master/:id/restore", async (request, response) => {
+    try {
+      await restoreHotelRate(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Unable to restore rate master contract");
     }
   });
 

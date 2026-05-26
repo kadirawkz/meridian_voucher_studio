@@ -24,12 +24,14 @@ create table if not exists public.hotels (
 create table if not exists public.markets (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
-  name text not null default ''
+  name text not null default '',
+  is_active boolean not null default true
 );
 
 create table if not exists public.room_categories (
   id uuid primary key default gen_random_uuid(),
-  name text not null unique
+  name text not null unique,
+  is_active boolean not null default true
 );
 
 create table if not exists public.customers (
@@ -43,6 +45,7 @@ create table if not exists public.tour_types (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null default '',
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -50,6 +53,7 @@ create table if not exists public.meal_basis (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null default '',
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -57,9 +61,16 @@ create table if not exists public.currencies (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   name text not null default '',
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
-
+-- Ensure the is_active column exists on all reference tables (in case they already exist in the DB)
+alter table public.markets add column if not exists is_active boolean not null default true;
+alter table public.room_categories add column if not exists is_active boolean not null default true;
+alter table public.tour_types add column if not exists is_active boolean not null default true;
+alter table public.meal_basis add column if not exists is_active boolean not null default true;
+alter table public.currencies add column if not exists is_active boolean not null default true;
+alter table public.hotel_rates add column if not exists is_active boolean not null default true;
 
 -- 3. HOTEL RATES (parent) — FK to hotels, markets
 -- Drop old legacy tables
@@ -104,6 +115,7 @@ create table if not exists public.hotel_rates (
   foc_count_child_6_11_99 boolean not null default false,
   foc_pax_custom_text text not null default '',
   foc_guide_custom_text text not null default '',
+  is_active boolean not null default true,
   created_by uuid not null references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

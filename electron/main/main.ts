@@ -413,6 +413,20 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
+  ipcMain.handle("reference:list-inactive", async (_event, table: string) => {
+    const response = await fetch(`${serverUrl}/api/reference/${table}/inactive`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:restore", async (_event, payload: { table: string; id: string }) => {
+    const response = await fetch(`${serverUrl}/api/reference/${payload.table}/${payload.id}/restore`, {
+      method: "PATCH"
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
   /* ---------- Rate Master IPC handlers ---------- */
 
   ipcMain.handle("rate-master:save", async (_event, contract: HotelRateRecord) => {
@@ -428,6 +442,20 @@ app.whenReady().then(async () => {
   ipcMain.handle("rate-master:delete", async (_event, id: string) => {
     const response = await fetch(`${serverUrl}/api/rate-master/${id}`, {
       method: "DELETE",
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("rate-master:list-inactive", async () => {
+    const response = await fetch(`${serverUrl}/api/rate-master/inactive`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("rate-master:restore", async (_event, id: string) => {
+    const response = await fetch(`${serverUrl}/api/rate-master/${id}/restore`, {
+      method: "PATCH",
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();

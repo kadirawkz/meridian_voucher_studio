@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import logo from "../assets/logo.png";
 import type { AuthState } from "../../electron/shared/types";
-import { friendlyErrorMessage } from "./errors";
+import { friendlyErrorMessage } from "../utils/errors";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

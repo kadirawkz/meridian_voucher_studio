@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor, Trash2, Plus, AlertTriangle } from "lucide-react";
+import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor, Trash2, Plus, AlertTriangle, Archive, RotateCw } from "lucide-react";
 import type { TourTypeRef, MarketRef, RoomCategoryRef, CustomerRef, MealBasisRef, CurrencyRef } from "../../electron/shared/types";
 
 interface AppSettings {
@@ -10,9 +10,10 @@ interface AppSettings {
 
 interface SettingsScreenProps {
   onThemeChange?: (theme: "light" | "dark" | "system") => void;
+  onReferencesChanged?: () => void;
 }
 
-export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
+export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsScreenProps) {
   const [settings, setSettings] = useState<AppSettings>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,6 +35,13 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; label: string } | null>(null);
+
+  // Archived (inactive) items
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedItems, setArchivedItems] = useState<Record<string, unknown>[]>([]);
+  const [isLoadingArchived, setIsLoadingArchived] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
+  const [restoringIds, setRestoringIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadSettings();
@@ -153,6 +161,7 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
       setFeedback("Item added successfully");
       setTimeout(() => setFeedback(""), 3000);
       await loadAllReferences();
+      if (onReferencesChanged) onReferencesChanged();
     } catch (error) {
       console.error("Failed to add item:", error);
       setFeedback("Failed to add item");
@@ -164,32 +173,94 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
     setShowDeleteConfirm(true);
   }
 
+  /** Map UI sub-tab names to DB table names */
+  function subTabToTable(subTab: string): string {
+    const map: Record<string, string> = {
+      "tour-types": "tour_types",
+      "markets": "markets",
+      "customers": "customers",
+      "room-categories": "room_categories",
+      "meal-basis": "meal_basis",
+      "currencies": "currencies",
+    };
+    return map[subTab] ?? subTab;
+  }
+
+  async function loadArchivedItems() {
+    try {
+      setIsLoadingArchived(true);
+      const table = subTabToTable(activeSubTab);
+      const items = await window.meridian.listInactiveReferences(table);
+      setArchivedItems(items || []);
+    } catch (error) {
+      console.error("Failed to load archived items:", error);
+      setArchivedItems([]);
+    } finally {
+      setIsLoadingArchived(false);
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      setRestoringIds((prev) => [...prev, id]);
+      const table = subTabToTable(activeSubTab);
+      
+      await Promise.all([
+        window.meridian.restoreReference(table, id),
+        new Promise((resolve) => setTimeout(resolve, 350))
+      ]);
+
+      setFeedback("Item restored successfully");
+      setTimeout(() => setFeedback(""), 3000);
+      await loadAllReferences();
+      await loadArchivedItems();
+      if (onReferencesChanged) onReferencesChanged();
+    } catch (error) {
+      console.error("Failed to restore item:", error);
+      setFeedback("Failed to restore item");
+    } finally {
+      setRestoringIds((prev) => prev.filter((item) => item !== id));
+    }
+  }
+
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
+    const { type, id } = deleteTarget;
     try {
-      const { type, id } = deleteTarget;
-      if (type === "tour-types") {
-        await window.meridian.deleteTourType(id);
-      } else if (type === "markets") {
-        await window.meridian.deleteMarket(id);
-      } else if (type === "meal-basis") {
-        await window.meridian.deleteMealBasis(id);
-      } else if (type === "customers") {
-        await window.meridian.deleteCustomer(id);
-      } else if (type === "room-categories") {
-        await window.meridian.deleteRoomCategory(id);
-      } else if (type === "currencies") {
-        await window.meridian.deleteCurrency(id);
-      }
+      setShowDeleteConfirm(false);
+      setDeletingIds((prev) => [...prev, id]);
+
+      const apiCall = (async () => {
+        if (type === "tour-types") {
+          await window.meridian.deleteTourType(id);
+        } else if (type === "markets") {
+          await window.meridian.deleteMarket(id);
+        } else if (type === "meal-basis") {
+          await window.meridian.deleteMealBasis(id);
+        } else if (type === "customers") {
+          await window.meridian.deleteCustomer(id);
+        } else if (type === "room-categories") {
+          await window.meridian.deleteRoomCategory(id);
+        } else if (type === "currencies") {
+          await window.meridian.deleteCurrency(id);
+        }
+      })();
+
+      await Promise.all([
+        apiCall,
+        new Promise((resolve) => setTimeout(resolve, 350))
+      ]);
 
       setFeedback("Item deleted successfully");
       setTimeout(() => setFeedback(""), 3000);
       await loadAllReferences();
+      if (showArchived) await loadArchivedItems();
+      if (onReferencesChanged) onReferencesChanged();
     } catch (error) {
       console.error("Failed to delete item:", error);
       setFeedback("Failed to delete item");
     } finally {
-      setShowDeleteConfirm(false);
+      setDeletingIds((prev) => prev.filter((item) => item !== id));
       setDeleteTarget(null);
     }
   }
@@ -378,6 +449,8 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                   setActiveSubTab(subTab.id as any);
                   setNewCode("");
                   setNewName("");
+                  setShowArchived(false);
+                  setArchivedItems([]);
                 }}
                 className={`w-full text-left px-3 py-2 text-sm font-semibold rounded-app transition-all ${
                   activeSubTab === subTab.id
@@ -479,7 +552,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No tour types seeded in database.</td></tr>
                       ) : (
                         tourTypes.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-bold">{item.code}</td>
                             <td className="px-4 py-3 text-steel">{item.name}</td>
                             <td className="px-4 py-3 text-right">
@@ -502,7 +580,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No markets seeded in database.</td></tr>
                       ) : (
                         markets.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-bold">{item.code}</td>
                             <td className="px-4 py-3 text-steel">{item.name}</td>
                             <td className="px-4 py-3 text-right">
@@ -525,7 +608,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={2} className="px-4 py-8 text-center text-steel italic">No room categories seeded in database.</td></tr>
                       ) : (
                         roomCategories.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-semibold">{item.name}</td>
                             <td className="px-4 py-3 text-right">
                               <button
@@ -547,7 +635,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={2} className="px-4 py-8 text-center text-steel italic">No customer/agents loaded in database.</td></tr>
                       ) : (
                         customers.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-semibold">{item.name}</td>
                             <td className="px-4 py-3 text-right">
                               <button
@@ -569,7 +662,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No meal basis options seeded in database.</td></tr>
                       ) : (
                         mealBasis.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-bold">{item.code}</td>
                             <td className="px-4 py-3 text-steel">{item.name}</td>
                             <td className="px-4 py-3 text-right">
@@ -592,7 +690,12 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                         <tr><td colSpan={3} className="px-4 py-8 text-center text-steel italic">No currencies loaded in database.</td></tr>
                       ) : (
                         currencies.map((item) => (
-                          <tr key={item.id} className="hover:bg-cloud/40 transition-colors">
+                          <tr 
+                            key={item.id} 
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id) ? "reference-row-exit" : ""
+                            }`}
+                          >
                             <td className="px-4 py-3 font-bold">{item.code}</td>
                             <td className="px-4 py-3 text-steel">{item.name}</td>
                             <td className="px-4 py-3 text-right">
@@ -611,6 +714,79 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
                   </tbody>
                 </table>
               </div>
+
+              {/* Show Archived Toggle */}
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !showArchived;
+                    setShowArchived(next);
+                    if (next) loadArchivedItems();
+                  }}
+                  className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-app border transition-all ${
+                    showArchived
+                      ? "border-amber-400/20 bg-amber-400/5 text-amber-500"
+                      : "border-line bg-cloud text-steel hover:text-navy"
+                  }`}
+                >
+                  <Archive size={14} />
+                  {showArchived ? "Hide Archived" : "Show Archived"}
+                </button>
+              </div>
+
+              {/* Archived Items */}
+              {showArchived && (
+                <div className="mt-4 overflow-hidden border border-amber-400/15 rounded-app bg-amber-50/30 shadow-sm">
+                  <div className="px-4 py-2.5 bg-amber-400/5 border-b border-amber-400/15">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600/80 flex items-center gap-1.5">
+                      <Archive size={14} /> Archived Items
+                    </h4>
+                  </div>
+                  <table className="w-full border-collapse text-left text-sm text-navy">
+                    <tbody className="divide-y divide-amber-400/8">
+                      {isLoadingArchived ? (
+                        <tr><td colSpan={3} className="px-4 py-6 text-center text-steel italic">Loading archived items...</td></tr>
+                      ) : archivedItems.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-6 text-center text-steel italic">No archived items.</td></tr>
+                      ) : (
+                        archivedItems.map((item) => {
+                          const id = item.id as string;
+                          const code = (item.code as string) || "";
+                          const name = (item.name as string) || "";
+                          const hasCode = ["tour-types", "markets", "meal-basis", "currencies"].includes(activeSubTab);
+                          return (
+                            <tr 
+                              key={id} 
+                              className={`reference-row-transition hover:bg-amber-400/5 ${
+                                restoringIds.includes(id) ? "reference-row-restore-exit" : ""
+                              }`}
+                            >
+                              {hasCode ? (
+                                <>
+                                  <td className="px-4 py-3 font-bold text-steel/70">{code}</td>
+                                  <td className="px-4 py-3 text-steel/70">{name}</td>
+                                </>
+                              ) : (
+                                <td className="px-4 py-3 font-semibold text-steel/70">{name}</td>
+                              )}
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestore(id)}
+                                  className="text-amber-500 hover:text-green-500 rounded p-1 hover:bg-green-500/8 transition-colors flex items-center gap-1 ml-auto text-xs font-semibold"
+                                >
+                                  <RotateCw size={14} /> Restore
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           </div>
         </div>
@@ -627,7 +803,7 @@ export function SettingsScreen({ onThemeChange }: SettingsScreenProps) {
               <div className="flex-1 min-w-0">
                 <h3 className="font-display font-bold text-lg text-navy">Confirm Deletion</h3>
                 <p className="mt-2 text-sm text-steel leading-relaxed">
-                  Are you sure you want to delete <strong className="text-navy">"{deleteTarget.label}"</strong>? This will permanently remove it from the system and sync immediately with the database.
+                  Are you sure you want to delete <strong className="text-navy">"{deleteTarget.label}"</strong>? This will deactivate it, removing it from active selection dropdowns while preserving historical voucher references.
                 </p>
               </div>
             </div>
