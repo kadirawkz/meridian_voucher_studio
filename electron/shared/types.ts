@@ -209,12 +209,12 @@ export type HotelRateChildRate = {
   room_category_id?: string;
   room_category: string;  // read-only, populated by JOIN
   basis: string;
-  age_2_5_sharing?: string | null;
-  age_2_5_extra_bed?: string | null;
-  age_2_5_own_room?: string | null;
-  age_6_11_sharing?: string | null;
-  age_6_11_extra_bed?: string | null;
-  age_6_11_own_room?: string | null;
+  age_2_5_99_sharing?: string | null;
+  age_2_5_99_extra_bed?: string | null;
+  age_2_5_99_own_room?: string | null;
+  age_6_11_99_sharing?: string | null;
+  age_6_11_99_extra_bed?: string | null;
+  age_6_11_99_own_room?: string | null;
 };
 
 export type HotelRateSeasonalSurcharge = {
@@ -244,8 +244,10 @@ export type HotelRateFocRules = {
   foc_quantity?: number | null;
   basis?: string | null;
   count_adults?: boolean | null;
-  count_child_2_5?: boolean | null;
-  count_child_6_11?: boolean | null;
+  count_child_2_5_99?: boolean | null;
+  count_child_6_11_99?: boolean | null;
+  pax_custom_text?: string | null;
+  guide_custom_text?: string | null;
 };
 
 export type HotelRateGuidePrice = {
@@ -330,8 +332,8 @@ export interface AppApi {
   updateProfile: (updates: { employeeName?: string; employeeEmail?: string }) => Promise<AccountProfile>;
   saveVoucher: (voucher: VoucherPayload) => Promise<{ id: string; status: VoucherStatus }>;
   generateDocuments?: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
-  generateDocx: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
-  generatePdf: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
+  generateDocx: (voucher: VoucherPayload, customOutputDir?: string) => Promise<GeneratedDocument>;
+  generatePdf: (voucher: VoucherPayload, customOutputDir?: string) => Promise<GeneratedDocument>;
   listVoucherDocuments: () => Promise<VoucherDocumentRecord[]>;
   listVouchers: (filters?: VoucherListFilters) => Promise<VoucherRecord[]>;
   getVoucher: (voucherId: string) => Promise<VoucherPayload>;

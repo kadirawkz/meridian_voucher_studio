@@ -69,8 +69,8 @@ async function buildTreeFromDirectory(dirPath: string): Promise<FolderTreeNode[]
   const nodes: FolderTreeNode[] = [];
 
   for (const entry of entries) {
-    // Skip hidden files/folders
-    if (entry.name.startsWith(".")) continue;
+    // Skip hidden files/folders and Word temporary owner/lock files
+    if (entry.name.startsWith(".") || entry.name.startsWith("~$")) continue;
 
     const fullPath = path.join(dirPath, entry.name);
 
@@ -138,6 +138,8 @@ export async function migrateVouchersToTours(
 
   for (const entry of entries) {
     if (!entry.isFile()) continue;
+    // Skip hidden files/folders and Word temporary owner/lock files
+    if (entry.name.startsWith(".") || entry.name.startsWith("~$")) continue;
 
     const ext = path.extname(entry.name).toLowerCase();
     if (!VOUCHER_EXTENSIONS.has(ext)) continue;
@@ -164,11 +166,17 @@ export async function migrateVouchersToTours(
     // If no lookup or lookup failed, try to parse from filename
     if (hotelName === "Unknown Hotel") {
       const baseName = path.basename(entry.name, ext);
-      // Pattern: date-type-reqNo-hotel-name
       const parts = baseName.split("-");
-      // Skip date parts (YYYY, MM, DD) and type
-      if (parts.length >= 5) {
-        // parts[0]=year, parts[1]=month, parts[2]=day, parts[3]=type, parts[4]=reqNo, parts[5+]=hotel
+      // Pattern 1 (New): YYYY-MM-DD-type-tourType-market-reqNo-hotelName
+      if (parts.length >= 8) {
+        tourType = parts[4] || "Uncategorized";
+        const hotelParts = parts.slice(7);
+        if (hotelParts.length > 0) {
+          hotelName = hotelParts.join("-");
+        }
+      }
+      // Pattern 2 (Legacy): YYYY-MM-DD-type-reqNo-hotelName
+      else if (parts.length >= 6) {
         const hotelParts = parts.slice(5);
         if (hotelParts.length > 0) {
           hotelName = hotelParts.join("-");

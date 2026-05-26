@@ -197,6 +197,73 @@ function SupplementaryDropdown({
   );
 }
 
+function isFormVoucherEqual(v1: any, v2: any): boolean {
+  if (!v1 || !v2) return false;
+  const normalizeStr = (s: any) => (typeof s === "string" ? s.trim() : s || "");
+  const normalizeNum = (n: any) => Number(n) || 0;
+  const normalizeBool = (b: any) => !!b;
+
+  if (normalizeStr(v1.voucherType) !== normalizeStr(v2.voucherType)) return false;
+  if (normalizeStr(v1.tourType) !== normalizeStr(v2.tourType)) return false;
+  if (normalizeStr(v1.pageNumber) !== normalizeStr(v2.pageNumber)) return false;
+  if (normalizeStr(v1.date) !== normalizeStr(v2.date)) return false;
+  if (normalizeStr(v1.voucherTitle) !== normalizeStr(v2.voucherTitle)) return false;
+  if (normalizeStr(v1.hotelName) !== normalizeStr(v2.hotelName)) return false;
+  if (normalizeStr(v1.market) !== normalizeStr(v2.market)) return false;
+  if (normalizeStr(v1.customerName) !== normalizeStr(v2.customerName)) return false;
+  if (normalizeStr(v1.requisitionNo) !== normalizeStr(v2.requisitionNo)) return false;
+  if (normalizeStr(v1.tourNo) !== normalizeStr(v2.tourNo)) return false;
+  if (normalizeStr(v1.tourName) !== normalizeStr(v2.tourName)) return false;
+  if (normalizeStr(v1.confirmedBy) !== normalizeStr(v2.confirmedBy)) return false;
+  if (normalizeNum(v1.rateApplicable) !== normalizeNum(v2.rateApplicable)) return false;
+  if (normalizeStr(v1.ratePeriod) !== normalizeStr(v2.ratePeriod)) return false;
+  if (normalizeStr(v1.billingInstructions) !== normalizeStr(v2.billingInstructions)) return false;
+  if (normalizeStr(v1.remarks) !== normalizeStr(v2.remarks)) return false;
+  if (normalizeBool(v1.manuallyEdited) !== normalizeBool(v2.manuallyEdited)) return false;
+  if (normalizeStr(v1.rateApplicableText) !== normalizeStr(v2.rateApplicableText)) return false;
+  if (normalizeStr(v1.guideText) !== normalizeStr(v2.guideText)) return false;
+  if (normalizeStr(v1.surchargeText) !== normalizeStr(v2.surchargeText)) return false;
+  if (normalizeStr(v1.eventSupplementText) !== normalizeStr(v2.eventSupplementText)) return false;
+
+  const items1 = v1.lineItems || [];
+  const items2 = v2.lineItems || [];
+  if (items1.length !== items2.length) return false;
+
+  for (let i = 0; i < items1.length; i++) {
+    const li1 = items1[i];
+    const li2 = items2[i];
+    if (normalizeStr(li1.requiredDate) !== normalizeStr(li2.requiredDate)) return false;
+    if (normalizeStr(li1.roomCategory) !== normalizeStr(li2.roomCategory)) return false;
+    if (normalizeStr(li1.basis) !== normalizeStr(li2.basis)) return false;
+    if (normalizeNum(li1.singleRooms) !== normalizeNum(li2.singleRooms)) return false;
+    if (normalizeNum(li1.doubleRooms) !== normalizeNum(li2.doubleRooms)) return false;
+    if (normalizeNum(li1.twinRooms) !== normalizeNum(li2.twinRooms)) return false;
+    if (normalizeNum(li1.tripleRooms) !== normalizeNum(li2.tripleRooms)) return false;
+    if (normalizeNum(li1.child2_5) !== normalizeNum(li2.child2_5)) return false;
+    if (normalizeNum(li1.child6_11) !== normalizeNum(li2.child6_11)) return false;
+    if (normalizeNum(li1.child2_5Sharing) !== normalizeNum(li2.child2_5Sharing)) return false;
+    if (normalizeNum(li1.child2_5Bed) !== normalizeNum(li2.child2_5Bed)) return false;
+    if (normalizeNum(li1.child2_5OwnRoom) !== normalizeNum(li2.child2_5OwnRoom)) return false;
+    if (normalizeNum(li1.child6_11Sharing) !== normalizeNum(li2.child6_11Sharing)) return false;
+    if (normalizeNum(li1.child6_11Bed) !== normalizeNum(li2.child6_11Bed)) return false;
+    if (normalizeNum(li1.child6_11OwnRoom) !== normalizeNum(li2.child6_11OwnRoom)) return false;
+    if (normalizeNum(li1.guide) !== normalizeNum(li2.guide)) return false;
+    if (normalizeStr(li1.guideBasis) !== normalizeStr(li2.guideBasis)) return false;
+    if (normalizeStr(li1.arrivingFor) !== normalizeStr(li2.arrivingFor)) return false;
+
+    const sup1 = li1.supplementary || [];
+    const sup2 = li2.supplementary || [];
+    if (sup1.length !== sup2.length) return false;
+    const sorted1 = [...sup1].sort();
+    const sorted2 = [...sup2].sort();
+    for (let j = 0; j < sorted1.length; j++) {
+      if (normalizeStr(sorted1[j]) !== normalizeStr(sorted2[j])) return false;
+    }
+  }
+
+  return true;
+}
+
 export function App() {
   const [activeTheme, setActiveTheme] = useState<"light" | "dark" | "system">("system");
   const [systemIsDark, setSystemIsDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -294,6 +361,7 @@ export function App() {
   const [tourTypeOptions, setTourTypeOptions] = useState<readonly string[]>([]);
   const [mealBasisOptionsState, setMealBasisOptionsState] = useState<readonly string[]>([]);
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>("");
+  const [ratesTrigger, setRatesTrigger] = useState(0);
   const [toursFolderPath, setToursFolderPath] = useState<string | null>(null);
   const [toursFolderTree, setToursFolderTree] = useState<FolderTreeNode[]>([]);
   const [toursFolderExists, setToursFolderExists] = useState<boolean>(true);
@@ -306,12 +374,50 @@ export function App() {
   const [manualRates, setManualRates] = useState(false);
   const [editHotelRateId, setEditHotelRateId] = useState<string | undefined>();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [docxDropdownOpen, setDocxDropdownOpen] = useState(false);
+  const [pdfDropdownOpen, setPdfDropdownOpen] = useState(false);
+
+  const scrollPositionsRef = useRef<Record<string, number>>({});
+  const mainRef = useRef<HTMLElement>(null);
+  const prevViewRef = useRef<ActiveView>("dashboard");
+
+  // Track and restore scroll position on view changes
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return;
+
+    const prevView = prevViewRef.current;
+    scrollPositionsRef.current[prevView] = mainEl.scrollTop;
+
+    const nextScrollTop = scrollPositionsRef.current[activeView] || 0;
+    const handle = requestAnimationFrame(() => {
+      mainEl.scrollTop = nextScrollTop;
+    });
+
+    prevViewRef.current = activeView;
+
+    return () => {
+      cancelAnimationFrame(handle);
+    };
+  }, [activeView]);
 
   const form = useForm<VoucherFormValues>({
     resolver: zodResolver(voucherSchema),
     defaultValues: defaultVoucher,
     mode: "onChange"
   });
+
+  const [lastSavedValues, setLastSavedValues] = useState<VoucherFormValues>(defaultVoucher);
+
+  function resetForm(newValues: VoucherFormValues) {
+    form.reset(newValues);
+    setLastSavedValues(newValues);
+  }
+
+  const currentValues = form.watch();
+  const hasChanges = useMemo(() => {
+    return !isFormVoucherEqual(currentValues, lastSavedValues);
+  }, [currentValues, lastSavedValues]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -345,10 +451,10 @@ export function App() {
       void form.handleSubmit(handleSave)();
     });
     const unsubPdf = window.meridian.onMenuGeneratePdf(() => {
-      void form.handleSubmit(handleGeneratePdf)();
+      void form.handleSubmit((values) => handleGeneratePdf(values))();
     });
     const unsubDocx = window.meridian.onMenuGenerateDocx(() => {
-      void form.handleSubmit(handleGenerateDocx)();
+      void form.handleSubmit((values) => handleGenerateDocx(values))();
     });
     const unsubSignOut = window.meridian.onMenuSignOut(() => void handleSignOut());
 
@@ -450,7 +556,7 @@ export function App() {
       .then((state) => {
         setAuthState(state);
         setAccountProfile(state.profile);
-        form.reset(withAccountDefaults(form.getValues(), state.profile));
+        resetForm(withAccountDefaults(form.getValues(), state.profile));
       })
       .finally(() => setIsCheckingAuth(false));
   }, [form]);
@@ -663,7 +769,7 @@ export function App() {
   function handleAuthenticated(state: AuthState) {
     setAuthState(state);
     setAccountProfile(state.profile);
-    form.reset(withAccountDefaults(defaultVoucher, state.profile));
+    resetForm(withAccountDefaults(defaultVoucher, state.profile));
     addNotice("Logged in");
   }
 
@@ -678,7 +784,7 @@ export function App() {
     setGenerated(null);
     setDocumentHistory([]);
     setVoucherRevisions([]);
-    form.reset(defaultVoucher);
+    resetForm(defaultVoucher);
   }
 
   async function handleSave(values: VoucherFormValues) {
@@ -691,7 +797,7 @@ export function App() {
     try {
       const result = await window.meridian.saveVoucher(values);
       addNotice(`Draft saved successfully (${result.id.slice(0, 8)})`);
-      form.setValue("id", result.id);
+      resetForm({ ...values, id: result.id });
       await refreshVoucherRevisions(result.id);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {
@@ -701,7 +807,7 @@ export function App() {
     }
   }
 
-  async function handleGenerateDocx(values: VoucherFormValues) {
+  async function handleGenerateDocx(values: VoucherFormValues, customOutputDir?: string) {
     if (!window.meridian) {
       addNotice("Desktop bridge unavailable; restart the application");
       return;
@@ -710,14 +816,14 @@ export function App() {
     setActionState("generating-docx");
     try {
       const result = window.meridian.generateDocx
-        ? await window.meridian.generateDocx(values)
+        ? await window.meridian.generateDocx(values, customOutputDir)
         : await window.meridian.generateDocuments!(values);
       setGenerated(result);
       if (result.voucherId) {
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      addNotice("DOCX generated");
+      addNotice(customOutputDir ? "DOCX generated in custom location" : "DOCX generated");
       await refreshDocumentHistory();
       await refreshVoucherRegister(voucherFilters);
       await refreshToursFolderTree();
@@ -728,7 +834,7 @@ export function App() {
     }
   }
 
-  async function handleGeneratePdf(values: VoucherFormValues) {
+  async function handleGeneratePdf(values: VoucherFormValues, customOutputDir?: string) {
     if (!window.meridian) {
       addNotice("Desktop bridge unavailable; restart the application");
       return;
@@ -737,14 +843,14 @@ export function App() {
     setActionState("generating-pdf");
     try {
       const result = window.meridian.generatePdf
-        ? await window.meridian.generatePdf(values)
+        ? await window.meridian.generatePdf(values, customOutputDir)
         : await window.meridian.generateDocuments!(values);
       setGenerated(result);
       if (result.voucherId) {
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      addNotice("PDF generated");
+      addNotice(customOutputDir ? "PDF generated in custom location" : "PDF generated");
       await refreshDocumentHistory();
       await refreshVoucherRegister(voucherFilters);
       await refreshToursFolderTree();
@@ -783,7 +889,7 @@ export function App() {
     setOpeningVoucherId(voucher.id);
     try {
       const fullVoucher = await window.meridian.getVoucher(voucher.id);
-      form.reset(withAccountDefaults({ ...defaultVoucher, ...fullVoucher } as VoucherFormValues, accountProfile));
+      resetForm(withAccountDefaults({ ...defaultVoucher, ...fullVoucher } as VoucherFormValues, accountProfile));
       await refreshVoucherRevisions(voucher.id);
       setActiveView("entry");
       setGenerated(null);
@@ -843,7 +949,7 @@ export function App() {
   }
 
   function handleClearForm() {
-    form.reset(withAccountDefaults(defaultVoucher, accountProfile));
+    resetForm(withAccountDefaults(defaultVoucher, accountProfile));
     setGenerated(null);
     setVoucherRevisions([]);
     addNotice("Form cleared");
@@ -873,7 +979,7 @@ export function App() {
     }, 400);
 
     return () => window.clearTimeout(timer);
-  }, [lineItems, hotelName, market, ratePeriod, form, selectedHotelRateId, manualRates]);
+  }, [lineItems, hotelName, market, ratePeriod, form, selectedHotelRateId, manualRates, ratesTrigger]);
 
   useEffect(() => {
     if (!customerName || !tourType) return;
@@ -1067,8 +1173,8 @@ export function App() {
             </div>
           </aside>
 
-          <main className="app-main thin-scrollbar">
-            {activeView === "entry" ? (
+          <main ref={mainRef} className="app-main thin-scrollbar">
+            <div className={activeView === "entry" ? "block" : "hidden"}>
               <form className="mx-auto max-w-[1400px] p-8" onSubmit={form.handleSubmit(handleSave)}>
                 <div className="mb-8 flex items-end justify-between">
                   <div>
@@ -1088,30 +1194,117 @@ export function App() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={actionState !== "idle"}
+                      disabled={actionState !== "idle" || !hasChanges}
                       variant="primary"
                       className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
                     >
                       <Save size={17} /> {actionState === "saving" ? "Saving..." : "Save Voucher"}
                     </Button>
-                    <Button
-                      type="button"
-                      disabled={actionState !== "idle"}
-                      onClick={form.handleSubmit(handleGenerateDocx)}
-                      variant="secondary"
-                      className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
-                    >
-                      <FileText size={17} /> {actionState === "generating-docx" ? "Generating..." : "Generate DOCX"}
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={actionState !== "idle"}
-                      onClick={form.handleSubmit(handleGeneratePdf)}
-                      variant="secondary"
-                      className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
-                    >
-                      <FileDown size={17} /> {actionState === "generating-pdf" ? "Generating..." : "Generate PDF"}
-                    </Button>
+                    {/* DOCX Generate Split Button */}
+                    <div className="relative inline-flex rounded-md shadow-sm shrink-0">
+                      <Button
+                        type="button"
+                        disabled={actionState !== "idle"}
+                        onClick={form.handleSubmit((values) => handleGenerateDocx(values))}
+                        variant="secondary"
+                        className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none border-r-0"
+                      >
+                        <FileText size={17} /> {actionState === "generating-docx" ? "Generating..." : "Generate DOCX"}
+                      </Button>
+                      <button
+                        type="button"
+                        disabled={actionState !== "idle"}
+                        onClick={() => setDocxDropdownOpen(prev => !prev)}
+                        className="h-10 bg-cloud hover:bg-cloud/80 border border-line text-steel hover:text-navy px-2 rounded-r-md flex items-center justify-center transition border-l-0 shrink-0"
+                        title="More DOCX Options"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                      {docxDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setDocxDropdownOpen(false)} />
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDocxDropdownOpen(false);
+                                void form.handleSubmit((values) => handleGenerateDocx(values))();
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-cloud rounded transition text-steel hover:text-navy"
+                            >
+                              Generate (Default Folder)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setDocxDropdownOpen(false);
+                                if (!window.meridian?.selectFolder) return;
+                                const customDir = await window.meridian.selectFolder({ title: "Select Folder to Save DOCX" });
+                                if (customDir) {
+                                  void form.handleSubmit((values) => handleGenerateDocx(values, customDir))();
+                                }
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-cloud rounded text-navy transition"
+                            >
+                              Generate As... (Select Folder)
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* PDF Generate Split Button */}
+                    <div className="relative inline-flex rounded-md shadow-sm shrink-0">
+                      <Button
+                        type="button"
+                        disabled={actionState !== "idle"}
+                        onClick={form.handleSubmit((values) => handleGeneratePdf(values))}
+                        variant="secondary"
+                        className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none border-r-0"
+                      >
+                        <FileDown size={17} /> {actionState === "generating-pdf" ? "Generating..." : "Generate PDF"}
+                      </Button>
+                      <button
+                        type="button"
+                        disabled={actionState !== "idle"}
+                        onClick={() => setPdfDropdownOpen(prev => !prev)}
+                        className="h-10 bg-cloud hover:bg-cloud/80 border border-line text-steel hover:text-navy px-2 rounded-r-md flex items-center justify-center transition border-l-0 shrink-0"
+                        title="More PDF Options"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                      {pdfDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setPdfDropdownOpen(false)} />
+                          <div className="absolute right-0 top-full mt-1 w-48 bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPdfDropdownOpen(false);
+                                void form.handleSubmit((values) => handleGeneratePdf(values))();
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-cloud rounded transition text-steel hover:text-navy"
+                            >
+                              Generate (Default Folder)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setPdfDropdownOpen(false);
+                                if (!window.meridian?.selectFolder) return;
+                                const customDir = await window.meridian.selectFolder({ title: "Select Folder to Save PDF" });
+                                if (customDir) {
+                                  void form.handleSubmit((values) => handleGeneratePdf(values, customDir))();
+                                }
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-cloud rounded text-navy transition"
+                            >
+                              Generate As... (Select Folder)
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1124,6 +1317,7 @@ export function App() {
                           <Select
                             className={`w-full ${form.formState.errors.tourType ? "border-red-500" : ""}`}
                             {...form.register("tourType")}
+                            value={form.watch("tourType") || ""}
                             onChange={(event) => {
                               form.setValue("tourType", event.target.value as VoucherFormValues["tourType"], {
                                 shouldValidate: true
@@ -1143,6 +1337,7 @@ export function App() {
                           <Select
                             className={`w-full ${form.formState.errors.hotelName ? "border-red-500" : ""}`}
                             {...form.register("hotelName")}
+                            value={form.watch("hotelName") || ""}
                             onChange={(event) => {
                               form.setValue("hotelName", event.target.value, { shouldValidate: true });
                             }}
@@ -1160,6 +1355,7 @@ export function App() {
                           <Select
                             className={`w-full ${form.formState.errors.market ? "border-red-500" : ""}`}
                             {...form.register("market")}
+                            value={form.watch("market") || ""}
                             onChange={(event) => {
                               form.setValue("market", event.target.value, { shouldValidate: true });
                             }}
@@ -1177,6 +1373,7 @@ export function App() {
                           <Select
                             className={`w-full ${form.formState.errors.ratePeriod ? "border-red-500" : ""}`}
                             {...form.register("ratePeriod")}
+                            value={form.watch("ratePeriod") || ""}
                             onChange={(event) => {
                               form.setValue("ratePeriod", event.target.value, { shouldValidate: true });
                             }}
@@ -1333,8 +1530,8 @@ export function App() {
                               <th className="px-2 py-3">Room Category</th>
                               <th className="px-2 py-3">Basis (Room)</th>
                               <th className="px-2 py-3 text-center border-l border-line" colSpan={4}>Rooms</th>
-                              <th className="px-2 py-3 text-center border-x border-line" colSpan={3}>Child (2-5)</th>
-                              <th className="px-2 py-3 text-center border-r border-line" colSpan={3}>Child (6-11)</th>
+                              <th className="px-2 py-3 text-center border-x border-line" colSpan={3}>Child (2-5.99)</th>
+                              <th className="px-2 py-3 text-center border-r border-line" colSpan={3}>Child (6-11.99)</th>
                               <th className="px-2 py-3 text-center" colSpan={2}>Guide</th>
                               <th className="px-2 py-3 border-l border-line">Supplementary</th>
                               <th className="px-2 py-3 border-l border-line">Arriving For</th>
@@ -1669,7 +1866,7 @@ export function App() {
                                   </thead>
                                   <tbody>
                                     {(lineItems || []).map((item, idx) => (
-                                      <tr key={idx} className={idx % 2 === 0 ? 'bg-cloud/50' : 'bg-surface'}>
+                                      <tr key={idx} className={idx % 2 === 0 ? 'bg-[#f6f8fb]/50' : 'bg-white'}>
                                         <td className="py-1.5 px-2">{item.requiredDate || "—"}</td>
                                         <td className="py-1.5 px-2 whitespace-pre-wrap">{item.roomCategory || "—"}</td>
                                         <td className="py-1.5 px-2">{item.basis || "—"}</td>
@@ -1731,10 +1928,26 @@ export function App() {
                   })()}
                 </div>
               </form>
-            ) : activeView === "dashboard" ? (
+            </div>
+
+            {/* Hotel Rate Master Screen (kept alive in DOM) */}
+            <div className={activeView === "rate-master" ? "block" : "hidden"}>
+              <HotelRateMasterScreen
+                initialEditId={editHotelRateId}
+                addNotice={addNotice}
+                onBack={() => {
+                  setEditHotelRateId(undefined);
+                  setActiveView("entry");
+                }}
+                onManageRates={() => setActiveView("manage-rates")}
+                onRatesChanged={() => setRatesTrigger((prev) => prev + 1)}
+              />
+            </div>
+
+            {activeView === "dashboard" ? (
               <DashboardScreen
                 onNewVoucher={() => {
-                  form.reset(withAccountDefaults(defaultVoucher, accountProfile));
+                  resetForm(withAccountDefaults(defaultVoucher, accountProfile));
                   setGenerated(null);
                   setVoucherRevisions([]);
                   addNotice("New voucher ready");
@@ -1747,36 +1960,23 @@ export function App() {
                   void refreshVoucherRegister(voucherFilters);
                 }}
               />
-            ) : (
-              <>
-                <div className={activeView === "rate-master" ? "block" : "hidden"}>
-                  <HotelRateMasterScreen
-                    key={activeView === "rate-master" ? "active" : "inactive"}
-                    initialEditId={editHotelRateId}
-                    addNotice={addNotice}
-                    onBack={() => {
-                      setEditHotelRateId(undefined);
-                      setActiveView("entry");
-                    }}
-                    onManageRates={() => setActiveView("manage-rates")}
-                  />
-                </div>
-                {activeView === "manage-rates" ? (
-                  <ManageRatesScreen
-                    onBack={() => setActiveView("rate-master")}
-                    onEdit={(id) => {
-                      setEditHotelRateId(id);
-                      setActiveView("rate-master");
-                    }}
-                  />
-                ) : activeView === "settings" ? (
-                  <SettingsScreen onThemeChange={setActiveTheme} />
-                ) : activeView === "profile" ? (
-                  <ProfileScreen
-                    accountProfile={accountProfile}
-                    onProfileUpdated={(profile) => setAccountProfile(profile)}
-                  />
-                ) : activeView === "register" ? (
+            ) : activeView === "manage-rates" ? (
+              <ManageRatesScreen
+                onBack={() => setActiveView("rate-master")}
+                onEdit={(id) => {
+                  setEditHotelRateId(id);
+                  setActiveView("rate-master");
+                }}
+                onRatesChanged={() => setRatesTrigger((prev) => prev + 1)}
+              />
+            ) : activeView === "settings" ? (
+              <SettingsScreen onThemeChange={setActiveTheme} />
+            ) : activeView === "profile" ? (
+              <ProfileScreen
+                accountProfile={accountProfile}
+                onProfileUpdated={(profile) => setAccountProfile(profile)}
+              />
+            ) : activeView === "register" ? (
                   <div className="mx-auto max-w-[1400px] p-4 md:p-8">
                     <div className="mb-8 flex items-start gap-4">
                       <button
@@ -1932,8 +2132,6 @@ export function App() {
                     </div>
                   </div>
                 ) : null}
-              </>
-            )}
 
             {searchQuery && (
               <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setSearchQuery("")}>

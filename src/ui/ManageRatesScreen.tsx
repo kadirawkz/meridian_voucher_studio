@@ -6,9 +6,10 @@ import { friendlyErrorMessage } from "./errors";
 type Props = {
   onBack: () => void;
   onEdit: (hotelRateId: string) => void;
+  onRatesChanged?: () => void;
 };
 
-export function ManageRatesScreen({ onBack, onEdit }: Props) {
+export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
   const [rates, setRates] = useState<HotelRateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,6 +39,7 @@ export function ManageRatesScreen({ onBack, onEdit }: Props) {
       await window.meridian?.deleteHotelRate(deleteId);
       setDeleteId(null);
       loadRates();
+      if (onRatesChanged) onRatesChanged();
     } catch (err) {
       window.alert(friendlyErrorMessage(err, "Failed to delete rate"));
     }

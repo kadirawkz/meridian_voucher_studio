@@ -100,8 +100,10 @@ create table if not exists public.hotel_rates (
   foc_quantity integer not null default 1,
   foc_basis text not null default '',
   foc_count_adults boolean not null default true,
-  foc_count_child_2_5 boolean not null default false,
-  foc_count_child_6_11 boolean not null default false,
+  foc_count_child_2_5_99 boolean not null default false,
+  foc_count_child_6_11_99 boolean not null default false,
+  foc_pax_custom_text text not null default '',
+  foc_guide_custom_text text not null default '',
   created_by uuid not null references auth.users(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -135,8 +137,8 @@ create table if not exists public.hotel_rate_child_prices (
   check (valid_to >= valid_from),
   room_category_id uuid not null references public.room_categories(id),
   basis text not null,
-  age_2_5_sharing text, age_2_5_extra_bed text, age_2_5_own_room text,
-  age_6_11_sharing text, age_6_11_extra_bed text, age_6_11_own_room text
+  age_2_5_99_sharing text, age_2_5_99_extra_bed text, age_2_5_99_own_room text,
+  age_6_11_99_sharing text, age_6_11_99_extra_bed text, age_6_11_99_own_room text
 );
 create index if not exists hotel_rate_child_prices_rate_idx on public.hotel_rate_child_prices (hotel_rate_id);
 
@@ -227,8 +229,15 @@ create table if not exists public.voucher_line_items (
   double_rooms integer not null default 0 check (double_rooms >= 0),
   twin_rooms integer not null default 0 check (twin_rooms >= 0),
   triple_rooms integer not null default 0 check (triple_rooms >= 0),
-  child_2_5 integer not null default 0 check (child_2_5 >= 0),
-  child_6_11 integer not null default 0 check (child_6_11 >= 0),
+  child_2_5_99 integer not null default 0 check (child_2_5_99 >= 0),
+  child_6_11_99 integer not null default 0 check (child_6_11_99 >= 0),
+  child_2_5_99_sharing integer not null default 0 check (child_2_5_99_sharing >= 0),
+  child_2_5_99_bed integer not null default 0 check (child_2_5_99_bed >= 0),
+  child_2_5_99_own_room integer not null default 0 check (child_2_5_99_own_room >= 0),
+  child_6_11_99_sharing integer not null default 0 check (child_6_11_99_sharing >= 0),
+  child_6_11_99_bed integer not null default 0 check (child_6_11_99_bed >= 0),
+  child_6_11_99_own_room integer not null default 0 check (child_6_11_99_own_room >= 0),
+  supplementary text[] not null default '{}'::text[],
   guide_count integer not null default 0 check (guide_count >= 0),
   guide_basis text not null default '',
   arriving_for text not null default '',

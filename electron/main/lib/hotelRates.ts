@@ -277,8 +277,10 @@ async function assembleHotelRateRecord(
       foc_quantity: (parentRow.foc_quantity ?? 1) as number,
       basis: (parentRow.foc_basis ?? "") as string,
       count_adults: Boolean(parentRow.foc_count_adults ?? true),
-      count_child_2_5: Boolean(parentRow.foc_count_child_2_5 ?? false),
-      count_child_6_11: Boolean(parentRow.foc_count_child_6_11 ?? false),
+      count_child_2_5_99: Boolean(parentRow.foc_count_child_2_5_99 ?? false),
+      count_child_6_11_99: Boolean(parentRow.foc_count_child_6_11_99 ?? false),
+      pax_custom_text: (parentRow.foc_pax_custom_text ?? "") as string,
+      guide_custom_text: (parentRow.foc_guide_custom_text ?? "") as string,
     },
     room_rates: ((roomPricesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
       id: r.id as string,
@@ -299,12 +301,12 @@ async function assembleHotelRateRecord(
       room_category_id: (r.room_category_id ?? "") as string,
       room_category: ((r.room_categories as Record<string, unknown> | null)?.name ?? "") as string,
       basis: (r.basis ?? "") as string,
-      age_2_5_sharing: r.age_2_5_sharing as string | null,
-      age_2_5_extra_bed: r.age_2_5_extra_bed as string | null,
-      age_2_5_own_room: r.age_2_5_own_room as string | null,
-      age_6_11_sharing: r.age_6_11_sharing as string | null,
-      age_6_11_extra_bed: r.age_6_11_extra_bed as string | null,
-      age_6_11_own_room: r.age_6_11_own_room as string | null,
+      age_2_5_99_sharing: r.age_2_5_99_sharing as string | null,
+      age_2_5_99_extra_bed: r.age_2_5_99_extra_bed as string | null,
+      age_2_5_99_own_room: r.age_2_5_99_own_room as string | null,
+      age_6_11_99_sharing: r.age_6_11_99_sharing as string | null,
+      age_6_11_99_extra_bed: r.age_6_11_99_extra_bed as string | null,
+      age_6_11_99_own_room: r.age_6_11_99_own_room as string | null,
     })),
     seasonal_surcharges: ((surchargesRes.data ?? []) as Array<Record<string, unknown>>).map((s) => ({
       id: s.id as string,
@@ -383,8 +385,10 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
     foc_quantity: record.foc_rules?.foc_quantity ?? 1,
     foc_basis: record.foc_rules?.basis ?? "",
     foc_count_adults: record.foc_rules?.count_adults ?? true,
-    foc_count_child_2_5: record.foc_rules?.count_child_2_5 ?? false,
-    foc_count_child_6_11: record.foc_rules?.count_child_6_11 ?? false,
+    foc_count_child_2_5_99: record.foc_rules?.count_child_2_5_99 ?? false,
+    foc_count_child_6_11_99: record.foc_rules?.count_child_6_11_99 ?? false,
+    foc_pax_custom_text: record.foc_rules?.pax_custom_text ?? "",
+    foc_guide_custom_text: record.foc_rules?.guide_custom_text ?? "",
     created_by: userId,
   };
 
@@ -428,8 +432,8 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
         valid_from: r.from, valid_to: r.to,
         room_category_id: r.room_category_id || catMap.get(r.room_category) || null,
         basis: r.basis,
-        age_2_5_sharing: r.age_2_5_sharing, age_2_5_extra_bed: r.age_2_5_extra_bed, age_2_5_own_room: r.age_2_5_own_room,
-        age_6_11_sharing: r.age_6_11_sharing, age_6_11_extra_bed: r.age_6_11_extra_bed, age_6_11_own_room: r.age_6_11_own_room,
+        age_2_5_99_sharing: r.age_2_5_99_sharing, age_2_5_99_extra_bed: r.age_2_5_99_extra_bed, age_2_5_99_own_room: r.age_2_5_99_own_room,
+        age_6_11_99_sharing: r.age_6_11_99_sharing, age_6_11_99_extra_bed: r.age_6_11_99_extra_bed, age_6_11_99_own_room: r.age_6_11_99_own_room,
       }))
     ));
   }
@@ -547,8 +551,8 @@ export async function listHotelsFromRates(): Promise<string[]> {
 
 function calculateFocPersonCount(voucher: VoucherPayload, focRules: HotelRateFocRules | undefined): number {
   const countAdults = focRules?.count_adults ?? true;
-  const countChild25 = focRules?.count_child_2_5 ?? false;
-  const countChild611 = focRules?.count_child_6_11 ?? false;
+  const countChild25 = focRules?.count_child_2_5_99 ?? false;
+  const countChild611 = focRules?.count_child_6_11_99 ?? false;
 
   return voucher.lineItems.reduce((sum, li) => {
     let count = 0;
@@ -567,220 +571,180 @@ function calculateFocPersonCount(voucher: VoucherPayload, focRules: HotelRateFoc
 
 function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecord): string {
   const currency = record.currency || "USD";
-  const usedCategories = Array.from(new Set(
-    voucher.lineItems.map((li) => (li.roomCategory || "").trim()).filter(Boolean)
-  ));
+  
+  if (!voucher.lineItems || voucher.lineItems.length === 0) return "";
 
-  if (usedCategories.length === 0) return "";
-
-  const categoryBlocks: string[] = [];
-
-  for (const catName of usedCategories) {
-    const segments: string[] = [];
-    const catUpper = catName.toUpperCase();
-    
-    // ① Room Rates for this category
-    const usedTypes = { sgl: false, dbl: false, twn: false, tpl: false };
-    const typeRates: Record<string, Set<string>> = { SGL: new Set(), DBL: new Set(), TWN: new Set(), TPL: new Set() };
-    const basisUsed = new Set<string>();
-
-    for (const li of voucher.lineItems) {
-      if (li.roomCategory?.trim().toLowerCase() !== catName.toLowerCase()) continue;
-      
-      if (Number(li.singleRooms || 0) > 0) usedTypes.sgl = true;
-      if (Number(li.doubleRooms || 0) > 0) usedTypes.dbl = true;
-      if (Number(li.twinRooms || 0) > 0) usedTypes.twn = true;
-      if (Number(li.tripleRooms || 0) > 0) usedTypes.tpl = true;
-
-      const reqDate = li.requiredDate;
-      const basis = (li.basis || "").trim();
-      if (!reqDate || !basis) continue;
-      basisUsed.add(basis.toUpperCase());
-
-      const match = (record.room_rates ?? []).find((r) =>
-        reqDate >= r.from && reqDate <= r.to &&
-        r.room_category.toLowerCase() === catName.toLowerCase() &&
-        r.basis.toLowerCase() === basis.toLowerCase()
-      );
-      if (match) {
-        if (Number(li.singleRooms || 0) > 0 && match.sgl != null) typeRates.SGL.add(match.sgl.toString());
-        if (Number(li.doubleRooms || 0) > 0 && match.dbl != null) typeRates.DBL.add(match.dbl.toString());
-        if (Number(li.twinRooms || 0) > 0 && match.twn != null) typeRates.TWN.add(match.twn.toString());
-        if (Number(li.tripleRooms || 0) > 0 && match.tpl != null) typeRates.TPL.add(match.tpl.toString());
-      }
+  function formatDate(dStr: string) {
+    if (!dStr) return "";
+    const parts = dStr.split("-");
+    if (parts.length === 3) {
+      const y = parts[0];
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      return `${m}/${d}/${y}`;
     }
+    return dStr;
+  }
 
-    const basisLabel = Array.from(basisUsed).join("/");
+  function formatVal(v: string | null | undefined) {
+    if (!v) return null;
+    if (v.toUpperCase() === "FOC") return "FOC";
+    return isNaN(Number(v)) ? v : `${currency} ${v}`;
+  }
+
+  const blocks: string[] = [];
+
+  for (const li of voucher.lineItems) {
+    const reqDate = (li.requiredDate || "").trim();
+    const catName = (li.roomCategory || "").trim();
+    if (!reqDate || !catName) continue;
+
+    const rowLines: string[] = [];
+
+    // ① Room Rates
+    const match = (record.room_rates ?? []).find((r) =>
+      reqDate >= r.from && reqDate <= r.to &&
+      r.room_category.toLowerCase() === catName.toLowerCase() &&
+      r.basis.toLowerCase() === (li.basis || "").toLowerCase()
+    );
+
     const roomParts: string[] = [];
-    if (usedTypes.sgl && typeRates.SGL.size > 0) roomParts.push(`Single-${basisLabel} ${currency} ${Array.from(typeRates.SGL).join(" & ")}`);
-    if (usedTypes.dbl && typeRates.DBL.size > 0) roomParts.push(`Double-${basisLabel} ${currency} ${Array.from(typeRates.DBL).join(" & ")}`);
-    if (usedTypes.twn && typeRates.TWN.size > 0) roomParts.push(`Twin-${basisLabel} ${currency} ${Array.from(typeRates.TWN).join(" & ")}`);
-    if (usedTypes.tpl && typeRates.TPL.size > 0) roomParts.push(`Triple-${basisLabel} ${currency} ${Array.from(typeRates.TPL).join(" & ")}`);
-    if (roomParts.length > 0) segments.push(roomParts.join(" / "));
+    const basisLabel = (li.basis || "").trim().toUpperCase();
+    if (Number(li.singleRooms || 0) > 0 && match?.sgl != null) roomParts.push(`Single-${basisLabel} ${currency} ${match.sgl}`);
+    if (Number(li.doubleRooms || 0) > 0 && match?.dbl != null) roomParts.push(`Double-${basisLabel} ${currency} ${match.dbl}`);
+    if (Number(li.twinRooms || 0) > 0 && match?.twn != null) roomParts.push(`Twin-${basisLabel} ${currency} ${match.twn}`);
+    if (Number(li.tripleRooms || 0) > 0 && match?.tpl != null) roomParts.push(`Triple-${basisLabel} ${currency} ${match.tpl}`);
 
-    // ② Child Rates for this category
-    const ageGroupSummaries = new Map<string, string>();
-    for (const li of voucher.lineItems) {
-      if (li.roomCategory?.trim().toLowerCase() !== catName.toLowerCase()) continue;
-      if (!li.requiredDate || !li.basis) continue;
-      
-      const match = (record.child_rates ?? []).find((r) =>
-        li.requiredDate >= r.from && li.requiredDate <= r.to &&
-        r.room_category.toLowerCase() === catName.toLowerCase() &&
-        r.basis.toLowerCase() === li.basis.toLowerCase()
-      );
+    const catUpper = catName.toUpperCase();
+    const roomsStr = roomParts.length > 0 ? roomParts.join(" / ") : "";
+    rowLines.push(`${formatDate(reqDate)} - ${catUpper}: ${roomsStr}  |`);
 
-      if (match) {
-        function formatVal(v: string | null | undefined) {
-          if (!v) return null;
-          if (v.toUpperCase() === "FOC") return "FOC";
-          return isNaN(Number(v)) ? v : `${record.currency} ${v}`;
+    // ② Child Rates & Age Groups
+    const matchChild = (record.child_rates ?? []).find((r) =>
+      reqDate >= r.from && reqDate <= r.to &&
+      r.room_category.toLowerCase() === catName.toLowerCase() &&
+      r.basis.toLowerCase() === (li.basis || "").toLowerCase()
+    );
+
+    if (matchChild) {
+      // Child (2-5.99)
+      const c25Types = [
+        { count: Number(li.child2_5Sharing || 0), label: "Sharing", val: matchChild.age_2_5_99_sharing },
+        { count: Number(li.child2_5Bed || 0), label: "Bed", val: matchChild.age_2_5_99_extra_bed },
+        { count: Number(li.child2_5OwnRoom || 0), label: "Own Room", val: matchChild.age_2_5_99_own_room }
+      ];
+      const activeC25 = c25Types.filter(t => t.count > 0);
+      if (activeC25.length > 0) {
+        for (const type of activeC25) {
+          const fv = formatVal(type.val) || "FOC";
+          rowLines.push(`Child (2-5.99 Y) ${type.label} ${fv}  |`);
         }
-
-        const groups = [
-          { 
-            key: "2-5", label: "Child (2-5.99 Y)", 
-            types: [
-              { count: li.child2_5Sharing || 0, label: "Sharing", val: match.age_2_5_sharing },
-              { count: li.child2_5Bed || 0, label: "Bed", val: match.age_2_5_extra_bed },
-              { count: li.child2_5OwnRoom || 0, label: "ICON", val: match.age_2_5_own_room }
-            ],
-            legacyCount: li.child2_5 || 0
-          },
-          { 
-            key: "6-11", label: "Child (6-11.99 Y)", 
-            types: [
-              { count: li.child6_11Sharing || 0, label: "Sharing", val: match.age_6_11_sharing },
-              { count: li.child6_11Bed || 0, label: "Bed", val: match.age_6_11_extra_bed },
-              { count: li.child6_11OwnRoom || 0, label: "ICON", val: match.age_6_11_own_room }
-            ],
-            legacyCount: li.child6_11 || 0
-          }
-        ];
-
-        for (const group of groups) {
-          const selectedTypes: string[] = [];
-          for (const type of group.types) {
-            if (type.count > 0) {
-              const fv = formatVal(type.val);
-              if (fv) selectedTypes.push(`${type.label} ${fv}`);
-            }
-          }
-          if (selectedTypes.length > 0) {
-            ageGroupSummaries.set(group.key, `${group.label} ${selectedTypes.join(" / ")}`);
-          } else if (group.legacyCount > 0) {
-            const rateParts: string[] = [];
-            for (const type of group.types) {
-              const fv = formatVal(type.val);
-              if (fv) rateParts.push(`${type.label} ${fv}`);
-            }
-            if (rateParts.length > 0) {
-              ageGroupSummaries.set(group.key, `${group.label} ${rateParts.join(" / ")}`);
-            }
-          }
+      } else if (Number(li.child2_5 || 0) > 0) {
+        const parts = c25Types.map(t => formatVal(t.val) ? `${t.label} ${formatVal(t.val)}` : null).filter(Boolean);
+        if (parts.length > 0) {
+          rowLines.push(`Child (2-5.99 Y) ${parts.join(" / ")}  |`);
         }
       }
-    }
-    const childParts = Array.from(ageGroupSummaries.values());
-    if (childParts.length > 0) segments.push(childParts.join(" | "));
 
-    // ③ Supplements for this category
-    const selectedSupplements = new Set<string>();
-    for (const li of voucher.lineItems) {
-      if (li.roomCategory?.trim().toLowerCase() !== catName.toLowerCase()) continue;
-      if (li.supplementary && Array.isArray(li.supplementary)) {
-        for (const sName of li.supplementary) {
-          selectedSupplements.add(sName);
+      // Child (6-11.99)
+      const c611Types = [
+        { count: Number(li.child6_11Sharing || 0), label: "Sharing", val: matchChild.age_6_11_99_sharing },
+        { count: Number(li.child6_11Bed || 0), label: "Bed", val: matchChild.age_6_11_99_extra_bed },
+        { count: Number(li.child6_11OwnRoom || 0), label: "Own Room", val: matchChild.age_6_11_99_own_room }
+      ];
+      const activeC611 = c611Types.filter(t => t.count > 0);
+      if (activeC611.length > 0) {
+        for (const type of activeC611) {
+          const fv = formatVal(type.val) || "FOC";
+          rowLines.push(`Child (6-11.99 Y) ${type.label} ${fv}  |`);
+        }
+      } else if (Number(li.child6_11 || 0) > 0) {
+        const parts = c611Types.map(t => formatVal(t.val) ? `${t.label} ${formatVal(t.val)}` : null).filter(Boolean);
+        if (parts.length > 0) {
+          rowLines.push(`Child (6-11.99 Y) ${parts.join(" / ")}  |`);
         }
       }
     }
 
-    const suppSegments: string[] = [];
-    for (const supp of (record.room_supplements ?? [])) {
-      if (!supp.supplement_name || supp.supplement_amount == null) continue;
-      if (supp.room_category.toLowerCase() === catName.toLowerCase() && selectedSupplements.has(supp.supplement_name)) {
-        suppSegments.push(`${supp.supplement_name} ${currency} ${supp.supplement_amount} ${supp.per}`);
+    // ③ Supplements
+    if (li.supplementary && Array.isArray(li.supplementary)) {
+      for (const suppName of li.supplementary) {
+        const matchSupp = (record.room_supplements ?? []).find(
+          (s) => s.room_category.toLowerCase() === catName.toLowerCase() &&
+                 s.supplement_name.toLowerCase() === suppName.toLowerCase()
+        );
+        if (matchSupp) {
+          rowLines.push(`${matchSupp.supplement_name} supplement ${currency} ${matchSupp.supplement_amount} ${matchSupp.per}  |`);
+        } else {
+          rowLines.push(`${suppName} supplement  |`);
+        }
       }
     }
-    if (suppSegments.length > 0) {
-      segments.push(suppSegments.join(" | "));
+
+    // ④ Seasonal Surcharges
+    for (const s of (record.seasonal_surcharges ?? [])) {
+      if (!s.name || s.amount == null) continue;
+      if ((!s.date_from || reqDate >= s.date_from) && (!s.date_to || reqDate <= s.date_to)) {
+        const appliesToStr = s.applies_to ? ` (${s.applies_to})` : " per room per night";
+        rowLines.push(`${s.name} ${currency} ${s.amount}${appliesToStr} (Added to above rates)  |`);
+      }
     }
 
-    // ④ Guide / FOC (Check if it applies to this basis/category context)
+    // ⑤ Compulsory Events
+    for (const ev of (record.compulsory_events ?? [])) {
+      if (!ev.event_name || !ev.mandatory || ev.event_date !== reqDate) continue;
+      const basis = (li.basis || "").toUpperCase();
+      const evRate = basis === "BB" ? ev.bb_rate : basis === "HB" ? ev.hb_rate : ev.fb_rate ?? ev.hb_rate ?? ev.bb_rate;
+      if (evRate != null) {
+        rowLines.push(`${ev.event_name} ${currency} ${evRate} per ${(ev.per || "person").toLowerCase()} (Added to above rates)  |`);
+      }
+    }
+
+    // ⑥ FOC Rule
     const focRules = record.foc_rules;
-    const totalPax = calculateFocPersonCount(voucher, focRules);
-    const hasGuideInVoucher = voucher.lineItems.some((li) => Number(li.guide || 0) > 0);
-    if (hasGuideInVoucher && focRules?.enabled && focRules.minimum_persons != null && totalPax >= focRules.minimum_persons) {
-      const qty = focRules.foc_quantity ?? 1;
-      const who = focRules.applies_to || "Guide";
-      const focsOn = focRules.basis ? ` on ${focRules.basis.split(",").join("/")}` : "";
-      const minP = focRules.minimum_persons;
-      segments.push(`Guide FOC: ${qty} ${who} FOC${focsOn} when ${minP}+ persons`);
-    }
+    let isGuideFocActive = false;
 
-    if (segments.length > 0) {
-      categoryBlocks.push(`${catUpper}: ${segments.join(" / ")}`);
-    }
-  }
+    if (focRules?.enabled) {
+      const totalPax = calculateFocPersonCount(voucher, focRules);
+      const minPax = focRules.minimum_persons ?? 0;
+      if (minPax > 0 && totalPax >= minPax) {
+        const qty = focRules.foc_quantity ?? 1;
+        const focsOn = focRules.basis ? ` on ${focRules.basis.split(",").join("/")}` : "";
+        const appliesTo = (focRules.applies_to || "").toLowerCase();
 
-  // Final segments for Global Surcharges, Events, and Guide Rates
-  const globalSegments: string[] = [];
-  const voucherDates = new Set(voucher.lineItems.map((li) => li.requiredDate).filter(Boolean));
-  const basisUsedInVoucher = Array.from(new Set(voucher.lineItems.map(li => (li.basis || "").toUpperCase()))).filter(Boolean);
+        const hasGuideAndBasis = Number(li.guide || 0) > 0 && li.guideBasis?.trim();
+        const target = hasGuideAndBasis ? "Guide" : "Pax";
 
-  // ⑤ Seasonal Surcharges
-  const surchargeParts = new Set<string>();
-  for (const s of (record.seasonal_surcharges ?? [])) {
-    if (!s.name || s.amount == null) continue;
-    if (Array.from(voucherDates).some((d) => (!s.date_from || d >= s.date_from) && (!s.date_to || d <= s.date_to))) {
-      const appliesToStr = s.applies_to ? ` (${s.applies_to})` : " per room per night";
-      surchargeParts.add(`${s.name} ${currency} ${s.amount}${appliesToStr} (Added to above rates)`);
-    }
-  }
-  if (surchargeParts.size > 0) globalSegments.push(Array.from(surchargeParts).join(" / "));
-
-  // ⑥ Compulsory Events
-  const eventParts = new Set<string>();
-  for (const ev of (record.compulsory_events ?? [])) {
-    if (!ev.event_name || !ev.mandatory || !voucherDates.has(ev.event_date)) continue;
-    const firstBasis = basisUsedInVoucher[0] ?? "HB";
-    const evRate = firstBasis === "BB" ? ev.bb_rate : firstBasis === "HB" ? ev.hb_rate : ev.fb_rate ?? ev.hb_rate ?? ev.bb_rate;
-    if (evRate != null) {
-      eventParts.add(`${ev.event_name} ${currency} ${evRate} per ${(ev.per || "person").toLowerCase()} (Added to above rates)`);
-    }
-  }
-  if (eventParts.size > 0) globalSegments.push(Array.from(eventParts).join(" / "));
-
-  // ⑦ Guide / FOC (At the very end)
-  const focRules = record.foc_rules;
-  const totalPax = calculateFocPersonCount(voucher, focRules);
-  const hasGuideInVoucher = voucher.lineItems.some((li) => Number(li.guide || 0) > 0);
-
-  if (hasGuideInVoucher) {
-    if (focRules?.enabled && focRules.minimum_persons != null && totalPax >= focRules.minimum_persons) {
-      const qty = focRules.foc_quantity ?? 1;
-      const who = focRules.applies_to || "Guide";
-      const focsOn = focRules.basis ? ` on ${focRules.basis.split(",").join("/")}` : "";
-      const minP = focRules.minimum_persons;
-      globalSegments.push(`Guide FOC: ${qty} ${who} FOC${focsOn} when ${minP}+ persons`);
-    } else {
-      // Show explicit guide rates if FOC not met
-      const guideSummaries: string[] = [];
-      for (const basis of basisUsedInVoucher) {
-        const rate = record.guide_rates?.[basis];
-        if (rate != null) {
-          guideSummaries.push(`Guide-${basis} ${currency} ${rate}`);
+        if (appliesTo.includes(target.toLowerCase())) {
+          const customText = target === "Guide" ? focRules.guide_custom_text : focRules.pax_custom_text;
+          if (customText?.trim()) {
+            rowLines.push(`${customText.trim()}  |`);
+          } else {
+            rowLines.push(`FOC: ${qty} ${target} FOC${focsOn} when ${minPax}+ persons  |`);
+          }
+          if (target === "Guide") {
+            isGuideFocActive = true;
+          }
         }
       }
-      if (guideSummaries.length > 0) {
-        globalSegments.push(`Guide Rates: ${guideSummaries.join(" / ")}`);
-      } else {
-        globalSegments.push(`Guide: 1 Guide (Not FOC)`);
+    }
+
+    // ⑦ Paid Guide rate fallback (if Guide FOC was not activated)
+    const hasGuideInLine = Number(li.guide || 0) > 0;
+    if (hasGuideInLine && li.guideBasis?.trim() && !isGuideFocActive) {
+      const gBasis = li.guideBasis.trim().toUpperCase();
+      const rate = record.guide_rates?.[gBasis];
+      if (rate != null) {
+        rowLines.push(`Guide-${gBasis} ${currency} ${rate}  |`);
       }
+    }
+
+    if (rowLines.length > 0) {
+      blocks.push(rowLines.join("\n"));
     }
   }
 
-  return [...categoryBlocks, ...globalSegments].join("\n");
+  return blocks.join("\n\n");
 }
 
 export async function autoFillVoucherFromHotelRates(voucher: VoucherPayload, hotelRateId?: string): Promise<AutoFillResult> {
@@ -927,8 +891,8 @@ export async function getAllHotelRates(): Promise<HotelRateRecord[]> {
         room_category_id: (r.room_category_id ?? "") as string,
         room_category: ((r.room_categories as Record<string, unknown> | null)?.name ?? "") as string,
         basis: (r.basis ?? "") as string,
-        age_2_5_sharing: r.age_2_5_sharing as string | null, age_2_5_extra_bed: r.age_2_5_extra_bed as string | null, age_2_5_own_room: r.age_2_5_own_room as string | null,
-        age_6_11_sharing: r.age_6_11_sharing as string | null, age_6_11_extra_bed: r.age_6_11_extra_bed as string | null, age_6_11_own_room: r.age_6_11_own_room as string | null,
+        age_2_5_99_sharing: r.age_2_5_99_sharing as string | null, age_2_5_99_extra_bed: r.age_2_5_99_extra_bed as string | null, age_2_5_99_own_room: r.age_2_5_99_own_room as string | null,
+        age_6_11_99_sharing: r.age_6_11_99_sharing as string | null, age_6_11_99_extra_bed: r.age_6_11_99_extra_bed as string | null, age_6_11_99_own_room: r.age_6_11_99_own_room as string | null,
       })),
       seasonal_surcharges: (surchargesByRate.get(id) ?? []).map((s) => ({
         id: s.id as string, name: (s.name ?? "") as string,

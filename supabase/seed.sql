@@ -11,11 +11,48 @@ DECLARE
     v_suite_cat_id uuid;
     v_rate_id uuid;
 BEGIN
-    -- 1. Resolve a valid employee profile ID for created_by
+    -- 1. Resolve or create a valid employee profile ID for created_by
     select id into v_employee_id from public.employee_profiles limit 1;
     
     IF v_employee_id IS NULL THEN
-        RAISE EXCEPTION 'No employee profile found in public.employee_profiles. Please register or sign up an employee first.';
+        -- Generate a static UUID for the test employee
+        v_employee_id := 'd7b6f7e8-4a5e-4b6c-8d9e-0f1a2b3c4d5e';
+        
+        -- Insert a dummy user in auth.users if one doesn't exist
+        insert into auth.users (
+            id, 
+            instance_id, 
+            email, 
+            encrypted_password, 
+            email_confirmed_at, 
+            raw_app_meta_data, 
+            raw_user_meta_data, 
+            is_super_admin, 
+            role, 
+            aud,
+            created_at,
+            updated_at
+        )
+        values (
+            v_employee_id,
+            '00000000-0000-0000-0000-000000000000',
+            'operator@meridian.com',
+            '$2a$10$wK1c6F0gL3q4.u6wJtE0be2.1m4.qW6.9O3K.1gJ.lB8N.0e9N.m.', -- hashed password123
+            now(),
+            '{"provider":"email","providers":["email"]}',
+            '{"employeeName":"Test Employee"}',
+            false,
+            'authenticated',
+            'authenticated',
+            now(),
+            now()
+        )
+        on conflict (id) do nothing;
+        
+        -- Insert into public.employee_profiles if the trigger didn't automatically catch it
+        insert into public.employee_profiles (id, employee_name, email, role, is_active)
+        values (v_employee_id, 'Test Employee', 'operator@meridian.com', 'admin', true)
+        on conflict (id) do nothing;
     END IF;
 
     -- 2. Seed Hotels
@@ -23,6 +60,9 @@ BEGIN
     values ('Galle Face Hotel', true)
     on conflict (name) do update set is_active = true
     returning id into v_hotel_id;
+
+    -- Clear previous test rates for this hotel to ensure the seed is fully idempotent and duplicate-free
+    delete from public.hotel_rates where hotel_id = v_hotel_id;
 
     -- 3. Seed Markets
     insert into public.markets (code, name)
@@ -69,13 +109,15 @@ BEGIN
         hotel_id, market_id, currency, contract_name, 
         valid_from, valid_to, billing_instruction, created_by,
         foc_enabled, foc_applies_to, foc_minimum_persons, foc_quantity, foc_basis,
-        foc_count_adults, foc_count_child_2_5, foc_count_child_6_11
+        foc_count_adults, foc_count_child_2_5_99, foc_count_child_6_11_99,
+        foc_pax_custom_text, foc_guide_custom_text
     )
     values (
         v_hotel_id, v_market_id, 'USD', 'FIT Special Contract 2026', 
         '2026-01-01', '2026-12-31', 'All rates are net and inclusive of taxes.', v_employee_id,
-        true, 'Guide', 15, 1, 'HB',
-        true, false, false
+        true, 'Pax,Guide', 15, 1, 'HB',
+        true, false, false,
+        '1 Pax FOC on HB basis for minimum 15 Pax', '1 Guide FOC on HB basis for minimum 15 Pax'
     )
     on conflict (hotel_id, market_id, contract_name, valid_from, valid_to) 
     do update set 
@@ -86,8 +128,10 @@ BEGIN
         foc_quantity = excluded.foc_quantity,
         foc_basis = excluded.foc_basis,
         foc_count_adults = excluded.foc_count_adults,
-        foc_count_child_2_5 = excluded.foc_count_child_2_5,
-        foc_count_child_6_11 = excluded.foc_count_child_6_11
+        foc_count_child_2_5_99 = excluded.foc_count_child_2_5_99,
+        foc_count_child_6_11_99 = excluded.foc_count_child_6_11_99,
+        foc_pax_custom_text = excluded.foc_pax_custom_text,
+        foc_guide_custom_text = excluded.foc_guide_custom_text
     returning id into v_rate_id;
 
     -- 8. Seed Room Prices (Superior & Deluxe Rooms for both BB and HB)
@@ -112,8 +156,8 @@ BEGIN
     -- 9. Seed Child Prices (For sharing, extra bed, own room)
     insert into public.hotel_rate_child_prices (
         hotel_rate_id, valid_from, valid_to, room_category_id, basis,
-        age_2_5_sharing, age_2_5_extra_bed, age_2_5_own_room,
-        age_6_11_sharing, age_6_11_extra_bed, age_6_11_own_room
+        age_2_5_99_sharing, age_2_5_99_extra_bed, age_2_5_99_own_room,
+        age_6_11_99_sharing, age_6_11_99_extra_bed, age_6_11_99_own_room
     )
     values
         (v_rate_id, '2026-01-01', '2026-12-31', v_superior_cat_id, 'BB', 'FOC', '15.00', '40.00', '20.00', '30.00', '60.00'),

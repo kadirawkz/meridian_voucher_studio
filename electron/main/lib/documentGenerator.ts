@@ -389,9 +389,9 @@ async function convertDocxToPdf(docxPath: string, outputDirectory: string): Prom
   });
 }
 
-export async function generateDocuments(voucher: VoucherPayload, format: DocumentFormat = "pdf"): Promise<GeneratedDocument> {
+export async function generateDocuments(voucher: VoucherPayload, format: DocumentFormat = "pdf", customOutputDir?: string): Promise<GeneratedDocument> {
   const templatePath = getTemplatePath();
-  const outputDirectory = resolveVoucherOutputDirectory(voucher.tourType || "", voucher.hotelName || "");
+  const outputDirectory = customOutputDir || resolveVoucherOutputDirectory(voucher.tourType || "", voucher.hotelName || "");
   await fs.mkdir(outputDirectory, { recursive: true });
 
   const template = await fs.readFile(templatePath);
@@ -434,6 +434,8 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
   const fileBase = [
     voucher.date,
     voucher.voucherType,
+    normalizeFileName(voucher.tourType || ""),
+    normalizeFileName(voucher.market || ""),
     voucher.requisitionNo,
     normalizeFileName(voucher.hotelName)
   ]

@@ -12,6 +12,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import type { FolderTreeNode, VoucherDocumentRecord, VoucherRevisionRecord } from "../../electron/shared/types";
+import { DocumentHistoryPanel, RevisionHistoryPanel } from "./AppPanels";
 
 /** Pixel widths — exported so the parent layout can use them for margin calculations. */
 export const EXPLORER_WIDTH_EXPANDED = 300;
@@ -408,32 +409,7 @@ export function TourExplorerPanel({
             onMouseEnter={() => setHoveredSection(1)}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            {documentHistory.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-[10px] text-steel">No documents generated.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {documentHistory.map((doc) => (
-                  <button
-                    key={doc.id}
-                    type="button"
-                    onClick={() => onOpenDocument(doc.format === "pdf" ? doc.pdfPath! : doc.docxPath)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left hover:bg-cloud transition-colors"
-                  >
-                    <div className="flex flex-col min-w-0 pr-2">
-                      <p className="font-bold text-navy text-[11px] truncate">
-                        {doc.format === "pdf" ? "PDF Voucher" : "Word Document"}
-                      </p>
-                      <p className="text-[9px] text-steel truncate">
-                        {new Date(doc.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <FileText size={13} className={doc.format === "pdf" ? "text-red-500" : "text-blue-500"} />
-                  </button>
-                ))}
-              </div>
-            )}
+            <DocumentHistoryPanel documentHistory={documentHistory} onOpenDocument={onOpenDocument} />
           </div>
         )}
       </div>
@@ -467,27 +443,7 @@ export function TourExplorerPanel({
             onMouseEnter={() => setHoveredSection(2)}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            {voucherRevisions.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-center">
-                <p className="text-[10px] text-steel px-4">No audit trail.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {voucherRevisions.map((revision) => (
-                  <div key={revision.id} className="rounded-md px-2 py-1.5 bg-cloud/50 border border-line">
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <p className="text-[10px] font-bold text-ink">v{revision.versionNumber}</p>
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-navy opacity-70">
-                        {revision.status}
-                      </p>
-                    </div>
-                    <p className="text-[9px] text-steel">
-                      {new Date(revision.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <RevisionHistoryPanel voucherRevisions={voucherRevisions} />
           </div>
         )}
       </div>

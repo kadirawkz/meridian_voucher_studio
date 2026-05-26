@@ -97,22 +97,23 @@ type FocRules = {
   countAdults: boolean;
   countChild2_5: boolean;
   countChild6_11: boolean;
+  paxCustomText: string;
+  guideCustomText: string;
 };
 
-function createFocRuleText(rule: FocRules): string {
-  if (!rule.enabled) return "Guide FOC not applied";
+function createFocRuleText(rule: FocRules, target: "Pax" | "Guide"): string {
+  if (!rule.enabled) return "FOC not applied";
   const personText = rule.minimumPersons ? `when ${rule.minimumPersons}+ persons` : "when person count rule is met";
   const qtyText = rule.focQuantity || "1";
-  const who = rule.appliesTo || "Guide";
   const basisText = rule.basis ? ` on ${rule.basis.split(",").join("/")}` : "";
   
   const categories = [];
   if (rule.countAdults) categories.push("Adults");
-  if (rule.countChild2_5) categories.push("Child (2-5)");
-  if (rule.countChild6_11) categories.push("Child (6-11)");
+  if (rule.countChild2_5) categories.push("Child (2-5.99)");
+  if (rule.countChild6_11) categories.push("Child (6-11.99)");
   const countDesc = categories.length > 0 ? ` (counting ${categories.join("+")})` : " (counting none)";
 
-  return `${qtyText} ${who} FOC${basisText} ${personText}${countDesc}`;
+  return `${qtyText} ${target} FOC${basisText} ${personText}${countDesc}`;
 }
 
 /* ---------- reusable sub-components ---------- */
@@ -152,9 +153,10 @@ type Props = {
   onManageRates?: () => void;
   initialEditId?: string;
   addNotice?: (message: string, type?: "info" | "success" | "error") => void;
+  onRatesChanged?: () => void;
 };
 
-export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice }: Props = {}) {
+export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice, onRatesChanged }: Props = {}) {
   const [contract, setContract] = useState<ContractDetails>({
     hotelName: "",
     market: "",
@@ -171,7 +173,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
 
   const [seasonalSurcharges, setSeasonalSurcharges] = useState<Array<{ name: string; amount: string; from: string; to: string; appliesTo: string }>>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
-  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
+  const [focRules, setFocRules] = useState<FocRules>({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: "" });
   const [billingText, setBillingText] = useState("");
   const [saveNotice, setSaveNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -192,10 +194,62 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
     }
   }, [initialEditId]);
 
-  const previewFocText = useMemo(
-    () => createFocRuleText(focRules),
+  const previewPaxText = useMemo(
+    () => createFocRuleText(focRules, "Pax"),
     [focRules]
   );
+  const previewGuideText = useMemo(
+    () => createFocRuleText(focRules, "Guide"),
+    [focRules]
+  );
+
+  const [lastPaxGen, setLastPaxGen] = useState("");
+  const [lastGuideGen, setLastGuideGen] = useState("");
+
+  useEffect(() => {
+    const nextPaxGen = createFocRuleText(focRules, "Pax");
+    const nextGuideGen = createFocRuleText(focRules, "Guide");
+
+    let updated = false;
+    let nextPaxVal = focRules.paxCustomText;
+    let nextGuideVal = focRules.guideCustomText;
+
+    if (!focRules.paxCustomText || focRules.paxCustomText === lastPaxGen) {
+      if (focRules.paxCustomText !== nextPaxGen) {
+        nextPaxVal = nextPaxGen;
+        updated = true;
+      }
+    }
+
+    if (!focRules.guideCustomText || focRules.guideCustomText === lastGuideGen) {
+      if (focRules.guideCustomText !== nextGuideGen) {
+        nextGuideVal = nextGuideGen;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      setFocRules((prev) => ({
+        ...prev,
+        paxCustomText: nextPaxVal,
+        guideCustomText: nextGuideVal,
+      }));
+    }
+
+    setLastPaxGen(nextPaxGen);
+    setLastGuideGen(nextGuideGen);
+  }, [
+    focRules.enabled,
+    focRules.minimumPersons,
+    focRules.focQuantity,
+    focRules.basis,
+    focRules.countAdults,
+    focRules.countChild2_5,
+    focRules.countChild6_11,
+    focRules.appliesTo,
+    lastPaxGen,
+    lastGuideGen
+  ]);
 
   /* ---------- load hotels + selected hotel rate summaries ---------- */
 
@@ -293,12 +347,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
         to: r.to || "",
         roomCategory: r.room_category || "",
         basis: r.basis || "",
-        age_2_5_sharing: r.age_2_5_sharing == null ? "" : String(r.age_2_5_sharing),
-        age_2_5_extra_bed: r.age_2_5_extra_bed == null ? "" : String(r.age_2_5_extra_bed),
-        age_2_5_own_room: r.age_2_5_own_room == null ? "" : String(r.age_2_5_own_room),
-        age_6_11_sharing: r.age_6_11_sharing == null ? "" : String(r.age_6_11_sharing),
-        age_6_11_extra_bed: r.age_6_11_extra_bed == null ? "" : String(r.age_6_11_extra_bed),
-        age_6_11_own_room: r.age_6_11_own_room == null ? "" : String(r.age_6_11_own_room),
+        age_2_5_sharing: r.age_2_5_99_sharing == null ? "" : String(r.age_2_5_99_sharing),
+        age_2_5_extra_bed: r.age_2_5_99_extra_bed == null ? "" : String(r.age_2_5_99_extra_bed),
+        age_2_5_own_room: r.age_2_5_99_own_room == null ? "" : String(r.age_2_5_99_own_room),
+        age_6_11_sharing: r.age_6_11_99_sharing == null ? "" : String(r.age_6_11_99_sharing),
+        age_6_11_extra_bed: r.age_6_11_99_extra_bed == null ? "" : String(r.age_6_11_99_extra_bed),
+        age_6_11_own_room: r.age_6_11_99_own_room == null ? "" : String(r.age_6_11_99_own_room),
       }))
     );
 
@@ -349,8 +403,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
       focQuantity: record.foc_rules?.foc_quantity == null ? "1" : String(record.foc_rules.foc_quantity),
       basis: String(record.foc_rules?.basis ?? "HB"),
       countAdults: Boolean(record.foc_rules?.count_adults ?? true),
-      countChild2_5: Boolean(record.foc_rules?.count_child_2_5 ?? false),
-      countChild6_11: Boolean(record.foc_rules?.count_child_6_11 ?? false),
+      countChild2_5: Boolean(record.foc_rules?.count_child_2_5_99 ?? false),
+      countChild6_11: Boolean(record.foc_rules?.count_child_6_11_99 ?? false),
+      paxCustomText: record.foc_rules?.pax_custom_text ?? "",
+      guideCustomText: record.foc_rules?.guide_custom_text ?? "",
     });
 
     setSkippedSections(record.skipped_sections || []);
@@ -449,7 +505,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
     setGuideRates([]);
     setSeasonalSurcharges([]);
     setEvents([]);
-    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
+    setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: "" });
     setSkippedSections([]);
     setBillingText("");
     setSaveNotice("Cleared");
@@ -495,7 +551,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
       { name: "Child Rates", status: sectionStatus("Child Rates", childRatesEmpty), empty: childRatesEmpty },
       { name: "Room Supplements", status: sectionStatus("Room Supplements", supplementsEmpty), empty: supplementsEmpty },
       { name: "Guide Rates", status: sectionStatus("Guide Rates", guideRatesEmpty), empty: guideRatesEmpty },
-      { name: "Guide FOC Rule", status: sectionStatus("Guide FOC Rule", focEmpty), empty: focEmpty },
+      { name: "FOC Rule", status: sectionStatus("FOC Rule", focEmpty), empty: focEmpty },
       { name: "Seasonal Surcharges", status: sectionStatus("Seasonal Surcharges", seasonalEmpty), empty: seasonalEmpty },
       { name: "Compulsory Events", status: sectionStatus("Compulsory Events", eventsEmpty), empty: eventsEmpty },
       { name: "Billing Instructions", status: sectionStatus("Billing Instructions", billingEmpty), empty: billingEmpty },
@@ -544,12 +600,12 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               to: contract.validTo,
               room_category: r.roomCategory,
               basis: r.basis,
-              age_2_5_sharing: r.age_2_5_sharing || null,
-              age_2_5_extra_bed: r.age_2_5_extra_bed || null,
-              age_2_5_own_room: r.age_2_5_own_room || null,
-              age_6_11_sharing: r.age_6_11_sharing || null,
-              age_6_11_extra_bed: r.age_6_11_extra_bed || null,
-              age_6_11_own_room: r.age_6_11_own_room || null,
+              age_2_5_99_sharing: r.age_2_5_sharing || null,
+              age_2_5_99_extra_bed: r.age_2_5_extra_bed || null,
+              age_2_5_99_own_room: r.age_2_5_own_room || null,
+              age_6_11_99_sharing: r.age_6_11_sharing || null,
+              age_6_11_99_extra_bed: r.age_6_11_extra_bed || null,
+              age_6_11_99_own_room: r.age_6_11_own_room || null,
             })),
         room_supplements: roomSupplements
               .filter((s) => s.supplementName.trim() && s.supplementAmount.trim())
@@ -591,8 +647,10 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
               foc_quantity: focRules.focQuantity ? Number(focRules.focQuantity) : null,
               basis: focRules.basis,
               count_adults: focRules.countAdults,
-              count_child_2_5: focRules.countChild2_5,
-              count_child_6_11: focRules.countChild6_11,
+              count_child_2_5_99: focRules.countChild2_5,
+              count_child_6_11_99: focRules.countChild6_11,
+              pax_custom_text: focRules.paxCustomText,
+              guide_custom_text: focRules.guideCustomText,
             },
         skipped_sections: skippedSections,
         billing_instruction: billingText,
@@ -612,6 +670,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
       setSelectedHotelRateId(result.id);
       setSaveNotice("");
       if (addNotice) addNotice(`Rate master saved successfully (${result.id.slice(0, 8)})`, "success");
+      if (onRatesChanged) onRatesChanged();
     } catch (error) {
       const msg = friendlyErrorMessage(error, "Unable to save rates");
       setSaveNotice(msg);
@@ -731,7 +790,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       setGuideRates([]);
                       setSeasonalSurcharges([]);
                       setEvents([]);
-                      setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false });
+                      setFocRules({ enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "", countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: "" });
                       setSkippedSections([]);
                       setBillingText("");
                     }}
@@ -948,8 +1007,8 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                 <tr className="border-y border-line bg-cloud text-left text-xs font-bold uppercase tracking-wide text-steel">
                   <th className="px-4 py-3 text-left font-bold text-navy uppercase tracking-wider text-[11px] w-[180px]">Room Category</th>
                   <th className="px-2 py-3 w-[90px]">Basis</th>
-                  <th className="px-2 py-3 text-center border-x border-line" colSpan={3}>Child (2-5)</th>
-                  <th className="px-2 py-3 text-center" colSpan={3}>Child (6-11)</th>
+                  <th className="px-2 py-3 text-center border-x border-line" colSpan={3}>Child (2-5.99)</th>
+                  <th className="px-2 py-3 text-center" colSpan={3}>Child (6-11.99)</th>
                   <th className="px-2 py-3 w-[50px]"></th>
                 </tr>
                 <tr className="border-b border-line bg-cloud/50 text-[10px] font-bold uppercase tracking-wider text-steel">
@@ -1154,22 +1213,22 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
           </button>
         </Section>
 
-        {/* 6. Guide FOC Rule */}
-        <Section title="6. Guide FOC Rule">
+        {/* 6. FOC Rule */}
+        <Section title="6. FOC Rule">
           <div className="mb-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <StatusPill status={sectionStates[5].status} />
               <button
                 type="button"
-                onClick={() => toggleSkip("Guide FOC Rule")}
+                onClick={() => toggleSkip("FOC Rule")}
                 className={`flex items-center gap-1.5 rounded-app px-3 py-1.5 text-xs font-bold transition-all ${
-                  skippedSections.includes("Guide FOC Rule")
+                  skippedSections.includes("FOC Rule")
                     ? "bg-amber-50 text-amber-700 border border-amber-200"
                     : "bg-cloud text-steel hover:bg-line hover:text-navy border border-line"
                 }`}
               >
                 <SkipForward size={14} />
-                {skippedSections.includes("Guide FOC Rule") ? "Undo Skip" : "Skip Section"}
+                {skippedSections.includes("FOC Rule") ? "Undo Skip" : "Skip Section"}
               </button>
             </div>
           </div>
@@ -1180,16 +1239,13 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
           )}
           <div className="rounded-app border border-line bg-cloud p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-steel">Guide FOC by Number of Persons</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-steel">FOC by Number of Persons</p>
               <label className="flex items-center gap-2 text-sm font-bold text-navy">
                 <input type="checkbox" checked={focRules.enabled} onChange={(e) => setFocRules({ ...focRules, enabled: e.target.checked })} className="accent-navy" />
                 Enable FOC
               </label>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <Field label="Applies To">
-                <input className={controlClass} title="Applies To" value={focRules.appliesTo} onChange={(e) => setFocRules({ ...focRules, appliesTo: e.target.value })} placeholder="Guide" />
-              </Field>
               <Field label="Minimum Persons">
                 <input type="number" step="1" className={controlClass} title="Minimum Persons" value={focRules.minimumPersons} onChange={(e) => setFocRules({ ...focRules, minimumPersons: e.target.value.replace(/\D/g, '') })} placeholder="15" />
               </Field>
@@ -1238,7 +1294,7 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       checked={focRules.countChild2_5}
                       onChange={(e) => setFocRules({ ...focRules, countChild2_5: e.target.checked })}
                     />
-                    Child (2-5)
+                    Child (2-5.99)
                   </label>
                   <label className="flex items-center gap-1.5 text-sm font-bold text-navy cursor-pointer">
                     <input
@@ -1247,13 +1303,85 @@ export function HotelRateMasterScreen({ onManageRates, initialEditId, addNotice 
                       checked={focRules.countChild6_11}
                       onChange={(e) => setFocRules({ ...focRules, countChild6_11: e.target.checked })}
                     />
-                    Child (6-11)
+                    Child (6-11.99)
                   </label>
                 </div>
               </Field>
-              <Field label="Generated Rule Preview">
-                <input className={controlClass} title="Generated Rule Preview" value={previewFocText} readOnly />
-              </Field>
+
+              <div className="lg:col-span-3 border-t border-line/50 pt-4 mt-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-steel mb-3">Applies To & Rule Descriptions</p>
+                <div className="space-y-4">
+                  {/* Pax Row */}
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 bg-cloud p-3 rounded-app border border-line/30">
+                    <label className="flex items-center gap-2 text-sm font-bold text-navy cursor-pointer min-w-[120px] select-none">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-navy"
+                        checked={focRules.appliesTo.toLowerCase().includes("pax")}
+                        onChange={(e) => {
+                          const selected = focRules.appliesTo.split(",").map(x => x.trim()).filter(Boolean);
+                          const next = e.target.checked
+                            ? [...selected.filter(x => x.toLowerCase() !== "pax"), "Pax"]
+                            : selected.filter(x => x.toLowerCase() !== "pax");
+                          setFocRules({ ...focRules, appliesTo: next.join(",") });
+                        }}
+                      />
+                      Pax FOC
+                    </label>
+                    <div className="flex-1">
+                      {focRules.appliesTo.toLowerCase().includes("pax") ? (
+                        <div className="flex flex-col gap-1 w-full">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-steel">Rule Description (Pax)</label>
+                          <input
+                            className={controlClass}
+                            title="Rule Description (Pax)"
+                            value={focRules.paxCustomText}
+                            onChange={(e) => setFocRules({ ...focRules, paxCustomText: e.target.value })}
+                            placeholder={previewPaxText}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-steel italic">Check Pax FOC to customize rule description</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Guide Row */}
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 bg-cloud p-3 rounded-app border border-line/30">
+                    <label className="flex items-center gap-2 text-sm font-bold text-navy cursor-pointer min-w-[120px] select-none">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-navy"
+                        checked={focRules.appliesTo.toLowerCase().includes("guide")}
+                        onChange={(e) => {
+                          const selected = focRules.appliesTo.split(",").map(x => x.trim()).filter(Boolean);
+                          const next = e.target.checked
+                            ? [...selected.filter(x => x.toLowerCase() !== "guide"), "Guide"]
+                            : selected.filter(x => x.toLowerCase() !== "guide");
+                          setFocRules({ ...focRules, appliesTo: next.join(",") });
+                        }}
+                      />
+                      Guide FOC
+                    </label>
+                    <div className="flex-1">
+                      {focRules.appliesTo.toLowerCase().includes("guide") ? (
+                        <div className="flex flex-col gap-1 w-full">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-steel">Rule Description (Guide)</label>
+                          <input
+                            className={controlClass}
+                            title="Rule Description (Guide)"
+                            value={focRules.guideCustomText}
+                            onChange={(e) => setFocRules({ ...focRules, guideCustomText: e.target.value })}
+                            placeholder={previewGuideText}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-steel italic">Check Guide FOC to customize rule description</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Section>

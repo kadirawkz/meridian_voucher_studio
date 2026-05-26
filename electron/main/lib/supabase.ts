@@ -19,7 +19,7 @@ async function requireCurrentUserId(message: string): Promise<string> {
   return user.id;
 }
 
-async function getActiveSupabaseClient() {
+export async function getActiveSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
@@ -95,18 +95,95 @@ async function createVoucherRevision(
 
 /* ---------- Voucher CRUD ---------- */
 
+function isVoucherEqual(v1: VoucherPayload, v2: VoucherPayload): boolean {
+  const normalizeStr = (s: string | undefined | null) => s?.trim() || "";
+  const normalizeNum = (n: number | undefined | null) => n || 0;
+  const normalizeBool = (b: boolean | undefined | null) => !!b;
+
+  if (normalizeStr(v1.voucherType) !== normalizeStr(v2.voucherType)) return false;
+  if (normalizeStr(v1.tourType) !== normalizeStr(v2.tourType)) return false;
+  if (normalizeStr(v1.pageNumber) !== normalizeStr(v2.pageNumber)) return false;
+  if (normalizeStr(v1.date) !== normalizeStr(v2.date)) return false;
+  if (normalizeStr(v1.voucherTitle) !== normalizeStr(v2.voucherTitle)) return false;
+  if (normalizeStr(v1.hotelName) !== normalizeStr(v2.hotelName)) return false;
+  if (normalizeStr(v1.market) !== normalizeStr(v2.market)) return false;
+  if (normalizeStr(v1.customerName) !== normalizeStr(v2.customerName)) return false;
+  if (normalizeStr(v1.requisitionNo) !== normalizeStr(v2.requisitionNo)) return false;
+  if (normalizeStr(v1.tourNo) !== normalizeStr(v2.tourNo)) return false;
+  if (normalizeStr(v1.tourName) !== normalizeStr(v2.tourName)) return false;
+  if (normalizeStr(v1.confirmedBy) !== normalizeStr(v2.confirmedBy)) return false;
+  if (normalizeNum(v1.rateApplicable) !== normalizeNum(v2.rateApplicable)) return false;
+  if (normalizeStr(v1.ratePeriod) !== normalizeStr(v2.ratePeriod)) return false;
+  if (normalizeStr(v1.billingInstructions) !== normalizeStr(v2.billingInstructions)) return false;
+  if (normalizeStr(v1.remarks) !== normalizeStr(v2.remarks)) return false;
+  if (normalizeBool(v1.manuallyEdited) !== normalizeBool(v2.manuallyEdited)) return false;
+  if (normalizeStr(v1.rateApplicableText) !== normalizeStr(v2.rateApplicableText)) return false;
+  if (normalizeStr(v1.guideText) !== normalizeStr(v2.guideText)) return false;
+  if (normalizeStr(v1.surchargeText) !== normalizeStr(v2.surchargeText)) return false;
+  if (normalizeStr(v1.eventSupplementText) !== normalizeStr(v2.eventSupplementText)) return false;
+
+  const items1 = v1.lineItems || [];
+  const items2 = v2.lineItems || [];
+  if (items1.length !== items2.length) return false;
+
+  for (let i = 0; i < items1.length; i++) {
+    const li1 = items1[i];
+    const li2 = items2[i];
+    if (normalizeStr(li1.requiredDate) !== normalizeStr(li2.requiredDate)) return false;
+    if (normalizeStr(li1.roomCategory) !== normalizeStr(li2.roomCategory)) return false;
+    if (normalizeStr(li1.basis) !== normalizeStr(li2.basis)) return false;
+    if (normalizeNum(li1.singleRooms) !== normalizeNum(li2.singleRooms)) return false;
+    if (normalizeNum(li1.doubleRooms) !== normalizeNum(li2.doubleRooms)) return false;
+    if (normalizeNum(li1.twinRooms) !== normalizeNum(li2.twinRooms)) return false;
+    if (normalizeNum(li1.tripleRooms) !== normalizeNum(li2.tripleRooms)) return false;
+    if (normalizeNum(li1.child2_5) !== normalizeNum(li2.child2_5)) return false;
+    if (normalizeNum(li1.child6_11) !== normalizeNum(li2.child6_11)) return false;
+    if (normalizeNum(li1.child2_5Sharing) !== normalizeNum(li2.child2_5Sharing)) return false;
+    if (normalizeNum(li1.child2_5Bed) !== normalizeNum(li2.child2_5Bed)) return false;
+    if (normalizeNum(li1.child2_5OwnRoom) !== normalizeNum(li2.child2_5OwnRoom)) return false;
+    if (normalizeNum(li1.child6_11Sharing) !== normalizeNum(li2.child6_11Sharing)) return false;
+    if (normalizeNum(li1.child6_11Bed) !== normalizeNum(li2.child6_11Bed)) return false;
+    if (normalizeNum(li1.child6_11OwnRoom) !== normalizeNum(li2.child6_11OwnRoom)) return false;
+    if (normalizeNum(li1.guide) !== normalizeNum(li2.guide)) return false;
+    if (normalizeStr(li1.guideBasis) !== normalizeStr(li2.guideBasis)) return false;
+    if (normalizeStr(li1.arrivingFor) !== normalizeStr(li2.arrivingFor)) return false;
+
+    const sup1 = li1.supplementary || [];
+    const sup2 = li2.supplementary || [];
+    if (sup1.length !== sup2.length) return false;
+    const sorted1 = [...sup1].sort();
+    const sorted2 = [...sup2].sort();
+    for (let j = 0; j < sorted1.length; j++) {
+      if (normalizeStr(sorted1[j]) !== normalizeStr(sorted2[j])) return false;
+    }
+  }
+
+  return true;
+}
+
 export async function saveVoucher(voucher: VoucherPayload, statusOverride?: VoucherStatus): Promise<{ id: string; status: VoucherStatus }> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return { id: voucher.id ?? crypto.randomUUID(), status: statusOverride || "draft" };
 
   const userId = await requireCurrentUserId("Please log in before saving vouchers.");
-  let nextStatus: VoucherStatus = statusOverride || "draft";
 
-  if (voucher.id && !statusOverride) {
-    const { data: ev, error: evErr } = await supabase.from("vouchers").select("status").eq("id", voucher.id).maybeSingle();
-    if (evErr) throw new Error(`Unable to save voucher: ${evErr.message}`);
-    nextStatus = ev?.status ?? "draft";
+  // Check if voucher already exists, and return early if no actual changes are made
+  if (voucher.id) {
+    try {
+      const { data: ev } = await supabase.from("vouchers").select("status").eq("id", voucher.id).maybeSingle();
+      if (ev) {
+        const existing = await getVoucher(voucher.id);
+        if (isVoucherEqual(voucher, existing)) {
+          return { id: voucher.id, status: ev.status as VoucherStatus };
+        }
+      }
+    } catch (e) {
+      // If error or doesn't exist, proceed with standard upsert
+    }
   }
+
+  // Default to "draft" for manual saves, which resets "generated" vouchers to "draft" when edited & saved
+  const nextStatus: VoucherStatus = statusOverride || "draft";
 
   // Resolve FK IDs from names
   const hotelId = voucher.hotelId || await resolveHotelId(supabase, voucher.hotelName);
@@ -168,8 +245,15 @@ export async function saveVoucher(voucher: VoucherPayload, statusOverride?: Vouc
       double_rooms: li.doubleRooms || 0,
       twin_rooms: li.twinRooms || 0,
       triple_rooms: li.tripleRooms || 0,
-      child_2_5: li.child2_5 || 0,
-      child_6_11: li.child6_11 || 0,
+      child_2_5_99: li.child2_5 || 0,
+      child_6_11_99: li.child6_11 || 0,
+      child_2_5_99_sharing: li.child2_5Sharing || 0,
+      child_2_5_99_bed: li.child2_5Bed || 0,
+      child_2_5_99_own_room: li.child2_5OwnRoom || 0,
+      child_6_11_99_sharing: li.child6_11Sharing || 0,
+      child_6_11_99_bed: li.child6_11Bed || 0,
+      child_6_11_99_own_room: li.child6_11OwnRoom || 0,
+      supplementary: li.supplementary || [],
       guide_count: li.guide || 0,
       guide_basis: li.guideBasis || "",
       arriving_for: li.arrivingFor || "",
@@ -347,8 +431,15 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
       doubleRooms: (li.double_rooms ?? 0) as number,
       twinRooms: (li.twin_rooms ?? 0) as number,
       tripleRooms: (li.triple_rooms ?? 0) as number,
-      child2_5: (li.child_2_5 ?? 0) as number,
-      child6_11: (li.child_6_11 ?? 0) as number,
+      child2_5: (li.child_2_5_99 ?? 0) as number,
+      child6_11: (li.child_6_11_99 ?? 0) as number,
+      child2_5Sharing: (li.child_2_5_99_sharing ?? 0) as number,
+      child2_5Bed: (li.child_2_5_99_bed ?? 0) as number,
+      child2_5OwnRoom: (li.child_2_5_99_own_room ?? 0) as number,
+      child6_11Sharing: (li.child_6_11_99_sharing ?? 0) as number,
+      child6_11Bed: (li.child_6_11_99_bed ?? 0) as number,
+      child6_11OwnRoom: (li.child_6_11_99_own_room ?? 0) as number,
+      supplementary: (li.supplementary ?? []) as string[],
       guide: (li.guide_count ?? 0) as number,
       guideBasis: (li.guide_basis ?? "") as string,
       arrivingFor: (li.arriving_for ?? "") as string,
@@ -366,12 +457,25 @@ export async function listVoucherRevisions(voucherId: string): Promise<VoucherRe
     .eq("voucher_id", voucherId).order("version_number", { ascending: false });
   if (error) throw new Error(`Unable to load voucher revisions: ${error.message}`);
 
+  // Fetch unique changed_by IDs from revisions to map names
+  const uids = Array.from(new Set((data ?? []).map(r => r.changed_by).filter(Boolean)));
+  const profilesMap = new Map<string, string>();
+  if (uids.length > 0) {
+    const { data: profiles } = await supabase
+      .from("employee_profiles")
+      .select("id, employee_name")
+      .in("id", uids);
+    for (const p of (profiles ?? [])) {
+      profilesMap.set(p.id, p.employee_name);
+    }
+  }
+
   return (data as Array<Record<string, unknown>>).map((row) => ({
     id: row.id as string,
     voucherId: row.voucher_id as string,
     versionNumber: row.version_number as number,
     status: row.status as VoucherStatus,
-    changedBy: row.changed_by as string,
+    changedBy: profilesMap.get(row.changed_by as string) || (row.changed_by as string),
     snapshotSummary: row.snapshot_summary as string,
     createdAt: row.created_at as string,
   }));
