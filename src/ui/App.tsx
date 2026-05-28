@@ -32,7 +32,6 @@ export function App() {
     windowSize,
     isDraggingPreview,
     startDragPreview,
-    generated,
     documentHistory,
     voucherRevisions,
     voucherRegister,

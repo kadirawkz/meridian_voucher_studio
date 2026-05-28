@@ -1,5 +1,5 @@
 import React from "react";
-import { UseFormReturn, Controller } from "react-hook-form";
+import { UseFormReturn, Controller, FieldArrayWithId, UseFieldArrayAppend } from "react-hook-form";
 import { VoucherFormValues } from "../domain/voucherSchema";
 import { Button } from "./ui-kit/Button";
 import { Field } from "./ui-kit/Field";
@@ -32,8 +32,8 @@ interface VoucherEntryScreenProps {
   availableSupplements: { supplement_name: string; room_category: string; supplement_amount: number; per: string; }[];
   lineItems: VoucherFormValues["lineItems"];
   dailyRooms: { date: string; rooms: number; children: number; }[];
-  fields: any[];
-  append: any;
+  fields: FieldArrayWithId<VoucherFormValues, "lineItems", "id">[];
+  append: UseFieldArrayAppend<VoucherFormValues, "lineItems">;
   remove: (index: number) => void;
   manualRates: boolean;
   setManualRates: React.Dispatch<React.SetStateAction<boolean>>;

@@ -1,13 +1,13 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Select } from "./ui-kit/Inputs";
-import { Controller, Control, UseFormRegister, FieldArrayWithId } from "react-hook-form";
+import { Controller, Control, UseFormRegister, FieldArrayWithId, UseFieldArrayAppend } from "react-hook-form";
 import { SupplementaryDropdown } from "./SupplementaryDropdown";
 import { VoucherFormValues } from "../domain/voucherSchema";
 
 interface VoucherTableProps {
   fields: FieldArrayWithId<VoucherFormValues, "lineItems", "id">[];
-  append: any;
+  append: UseFieldArrayAppend<VoucherFormValues, "lineItems">;
   remove: (index: number) => void;
   register: UseFormRegister<VoucherFormValues>;
   control: Control<VoucherFormValues>;

@@ -515,7 +515,7 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
   }
 
   const results = await Promise.all(inserts);
-  for (const res of results as any[]) {
+  for (const res of results as Array<{ error?: { message: string; details?: string; hint?: string } | null }>) {
     if (res?.error) {
       throw new Error(`Failed to save rate details: ${res.error.message}\nDetails: ${res.error.details}\nHint: ${res.error.hint}`);
     }
