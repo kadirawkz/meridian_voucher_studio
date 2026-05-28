@@ -1,19 +1,20 @@
 import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Select } from "./ui-kit/Inputs";
-import { Controller } from "react-hook-form";
+import { Controller, Control, UseFormRegister, FieldArrayWithId } from "react-hook-form";
 import { SupplementaryDropdown } from "./SupplementaryDropdown";
+import { VoucherFormValues } from "../domain/voucherSchema";
 
 interface VoucherTableProps {
-  fields: unknown[];
-  append: (val: unknown) => void;
+  fields: FieldArrayWithId<VoucherFormValues, "lineItems", "id">[];
+  append: any;
   remove: (index: number) => void;
-  register: unknown;
-  control: unknown;
+  register: UseFormRegister<VoucherFormValues>;
+  control: Control<VoucherFormValues>;
   roomCategoryOptions: readonly string[];
   mealBasisOptionsState: readonly string[];
   availableSupplements: { supplement_name: string; room_category: string; supplement_amount: number; per: string; }[];
-  lineItems: unknown[];
+  lineItems: VoucherFormValues["lineItems"];
   dailyRooms: { date: string; rooms: number; children: number; }[];
   isContentComplete?: boolean;
   shakeTrigger?: number;

@@ -180,7 +180,6 @@ export function App() {
                 remove={remove}
                 manualRates={manualRates}
                 setManualRates={setManualRates}
-                generated={generated}
                 previewMode={previewMode}
                 setPreviewMode={setPreviewMode}
                 previewPos={previewPos}
@@ -242,7 +241,6 @@ export function App() {
               />
             ) : activeView === "register" ? (
               <SavedVouchersScreen
-                setActiveView={setActiveView}
                 voucherFilters={voucherFilters}
                 setVoucherFilters={setVoucherFilters}
                 refreshVoucherRegister={refreshVoucherRegister}

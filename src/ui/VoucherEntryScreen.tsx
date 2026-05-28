@@ -30,14 +30,13 @@ interface VoucherEntryScreenProps {
   roomCategoryOptions: readonly string[];
   mealBasisOptionsState: readonly string[];
   availableSupplements: { supplement_name: string; room_category: string; supplement_amount: number; per: string; }[];
-  lineItems: unknown[];
+  lineItems: VoucherFormValues["lineItems"];
   dailyRooms: { date: string; rooms: number; children: number; }[];
-  fields: unknown[];
-  append: (val: unknown) => void;
+  fields: any[];
+  append: any;
   remove: (index: number) => void;
   manualRates: boolean;
   setManualRates: React.Dispatch<React.SetStateAction<boolean>>;
-  generated: unknown;
   previewMode: "collapsed" | "thumbnail" | "expanded";
   setPreviewMode: React.Dispatch<React.SetStateAction<"collapsed" | "thumbnail" | "expanded">>;
   previewPos: { x: number; y: number };
@@ -110,7 +109,7 @@ export function VoucherEntryScreen({
   windowSize,
   isDraggingPreview,
   startDragPreview
-}: Omit<VoucherEntryScreenProps, "generated">) {
+}: VoucherEntryScreenProps) {
   const voucherType = form.watch("voucherType") || "reservation";
   const [shakeTrigger, setShakeTrigger] = React.useState(0);
 
