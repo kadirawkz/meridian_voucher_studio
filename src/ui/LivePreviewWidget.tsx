@@ -2,6 +2,27 @@ import React from "react";
 import { FileText, Minus, Maximize2 } from "lucide-react";
 import logo from "../assets/logo.png";
 
+interface LineItem {
+  requiredDate: string;
+  roomCategory: string;
+  basis: string;
+  singleRooms?: number;
+  doubleRooms?: number;
+  twinRooms?: number;
+  tripleRooms?: number;
+  child2_5?: number;
+  child2_5Sharing?: number;
+  child2_5Bed?: number;
+  child2_5OwnRoom?: number;
+  child6_11?: number;
+  child6_11Sharing?: number;
+  child6_11Bed?: number;
+  child6_11OwnRoom?: number;
+  guide?: number;
+  guideBasis?: string;
+  arrivingFor?: string;
+}
+
 interface LivePreviewWidgetProps {
   previewMode: "collapsed" | "thumbnail" | "expanded";
   setPreviewMode: React.Dispatch<React.SetStateAction<"collapsed" | "thumbnail" | "expanded">>;
@@ -17,7 +38,7 @@ interface LivePreviewWidgetProps {
   tourNo: string;
   tourName: string;
   customerName: string;
-  lineItems: any[];
+  lineItems: LineItem[];
   confirmedBy: string;
   rateApplicableText: string;
   remarks: string;
@@ -48,8 +69,19 @@ export function LivePreviewWidget({
   employeeName,
   employeeEmail
 }: LivePreviewWidgetProps) {
-  const targetWidth = previewMode === "expanded" ? 700 : previewMode === "collapsed" ? 180 : 308;
-  const targetHeight = previewMode === "expanded" ? 968 : previewMode === "collapsed" ? 32 : 448;
+  const baseWidth = 700;
+  const baseHeight = 968;
+
+  let fitScale = 1;
+  if (previewMode === "expanded") {
+    const margin = 24;
+    const maxW = windowSize.width - margin;
+    const maxH = windowSize.height - margin - 40;
+    fitScale = Math.min(1, maxW / baseWidth, maxH / baseHeight);
+  }
+
+  const targetWidth = previewMode === "expanded" ? Math.round(baseWidth * fitScale) : previewMode === "collapsed" ? 180 : 270;
+  const targetHeight = previewMode === "expanded" ? Math.round(baseHeight * fitScale) : previewMode === "collapsed" ? 32 : 400;
   const safeX = Math.max(8, Math.min(previewPos.x, windowSize.width - targetWidth - 8));
   const safeY = Math.max(48, Math.min(previewPos.y, windowSize.height - targetHeight - 8));
 
@@ -99,19 +131,21 @@ export function LivePreviewWidget({
       </div>
 
       <div
-        className="flex-1 bg-cloud overflow-hidden relative"
+        className="flex-1 bg-white overflow-hidden relative"
         onClick={() => setPreviewMode(prev => prev === "thumbnail" ? "expanded" : "thumbnail")}
       >
         <div
-          className="origin-top-left transition-transform duration-300 ease-out absolute top-6 left-6"
+          className="origin-top-left transition-transform duration-300 ease-out absolute"
           style={{
-            transform: `scale(${previewMode === "expanded" ? 1 : 0.4})`,
+            top: previewMode === "expanded" ? `${Math.round(8 * fitScale)}px` : '8px',
+            left: previewMode === "expanded" ? `${Math.round(24 * fitScale)}px` : '10px',
+            transform: `scale(${previewMode === "expanded" ? fitScale : 0.383})`,
             width: '652px',
             height: '920px',
             cursor: previewMode === "thumbnail" ? 'zoom-in' : 'zoom-out'
           }}
         >
-          <div className="w-full h-full p-10 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800" style={{ backgroundColor: "#ffffff" }}>
+          <div className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800" style={{ backgroundColor: "#ffffff" }}>
             {/* Header Section */}
             <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
               <div className="flex gap-4">

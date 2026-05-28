@@ -20,6 +20,7 @@ interface AppSettings {
   toursFolderRoot?: string;
   exportDirectory?: string;
   theme?: "light" | "dark" | "system";
+  activeTemplateName?: string;
 }
 
 function getSettingsPath(): string {

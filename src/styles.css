@@ -77,6 +77,9 @@
   .app-button-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-app bg-navy px-4 py-2 text-sm font-bold text-white shadow-panel transition-colors hover:bg-opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
   }
+  .dark .app-button-primary {
+    color: var(--color-bg);
+  }
 
   .app-button-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-app border border-line bg-surface px-4 py-2 text-sm font-bold text-ink shadow-panel transition-colors hover:border-steel disabled:cursor-not-allowed disabled:opacity-60;
@@ -126,12 +129,29 @@
   }
 }
 
+/* ============================================================
+   Dark-mode contrast fix: bg-navy buttons need dark text
+   Must live OUTSIDE @layer so it wins over Tailwind utilities
+   ============================================================ */
+.dark .bg-navy,
+.dark [class*="bg-navy"] {
+  /* keep bg as-is */
+}
+
+/* Any element with bg-navy that also has text-white in dark mode
+   gets dark text so it's readable on the light navy bg */
+.dark .bg-navy.text-white,
+.dark .bg-navy.text-white *,
+.dark .bg-navy.text-white:hover {
+  color: var(--color-bg) !important;
+}
+
 :root {
   --color-bg: #f6f8fb;
   --color-surface: #ffffff;
   --color-ink: #172033;
   --color-navy: #12345a;
-  --color-steel: #4f6078;
+  --color-steel: #334155;
   --color-cloud: #f6f8fb;
   --color-line: #d8dee8;
   --color-success: #0f7b55;
@@ -154,8 +174,8 @@
   --color-bg: #090d16;
   --color-surface: #131926;
   --color-ink: #f3f4f6;
-  --color-navy: #94a3b8;
-  --color-steel: #9ca3af;
+  --color-navy: #e2e8f0;
+  --color-steel: #cbd5e1;
   --color-cloud: #1c2537;
   --color-line: #25354e;
   --color-success: #34d399;
@@ -254,6 +274,29 @@ textarea:focus {
   background: var(--scrollbar-thumb-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+.dropdown-scrollbar {
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+.dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Explicit scrollbar states to bypass Chrome pseudo-element repaint bugs */
@@ -410,10 +453,9 @@ button, [role="button"], .drag {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #000000;
+  background: var(--color-bg);
 }
 
-/* (rest of the file remains similar but ensures flex compatibility) */
 .app-loading-card {
   display: flex;
   flex-direction: column;
@@ -421,11 +463,9 @@ button, [role="button"], .drag {
   gap: 16px;
   padding: 48px 56px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.06);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
 }
 
 .app-loading-logo {
@@ -435,16 +475,16 @@ button, [role="button"], .drag {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: #1a1a1a;
-  color: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+  background: var(--color-cloud);
+  color: var(--color-navy);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .app-loading-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: #ffffff;
+  border: 3px solid var(--color-line);
+  border-top-color: var(--color-navy);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -452,7 +492,7 @@ button, [role="button"], .drag {
 .app-loading-text {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-ink);
   margin: 0;
   letter-spacing: 0.02em;
 }
@@ -460,7 +500,7 @@ button, [role="button"], .drag {
 .app-loading-subtext {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-steel);
   margin: 0;
 }
 
@@ -613,6 +653,39 @@ button, [role="button"], .drag {
   text-overflow: ellipsis;
   flex: 1;
   text-align: left;
+}
+
+.tour-tree-hover-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+
+.tour-tree-item:hover .tour-tree-hover-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tour-tree-hover-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-steel);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.tour-tree-hover-btn:hover {
+  background: var(--color-line);
+  color: var(--color-navy);
 }
 
 .tour-tree-indent-guide {
@@ -770,7 +843,7 @@ button, [role="button"], .drag {
 .tour-explorer-migrate-btn {
   @apply flex items-center justify-center gap-2 w-full py-2 rounded-md font-bold text-xs transition-all;
   background: var(--color-navy);
-  color: white;
+  color: var(--color-bg);
   border: none;
 }
 
@@ -785,6 +858,8 @@ button, [role="button"], .drag {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+
 
 /* Premium Reference item row transitions */
 .reference-row-transition {
@@ -803,4 +878,42 @@ button, [role="button"], .drag {
   transform: translateX(16px) scale(0.95) !important;
   background-color: rgba(34, 197, 94, 0.08) !important;
 }
+
+/* --- High-Productivity Sleek Global Scrollbars --- */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-steel);
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* Shake animation for incomplete pills */
+@keyframes shake-pill {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.shake-pill-active {
+  animation: shake-pill 0.5s ease-in-out;
+}
+
 

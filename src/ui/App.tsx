@@ -52,6 +52,7 @@ export function App() {
     showReportIssue,
     setShowReportIssue,
     accountProfile,
+    setAccountProfile,
     authState,
     isCheckingAuth,
     hotelOptions,
@@ -105,7 +106,8 @@ export function App() {
     handleRevealFile,
     handleClearForm,
     setRatesTrigger,
-    setActiveTheme
+    setActiveTheme,
+    activeTheme
   } = useAppBridge();
 
   if (isCheckingAuth) {
@@ -227,13 +229,16 @@ export function App() {
               />
             ) : activeView === "settings" ? (
               <SettingsScreen 
+                activeTheme={activeTheme}
                 onThemeChange={setActiveTheme} 
                 onReferencesChanged={() => setRatesTrigger((prev) => prev + 1)}
+                accountProfile={accountProfile}
+                onProfileUpdated={setAccountProfile}
               />
             ) : activeView === "profile" ? (
               <ProfileScreen
                 accountProfile={accountProfile}
-                onProfileUpdated={handleClearForm} // Trigger reload of profile
+                onProfileUpdated={setAccountProfile}
               />
             ) : activeView === "register" ? (
               <SavedVouchersScreen

@@ -4,14 +4,15 @@ import type {
   VoucherRevisionRecord,
   VoucherRecord,
   VoucherListFilters,
-  VoucherStatus
+  VoucherStatus,
+  VoucherPayload
 } from "../../../electron/shared/types";
 import { friendlyErrorMessage } from "../../utils/errors";
 
 interface UseVoucherRegisterProps {
   isAuthenticated: boolean;
   addNotice: (message: string, type?: "info" | "success" | "error") => void;
-  onVoucherLoaded: (voucher: any) => void;
+  onVoucherLoaded: (voucher: VoucherPayload) => void;
 }
 
 export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded }: UseVoucherRegisterProps) {

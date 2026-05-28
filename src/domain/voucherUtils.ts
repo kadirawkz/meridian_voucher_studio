@@ -20,9 +20,9 @@ export function isFormVoucherEqual(
   v2: Partial<VoucherFormValues> | undefined | null
 ): boolean {
   if (!v1 || !v2) return false;
-  const normalizeStr = (s: any) => (typeof s === "string" ? s.trim() : s || "");
-  const normalizeNum = (n: any) => Number(n) || 0;
-  const normalizeBool = (b: any) => !!b;
+  const normalizeStr = (s: unknown) => (typeof s === "string" ? s.trim() : (s as string) || "");
+  const normalizeNum = (n: unknown) => Number(n) || 0;
+  const normalizeBool = (b: unknown) => !!b;
 
   if (normalizeStr(v1.voucherType) !== normalizeStr(v2.voucherType)) return false;
   if (normalizeStr(v1.tourType) !== normalizeStr(v2.tourType)) return false;

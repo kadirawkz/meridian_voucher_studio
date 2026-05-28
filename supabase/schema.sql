@@ -504,3 +504,38 @@ create trigger on_auth_user_created after insert on auth.users for each row exec
 insert into public.employee_profiles (id, employee_name, email, role, is_active)
 select u.id, coalesce(u.raw_user_meta_data->>'employeeName', split_part(u.email, '@', 1)), u.email, 'employee', true
 from auth.users u left join public.employee_profiles p on p.id = u.id where p.id is null;
+
+-- 7. VOUCHER TEMPLATES (stored globally in database for company-wide consistency)
+create table if not exists public.voucher_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  file_data text not null, -- Base64 encoded docx file
+  created_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Enable RLS
+alter table public.voucher_templates enable row level security;
+
+-- Policies
+drop policy if exists "Anyone can read voucher templates" on public.voucher_templates;
+drop policy if exists "Employees can manage voucher templates" on public.voucher_templates;
+drop policy if exists "Admins can manage voucher templates" on public.voucher_templates;
+
+create policy "Anyone can read voucher templates" on public.voucher_templates for select to authenticated using (true);
+create policy "Admins can manage voucher templates" on public.voucher_templates for all to authenticated
+  using (public.current_employee_is_active() and public.current_employee_role() in ('manager', 'admin'))
+  with check (public.current_employee_is_active() and public.current_employee_role() in ('manager', 'admin'));
+
+-- 8. DATA API EXPLICIT GRANTS (Supabase May 30, 2026 Security Mandate)
+-- Ensure API access roles have appropriate usage on the public schema and tables/sequences/functions.
+grant usage on schema public to postgres, anon, authenticated, service_role;
+
+grant all privileges on all tables in schema public to postgres, anon, authenticated, service_role;
+grant all privileges on all sequences in schema public to postgres, anon, authenticated, service_role;
+grant all privileges on all functions in schema public to postgres, anon, authenticated, service_role;
+
+alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to postgres, anon, authenticated, service_role;

@@ -2,8 +2,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { URLSearchParams } from "node:url";
 import fs from "node:fs";
+import { Buffer } from "node:buffer";
 import dotenv from "dotenv";
-import { app, BrowserWindow, ipcMain, shell, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, shell, dialog, nativeTheme } from "electron";
 import isDev from "electron-is-dev";
 import { createNativeMenu } from "./menu.js";
 import { createVoucherServer } from "./server.js";
@@ -12,6 +13,8 @@ import type { AuthCredentials } from "../shared/types.js";
 import type { DocumentFormat, HotelRateRecord, VoucherPayload } from "../shared/types.js";
 import { selectToursFolder, getToursFolder, getToursFolderTree, revealInExplorer, migrateVouchersToTours } from "./lib/toursFolder.js";
 import { getAllSettings, updateSettings } from "./config.js";
+import { validateTemplate } from "./lib/documentGenerator.js";
+import { getVoucherTemplate, upsertVoucherTemplate, listVoucherTemplates, deleteVoucherTemplate } from "./lib/supabase.js";
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl = "";
@@ -79,13 +82,22 @@ loadEnvironmentConfig();
 console.log("[electron] active SUPABASE_URL=", process.env.SUPABASE_URL || "<not set>");
 
 async function createWindow(): Promise<void> {
+  const settings = getAllSettings();
+  let isDarkTheme = false;
+  if (settings.theme === "dark") {
+    isDarkTheme = true;
+  } else if (settings.theme === "system" || !settings.theme) {
+    isDarkTheme = nativeTheme.shouldUseDarkColors;
+  }
+  const initialBgColor = isDarkTheme ? "#090d16" : "#f6f8fb";
+
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 940,
     minWidth: 900,
     minHeight: 640,
     title: "",
-    backgroundColor: "#f6f8fb",
+    backgroundColor: initialBgColor,
     show: false,
     titleBarStyle: 'hidden',
     icon: path.join(__dirname, "../../build-resources/icon.png"),
@@ -536,6 +548,52 @@ app.whenReady().then(async () => {
       properties: ["openDirectory"]
     });
     return result.canceled ? null : result.filePaths[0] || null;
+  });
+
+  ipcMain.handle("dialog:select-file", async (_event, options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: options.title || "Select File",
+      defaultPath: options.defaultPath || app.getPath("home"),
+      properties: ["openFile"],
+      filters: options.filters
+    });
+    return result.canceled ? null : result.filePaths[0] || null;
+  });
+
+  ipcMain.handle("template-db:list", async () => {
+    return listVoucherTemplates();
+  });
+
+  ipcMain.handle("template-db:upload", async (_event, { name, filePath }: { name: string; filePath: string }) => {
+    await validateTemplate(filePath);
+    const content = await fs.promises.readFile(filePath);
+    const base64 = content.toString("base64");
+    await upsertVoucherTemplate(name, base64);
+  });
+
+  ipcMain.handle("template-db:download", async (_event, { name }: { name: string }) => {
+    const template = await getVoucherTemplate(name);
+    if (!template?.file_data) {
+      throw new Error(`Template '${name}' not found or empty.`);
+    }
+
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      title: "Save Template",
+      defaultPath: path.join(app.getPath("downloads"), `${name}.docx`),
+      filters: [{ name: "Word Documents", extensions: ["docx"] }]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return false;
+    }
+
+    const buffer = Buffer.from(template.file_data, "base64");
+    await fs.promises.writeFile(result.filePath, buffer);
+    return true;
+  });
+
+  ipcMain.handle("template-db:delete", async (_event, { name }: { name: string }) => {
+    await deleteVoucherTemplate(name);
   });
 
   await createWindow();

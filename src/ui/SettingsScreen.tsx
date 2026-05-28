@@ -1,25 +1,43 @@
 import React, { useEffect, useState } from "react";
-import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor, Trash2, Plus, AlertTriangle, Archive, RotateCw } from "lucide-react";
-import type { TourTypeRef, MarketRef, RoomCategoryRef, CustomerRef, MealBasisRef, CurrencyRef } from "../../electron/shared/types";
+import { FolderOpen, Save, RotateCcw, Sun, Moon, Monitor, Trash2, Plus, AlertTriangle, Archive, RotateCw, Upload, Download, FileText } from "lucide-react";
+import type { TourTypeRef, MarketRef, RoomCategoryRef, CustomerRef, MealBasisRef, CurrencyRef, VoucherTemplateInfo, AccountProfile } from "../../electron/shared/types";
 
 interface AppSettings {
   toursFolderRoot?: string;
   exportDirectory?: string;
   theme?: "light" | "dark" | "system";
+  activeTemplateName?: string;
 }
 
 interface SettingsScreenProps {
+  activeTheme?: "light" | "dark" | "system";
   onThemeChange?: (theme: "light" | "dark" | "system") => void;
   onReferencesChanged?: () => void;
+  accountProfile: AccountProfile | null;
+  onProfileUpdated: (profile: AccountProfile) => void;
 }
 
-export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsScreenProps) {
-  const [settings, setSettings] = useState<AppSettings>({});
-  const [isLoading, setIsLoading] = useState(true);
+export function SettingsScreen({ 
+  activeTheme = "system", 
+  onThemeChange, 
+  onReferencesChanged,
+  accountProfile: propAccountProfile,
+  onProfileUpdated
+}: SettingsScreenProps) {
+  const [settings, setSettings] = useState<AppSettings>({ theme: activeTheme });
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(propAccountProfile);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  const [activeMainTab, setActiveMainTab] = useState<"system" | "references">("system");
+  useEffect(() => {
+    if (propAccountProfile) {
+      setAccountProfile(propAccountProfile);
+    }
+  }, [propAccountProfile]);
+
+  const isAdminOrManager = accountProfile?.role === "admin" || accountProfile?.role === "manager";
+
+  const [activeMainTab, setActiveMainTab] = useState<"system" | "templates" | "references">("system");
   const [activeSubTab, setActiveSubTab] = useState<"tour-types" | "markets" | "customers" | "room-categories" | "meal-basis" | "currencies">("tour-types");
 
   // Reference States
@@ -43,21 +61,113 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
   const [deletingIds, setDeletingIds] = useState<string[]>([]);
   const [restoringIds, setRestoringIds] = useState<string[]>([]);
 
+  // Database Voucher Templates states
+  const [dbTemplates, setDbTemplates] = useState<VoucherTemplateInfo[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [uploadingTemplate, setUploadingTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+
   useEffect(() => {
-    loadSettings();
+    loadSettingsAndProfile();
     loadAllReferences();
+    loadDbTemplates();
   }, []);
 
-  async function loadSettings() {
+  useEffect(() => {
+    setSettings((prev) => ({ ...prev, theme: activeTheme }));
+  }, [activeTheme]);
+
+  async function loadSettingsAndProfile() {
     try {
-      setIsLoading(true);
-      const result = await window.meridian.getSettings();
-      setSettings(result || {});
+      const [settingsResult, profileResult] = await Promise.all([
+        window.meridian.getSettings() as Promise<AppSettings>,
+        window.meridian.getAccountProfile() as Promise<AccountProfile>
+      ]);
+      setSettings({
+        ...settingsResult,
+        theme: activeTheme
+      });
+      setAccountProfile(profileResult);
+      if (onProfileUpdated) {
+        onProfileUpdated(profileResult);
+      }
     } catch (error) {
-      console.error("Failed to load settings:", error);
+      console.error("Failed to load settings or profile:", error);
       setFeedback("Failed to load settings");
+    }
+  }
+
+  async function loadDbTemplates() {
+    try {
+      setIsLoadingTemplates(true);
+      const list = await window.meridian.listDatabaseTemplates();
+      setDbTemplates(list || []);
+    } catch (error) {
+      console.error("Failed to load templates:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingTemplates(false);
+    }
+  }
+
+  async function handleUploadTemplate() {
+    if (!newTemplateName.trim()) {
+      setFeedback("Please enter a name for the template");
+      return;
+    }
+
+    try {
+      const filePath = await window.meridian.selectFile({
+        title: "Select Voucher Template (.docx)",
+        filters: [{ name: "Word Documents", extensions: ["docx"] }]
+      });
+
+      if (!filePath) return;
+
+      setUploadingTemplate(true);
+      await window.meridian.uploadDatabaseTemplate(newTemplateName.trim(), filePath);
+      setNewTemplateName("");
+      setFeedback("Template uploaded successfully to database");
+      setTimeout(() => setFeedback(""), 3000);
+      await loadDbTemplates();
+    } catch (error: unknown) {
+      console.error("Failed to upload template:", error);
+      const errMsg = error instanceof Error ? error.message : "Failed to upload template";
+      setFeedback(errMsg);
+    } finally {
+      setUploadingTemplate(false);
+    }
+  }
+
+  async function handleDownloadTemplate(name: string) {
+    try {
+      const success = await window.meridian.downloadDatabaseTemplate(name);
+      if (success) {
+        setFeedback("Template downloaded successfully");
+        setTimeout(() => setFeedback(""), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to download template:", error);
+      setFeedback("Failed to download template");
+    }
+  }
+
+  async function handleDeleteTemplate(name: string) {
+    try {
+      await window.meridian.deleteDatabaseTemplate(name);
+      setFeedback("Template deleted successfully");
+      setTimeout(() => setFeedback(""), 3000);
+      
+      // If the deleted template was the active one, clear it
+      if (settings.activeTemplateName === name) {
+        const nextSettings = { ...settings, activeTemplateName: "" };
+        setSettings(nextSettings);
+        await window.meridian.saveSettings(nextSettings);
+      }
+
+      await loadDbTemplates();
+    } catch (error) {
+      console.error("Failed to delete template:", error);
+      setFeedback("Failed to delete template");
     }
   }
 
@@ -265,13 +375,7 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-steel">Loading settings...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
@@ -305,6 +409,19 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
         >
           Reference Lists
         </button>
+        {isAdminOrManager && (
+          <button
+            type="button"
+            onClick={() => setActiveMainTab("templates")}
+            className={`pb-3 font-semibold text-sm transition-all border-b-2 -mb-[2px] ${
+              activeMainTab === "templates"
+                ? "border-navy text-navy font-bold"
+                : "border-transparent text-steel hover:text-navy"
+            }`}
+          >
+            Voucher Templates
+          </button>
+        )}
       </div>
 
       {feedback && (
@@ -317,7 +434,7 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
         </div>
       )}
 
-      {activeMainTab === "system" ? (
+      {activeMainTab === "system" && (
         <div className="space-y-6">
           {/* Workspace Settings */}
           <section className="app-panel app-panel-body-lg">
@@ -382,16 +499,21 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
                     const Icon = item.icon;
                     const isSelected = (settings.theme || "system") === item.value;
                     return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() => {
-                          const nextSettings = { ...settings, theme: item.value as "light" | "dark" | "system" };
-                          setSettings(nextSettings);
-                          if (onThemeChange) {
-                            onThemeChange(item.value as "light" | "dark" | "system");
-                          }
-                        }}
+                       <button
+                         key={item.value}
+                         type="button"
+                         onClick={async () => {
+                           const nextSettings = { ...settings, theme: item.value as "light" | "dark" | "system" };
+                           setSettings(nextSettings);
+                           if (onThemeChange) {
+                             onThemeChange(item.value as "light" | "dark" | "system");
+                           }
+                           try {
+                             await window.meridian.saveSettings(nextSettings as Record<string, unknown>);
+                           } catch (err) {
+                             console.error("Failed to auto-save theme settings:", err);
+                           }
+                         }}
                         className={`flex flex-col items-start rounded-app border p-4 text-left transition-all ${
                           isSelected 
                             ? "border-navy bg-[var(--color-accent-bg)] text-navy shadow-sm" 
@@ -403,7 +525,7 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
                           <span>{item.label}</span>
                         </div>
                         <p className="mt-2 text-xs text-steel leading-relaxed">{item.desc}</p>
-                      </button>
+                       </button>
                     );
                   })}
                 </div>
@@ -415,7 +537,7 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
           <div className="flex flex-wrap gap-3 justify-end">
             <button
               type="button"
-              onClick={loadSettings}
+              onClick={loadSettingsAndProfile}
               className="app-button-secondary w-40"
             >
               <RotateCcw size={16} /> Reset
@@ -430,7 +552,163 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeMainTab === "templates" && isAdminOrManager && (
+        <div className="space-y-6">
+          {/* Voucher Templates Section */}
+          <section className="app-panel app-panel-body-lg">
+            <h3 className="mb-5 app-section-title">Voucher Templates</h3>
+            <div className="space-y-6">
+              
+              {/* Active Template Selector */}
+              <div>
+                <label className="block space-y-2 mb-3">
+                  <span className="app-label">Active Company Template</span>
+                  <p className="text-xs text-steel">Select the voucher template that all employees will use for document generation</p>
+                </label>
+                <select
+                  value={settings.activeTemplateName || ""}
+                  disabled={!isAdminOrManager}
+                  onChange={(e) => setSettings({ ...settings, activeTemplateName: e.target.value })}
+                  className="w-full md:w-1/2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-semibold text-navy outline-none focus:border-navy disabled:opacity-75 disabled:cursor-not-allowed"
+                >
+                  <option value="">Built-in Default Template (voucher-template.docx)</option>
+                  {dbTemplates.map((t) => (
+                    <option key={t.id} value={t.name}>
+                      {t.name} (Uploaded {t.created_at ? new Date(t.created_at).toLocaleDateString() : "N/A"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {isAdminOrManager && (
+                <>
+                  <hr className="border-line" />
+
+                  {/* Upload Form */}
+                  <div>
+                    <h4 className="font-bold text-xs uppercase text-steel tracking-wider mb-3">Upload Custom Template</h4>
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                      <div className="flex-1 w-full">
+                        <label className="block mb-1.5 text-xs font-bold text-navy">Template Name</label>
+                        <input
+                          type="text"
+                          value={newTemplateName}
+                          onChange={(e) => setNewTemplateName(e.target.value)}
+                          placeholder="e.g. Standard Tour Template, Winter Special"
+                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleUploadTemplate}
+                        disabled={uploadingTemplate || !newTemplateName.trim()}
+                        className="app-button-secondary py-1.5 px-4 text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap w-full sm:w-auto justify-center"
+                      >
+                        <Upload size={16} />
+                        {uploadingTemplate ? "Uploading..." : "Select File & Upload"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Database Templates Table */}
+              <div>
+                <h4 className="font-bold text-xs uppercase text-steel tracking-wider mb-3">Templates in Database</h4>
+                <div className="overflow-hidden border border-line rounded-app bg-surface shadow-sm">
+                  <table className="w-full border-collapse text-left text-sm text-navy">
+                    <thead>
+                      <tr className="bg-cloud border-b border-line text-xs font-bold uppercase tracking-wider text-steel">
+                        <th className="px-4 py-2.5">Template Name</th>
+                        <th className="px-4 py-2.5">Last Updated</th>
+                        <th className="px-4 py-2.5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {isLoadingTemplates ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-8 text-center text-steel italic">
+                            Loading templates...
+                          </td>
+                        </tr>
+                      ) : dbTemplates.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-8 text-center text-steel italic">
+                            No custom templates uploaded. Using built-in default template.
+                          </td>
+                        </tr>
+                      ) : (
+                        dbTemplates.map((t) => (
+                          <tr key={t.id} className="hover:bg-cloud/40">
+                            <td className="px-4 py-3 font-semibold flex items-center gap-2">
+                              <FileText size={16} className="text-steel" />
+                              <span>{t.name}</span>
+                              {settings.activeTemplateName === t.name && (
+                                <span className="rounded-full bg-green-500/10 text-green-600 px-2 py-0.5 text-xs font-bold">
+                                  Active
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-steel">
+                              {t.updated_at || t.created_at ? new Date(t.updated_at || t.created_at || "").toLocaleString() : "N/A"}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadTemplate(t.name)}
+                                  title="Download Template"
+                                  className="text-steel hover:text-navy rounded p-1 hover:bg-cloud transition-colors"
+                                >
+                                  <Download size={16} />
+                                </button>
+                                {isAdminOrManager && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTemplate(t.name)}
+                                    title="Delete Template"
+                                    className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 justify-end">
+            <button
+              type="button"
+              onClick={loadSettingsAndProfile}
+              className="app-button-secondary w-40"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+            <button
+              type="button"
+              onClick={saveSettings}
+              disabled={isSaving}
+              className="app-button-primary w-40"
+            >
+              <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeMainTab === "references" && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Side Subtabs Navigation */}
           <div className="md:col-span-1 flex flex-col gap-1 border-r border-line pr-4">
@@ -446,7 +724,7 @@ export function SettingsScreen({ onThemeChange, onReferencesChanged }: SettingsS
                 key={subTab.id}
                 type="button"
                 onClick={() => {
-                  setActiveSubTab(subTab.id as any);
+                  setActiveSubTab(subTab.id as "tour-types" | "markets" | "customers" | "room-categories" | "meal-basis" | "currencies");
                   setNewCode("");
                   setNewName("");
                   setShowArchived(false);

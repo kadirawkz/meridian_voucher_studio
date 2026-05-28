@@ -167,23 +167,23 @@ export async function saveVoucher(voucher: VoucherPayload, statusOverride?: Vouc
 
   const userId = await requireCurrentUserId("Please log in before saving vouchers.");
 
+  // Default to "draft" for manual saves, which resets "generated" vouchers to "draft" when edited & saved
+  const nextStatus: VoucherStatus = statusOverride || "draft";
+
   // Check if voucher already exists, and return early if no actual changes are made
   if (voucher.id) {
     try {
       const { data: ev } = await supabase.from("vouchers").select("status").eq("id", voucher.id).maybeSingle();
       if (ev) {
         const existing = await getVoucher(voucher.id);
-        if (isVoucherEqual(voucher, existing)) {
+        if (ev.status === nextStatus && isVoucherEqual(voucher, existing)) {
           return { id: voucher.id, status: ev.status as VoucherStatus };
         }
       }
-    } catch (e) {
+    } catch {
       // If error or doesn't exist, proceed with standard upsert
     }
   }
-
-  // Default to "draft" for manual saves, which resets "generated" vouchers to "draft" when edited & saved
-  const nextStatus: VoucherStatus = statusOverride || "draft";
 
   // Resolve FK IDs from names
   const hotelId = voucher.hotelId || await resolveHotelId(supabase, voucher.hotelName);
@@ -567,3 +567,78 @@ export async function searchWorkspace(query: string): Promise<WorkspaceSearchRes
 
   return { vouchers, documents };
 }
+
+export async function getVoucherTemplate(name: string): Promise<{ name: string; file_data: string } | null> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("voucher_templates")
+    .select("name, file_data")
+    .eq("name", name)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.");
+    }
+    throw error;
+  }
+
+  return data;
+}
+
+export async function upsertVoucherTemplate(name: string, fileData: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const userId = await requireCurrentUserId("Please log in first.");
+
+  const { error } = await supabase
+    .from("voucher_templates")
+    .upsert({ name, file_data: fileData, created_by: userId }, { onConflict: "name" });
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.");
+    }
+    throw error;
+  }
+}
+
+export async function listVoucherTemplates(): Promise<Array<{ id: string; name: string; created_at: string; updated_at: string }>> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("voucher_templates")
+    .select("id, name, created_at, updated_at")
+    .order("name");
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.");
+    }
+    throw error;
+  }
+
+  return data || [];
+}
+
+export async function deleteVoucherTemplate(name: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { error } = await supabase
+    .from("voucher_templates")
+    .delete()
+    .eq("name", name);
+
+  if (error) {
+    if (error.code === "42P01") {
+      throw new Error("Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.");
+    }
+    throw error;
+  }
+}
+

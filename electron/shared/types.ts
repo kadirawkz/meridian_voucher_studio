@@ -324,6 +324,20 @@ export interface MigrationResult {
   errors: string[];
 }
 
+export interface AppSettings {
+  toursFolderRoot?: string;
+  exportDirectory?: string;
+  theme?: "light" | "dark" | "system";
+  activeTemplateName?: string;
+}
+
+export interface VoucherTemplateInfo {
+  id?: string;
+  name: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AppApi {
   signIn: (credentials: AuthCredentials) => Promise<AuthState>;
   signUp: (credentials: AuthCredentials) => Promise<AuthState>;
@@ -394,4 +408,10 @@ export interface AppApi {
   getSettings: () => Promise<Record<string, unknown>>;
   saveSettings: (settings: Record<string, unknown>) => Promise<Record<string, unknown>>;
   selectFolder: (options: { title?: string; defaultPath?: string }) => Promise<string | null>;
+  selectFile: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<string | null>;
+  listDatabaseTemplates: () => Promise<VoucherTemplateInfo[]>;
+  uploadDatabaseTemplate: (name: string, filePath: string) => Promise<void>;
+  downloadDatabaseTemplate: (name: string) => Promise<boolean>;
+  deleteDatabaseTemplate: (name: string) => Promise<void>;
 }
+

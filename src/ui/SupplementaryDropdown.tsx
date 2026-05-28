@@ -43,7 +43,7 @@ export function SupplementaryDropdown({
         <ChevronDown size={16} className="app-select-chevron" />
       </div>
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-line shadow-lg rounded-app z-[100] max-h-56 overflow-y-auto thin-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-line shadow-lg rounded-app z-[100] max-h-56 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150">
           {options.length === 0 ? (
             <div className="p-3 text-xs text-steel text-center select-none font-medium">No supplements</div>
           ) : (

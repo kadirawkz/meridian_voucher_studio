@@ -440,7 +440,7 @@ export async function saveHotelRates(record: HotelRateRecord): Promise<{ id: str
   ]);
 
   // 3. Insert children with FK IDs
-  const inserts: PromiseLike<any>[] = [];
+  const inserts: PromiseLike<unknown>[] = [];
 
   if (record.room_rates?.length) {
     inserts.push(supabase.from("hotel_rate_room_prices").insert(
@@ -665,10 +665,11 @@ function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecor
       ];
       const activeC25 = c25Types.filter(t => t.count > 0);
       if (activeC25.length > 0) {
-        for (const type of activeC25) {
+        const cParts = activeC25.map(type => {
           const fv = formatVal(type.val) || "FOC";
-          rowLines.push(`Child (2-5.99 Y) ${type.label} ${fv}  |`);
-        }
+          return `${type.label} ${fv}`;
+        });
+        rowLines.push(`Child (2-5.99 Y) ${cParts.join(" / ")}  |`);
       } else if (Number(li.child2_5 || 0) > 0) {
         const parts = c25Types.map(t => formatVal(t.val) ? `${t.label} ${formatVal(t.val)}` : null).filter(Boolean);
         if (parts.length > 0) {
@@ -684,10 +685,11 @@ function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecor
       ];
       const activeC611 = c611Types.filter(t => t.count > 0);
       if (activeC611.length > 0) {
-        for (const type of activeC611) {
+        const cParts = activeC611.map(type => {
           const fv = formatVal(type.val) || "FOC";
-          rowLines.push(`Child (6-11.99 Y) ${type.label} ${fv}  |`);
-        }
+          return `${type.label} ${fv}`;
+        });
+        rowLines.push(`Child (6-11.99 Y) ${cParts.join(" / ")}  |`);
       } else if (Number(li.child6_11 || 0) > 0) {
         const parts = c611Types.map(t => formatVal(t.val) ? `${t.label} ${formatVal(t.val)}` : null).filter(Boolean);
         if (parts.length > 0) {
@@ -704,9 +706,15 @@ function buildRateApplicableText(voucher: VoucherPayload, record: HotelRateRecor
                  s.supplement_name.toLowerCase() === suppName.toLowerCase()
         );
         if (matchSupp) {
-          rowLines.push(`${matchSupp.supplement_name} supplement ${currency} ${matchSupp.supplement_amount} ${matchSupp.per}  |`);
+          const name = matchSupp.supplement_name.toLowerCase().includes("supplement")
+            ? matchSupp.supplement_name
+            : `${matchSupp.supplement_name} supplement`;
+          rowLines.push(`${name} ${currency} ${matchSupp.supplement_amount} ${matchSupp.per}  |`);
         } else {
-          rowLines.push(`${suppName} supplement  |`);
+          const name = suppName.toLowerCase().includes("supplement")
+            ? suppName
+            : `${suppName} supplement`;
+          rowLines.push(`${name}  |`);
         }
       }
     }

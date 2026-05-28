@@ -11,49 +11,56 @@ DECLARE
     v_suite_cat_id uuid;
     v_rate_id uuid;
 BEGIN
-    -- 1. Resolve or create a valid employee profile ID for created_by
-    select id into v_employee_id from public.employee_profiles limit 1;
-    
-    IF v_employee_id IS NULL THEN
-        -- Generate a static UUID for the test employee
-        v_employee_id := 'd7b6f7e8-4a5e-4b6c-8d9e-0f1a2b3c4d5e';
-        
-        -- Insert a dummy user in auth.users if one doesn't exist
-        insert into auth.users (
-            id, 
-            instance_id, 
-            email, 
-            encrypted_password, 
-            email_confirmed_at, 
-            raw_app_meta_data, 
-            raw_user_meta_data, 
-            is_super_admin, 
-            role, 
-            aud,
-            created_at,
-            updated_at
-        )
-        values (
-            v_employee_id,
-            '00000000-0000-0000-0000-000000000000',
-            'operator@meridian.com',
-            '$2a$10$wK1c6F0gL3q4.u6wJtE0be2.1m4.qW6.9O3K.1gJ.lB8N.0e9N.m.', -- hashed password123
-            now(),
-            '{"provider":"email","providers":["email"]}',
-            '{"employeeName":"Test Employee"}',
-            false,
-            'authenticated',
-            'authenticated',
-            now(),
-            now()
-        )
-        on conflict (id) do nothing;
-        
-        -- Insert into public.employee_profiles if the trigger didn't automatically catch it
-        insert into public.employee_profiles (id, employee_name, email, role, is_active)
-        values (v_employee_id, 'Test Employee', 'operator@meridian.com', 'admin', true)
-        on conflict (id) do nothing;
-    END IF;
+    -- 1. Seed distinct testing accounts for Admins, Managers, and Employees
+    -- Seed Admin: admin@meridian.com (password123)
+    insert into auth.users (
+        id, instance_id, email, encrypted_password, email_confirmed_at, 
+        raw_app_meta_data, raw_user_meta_data, is_super_admin, role, aud, created_at, updated_at
+    )
+    values (
+        'd7b6f7e8-4a5e-4b6c-8d9e-0f1a2b3c4d5e', '00000000-0000-0000-0000-000000000000',
+        'admin@meridian.com', '$2a$10$wK1c6F0gL3q4.u6wJtE0be2.1m4.qW6.9O3K.1gJ.lB8N.0e9N.m.', now(),
+        '{"provider":"email","providers":["email"]}', '{"employeeName":"Test Admin"}', false, 'authenticated', 'authenticated', now(), now()
+    )
+    on conflict (id) do nothing;
+
+    insert into public.employee_profiles (id, employee_name, email, role, is_active)
+    values ('d7b6f7e8-4a5e-4b6c-8d9e-0f1a2b3c4d5e', 'Test Admin', 'admin@meridian.com', 'admin', true)
+    on conflict (id) do update set role = 'admin', employee_name = 'Test Admin';
+
+    v_employee_id := 'd7b6f7e8-4a5e-4b6c-8d9e-0f1a2b3c4d5e'; -- Fallback creator ID for other seeds
+
+    -- Seed Manager: manager@meridian.com (password123)
+    insert into auth.users (
+        id, instance_id, email, encrypted_password, email_confirmed_at, 
+        raw_app_meta_data, raw_user_meta_data, is_super_admin, role, aud, created_at, updated_at
+    )
+    values (
+        'e8c7a8b9-5f6e-4c7d-9e0f-1a2b3c4d5e6f', '00000000-0000-0000-0000-000000000000',
+        'manager@meridian.com', '$2a$10$wK1c6F0gL3q4.u6wJtE0be2.1m4.qW6.9O3K.1gJ.lB8N.0e9N.m.', now(),
+        '{"provider":"email","providers":["email"]}', '{"employeeName":"Test Manager"}', false, 'authenticated', 'authenticated', now(), now()
+    )
+    on conflict (id) do nothing;
+
+    insert into public.employee_profiles (id, employee_name, email, role, is_active)
+    values ('e8c7a8b9-5f6e-4c7d-9e0f-1a2b3c4d5e6f', 'Test Manager', 'manager@meridian.com', 'manager', true)
+    on conflict (id) do update set role = 'manager', employee_name = 'Test Manager';
+
+    -- Seed Standard Employee: employee@meridian.com (password123)
+    insert into auth.users (
+        id, instance_id, email, encrypted_password, email_confirmed_at, 
+        raw_app_meta_data, raw_user_meta_data, is_super_admin, role, aud, created_at, updated_at
+    )
+    values (
+        'f9d8b9c0-6a7b-5d8e-0f1a-2b3c4d5e6f7a', '00000000-0000-0000-0000-000000000000',
+        'employee@meridian.com', '$2a$10$wK1c6F0gL3q4.u6wJtE0be2.1m4.qW6.9O3K.1gJ.lB8N.0e9N.m.', now(),
+        '{"provider":"email","providers":["email"]}', '{"employeeName":"Test Employee"}', false, 'authenticated', 'authenticated', now(), now()
+    )
+    on conflict (id) do nothing;
+
+    insert into public.employee_profiles (id, employee_name, email, role, is_active)
+    values ('f9d8b9c0-6a7b-5d8e-0f1a-2b3c4d5e6f7a', 'Test Employee', 'employee@meridian.com', 'employee', true)
+    on conflict (id) do update set role = 'employee', employee_name = 'Test Employee';
 
     -- 2. Seed Hotels
     insert into public.hotels (name, is_active)

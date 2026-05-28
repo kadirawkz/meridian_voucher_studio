@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAppTheme } from "./hooks/useAppTheme";
 import { useAppAuth } from "./hooks/useAppAuth";
 import { useToursExplorer } from "./hooks/useToursExplorer";
@@ -9,18 +9,28 @@ import { withAccountDefaults } from "../domain/voucherUtils";
 import { defaultVoucher } from "../domain/defaultVoucher";
 import type { VoucherFormValues } from "../domain/voucherSchema";
 import type { AppNotification } from "./MenuBar";
+import type { VoucherRecord } from "../../electron/shared/types";
 
 type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings" | "profile";
 
 export function useAppBridge() {
   // Global notice/notification state (needed across various hooks)
   const [notices, setNotices] = useState<AppNotification[]>([]);
-  const addNotice = (message: string, type: AppNotification["type"] = "info") => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setNotices((prev) => [{ id, message, type, timestamp: Date.now() }, ...prev].slice(0, 50));
-  };
   const clearNotice = (id: string) => setNotices((prev) => prev.filter((n) => n.id !== id));
   const clearAllNotices = () => setNotices([]);
+
+  const addNotice = (message: string, type: AppNotification["type"] = "info") => {
+    const id = Math.random().toString(36).substring(2, 9);
+
+    setNotices((prev) => {
+      // Deduplicate: If an identical message was added within the last 4 seconds, ignore it to prevent spam
+      const duplicate = prev.find((n) => n.message === message);
+      if (duplicate && Date.now() - duplicate.timestamp < 4000) {
+        return prev;
+      }
+      return [{ id, message, type, timestamp: Date.now() }, ...prev].slice(0, 50);
+    });
+  };
 
   // 1. Theme Management Hook
   const theme = useAppTheme();
@@ -35,6 +45,26 @@ export function useAppBridge() {
 
   // Basic layout state
   const [activeView, setActiveView] = useState<ActiveView>("dashboard");
+
+  // Sync view history to browser history to enable mouse back/forward button navigation
+  useEffect(() => {
+    window.history.replaceState("dashboard", "");
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state) {
+        setActiveView(e.state as ActiveView);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (window.history.state !== activeView) {
+      window.history.pushState(activeView, "");
+    }
+  }, [activeView]);
+
   const [previewMode, setPreviewMode] = useState<"collapsed" | "thumbnail" | "expanded">("thumbnail");
   const [previewPos, setPreviewPos] = useState(() => ({ x: 8, y: Math.max(8, window.innerHeight / 2 - 224) }));
   const [isDraggingPreview, setIsDraggingPreview] = useState(false);
@@ -96,6 +126,32 @@ export function useAppBridge() {
     isAuthenticated: auth.authState.isAuthenticated,
     addNotice
   });
+
+  // Automatically update windowSize and collapse side panels on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      setWindowSize({ width, height });
+      
+      // Auto-collapse left sidebar on smaller screens
+      if (width < 1024) {
+        setNavCollapsed(true);
+      }
+      
+      // Auto-collapse right explorer panel on smaller screens
+      if (width < 1280) {
+        explorer.setExplorerCollapsed(true);
+      }
+    };
+    
+    // Set initial collapse state on mount based on viewport
+    handleResize();
+    
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // 4. Workspace Search Hook
   const search = useWorkspaceSearch({
@@ -220,7 +276,7 @@ export function useAppBridge() {
     refreshVoucherRegister: register.refreshVoucherRegister,
     refreshVoucherRevisions: register.refreshVoucherRevisions,
     handleVoucherStatusUpdate: register.handleVoucherStatusUpdate,
-    openVoucherFromSearch: (voucher: any) => register.openVoucherFromSearch(voucher, () => setActiveView("entry")),
+    openVoucherFromSearch: (voucher: VoucherRecord) => register.openVoucherFromSearch(voucher, () => setActiveView("entry")),
 
     // Composed Forms state properties
     form: formHook.form,
@@ -265,7 +321,10 @@ export function useAppBridge() {
     handleSave: formHook.handleSave,
     handleGenerateDocx: formHook.handleGenerateDocx,
     handleGeneratePdf: formHook.handleGeneratePdf,
-    handleClearForm: formHook.handleClearForm,
+    handleClearForm: () => {
+      formHook.handleClearForm();
+      register.setVoucherRevisions([]);
+    },
 
     // Scroll mapping refs
     scrollPositionsRef,

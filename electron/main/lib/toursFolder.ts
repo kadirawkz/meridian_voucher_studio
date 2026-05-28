@@ -98,7 +98,16 @@ async function buildTreeFromDirectory(dirPath: string): Promise<FolderTreeNode[]
  * Open a file's containing folder in the system file explorer.
  */
 export async function revealInExplorer(filePath: string): Promise<void> {
-  shell.showItemInFolder(filePath);
+  try {
+    const stat = await fsp.stat(filePath);
+    if (stat.isDirectory()) {
+      await shell.openPath(filePath);
+    } else {
+      shell.showItemInFolder(filePath);
+    }
+  } catch {
+    shell.showItemInFolder(filePath);
+  }
 }
 
 /**

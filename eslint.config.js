@@ -32,7 +32,14 @@ export default [
         HTMLInputElement: "readonly",
         HTMLSelectElement: "readonly",
         HTMLTextAreaElement: "readonly",
-        setTimeout: "readonly"
+        setTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        localStorage: "readonly",
+        Event: "readonly",
+        PopStateEvent: "readonly",
+        WheelEvent: "readonly",
+        KeyboardEvent: "readonly"
       }
     },
     plugins: {

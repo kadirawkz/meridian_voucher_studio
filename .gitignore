@@ -11,12 +11,12 @@ pnpm-lock.yaml
 bun.lockb
 
 # ------------------------------------------------------------------------------
-# Build & Distribution Outputs
+# Build & Distribution Outputs (Vite & Electron Builder)
 # ------------------------------------------------------------------------------
 dist/
 dist-electron/
 build-resources/
-release/
+release/      # Standard output folder for packaged desktop installers
 out/
 *.dmg
 *.exe

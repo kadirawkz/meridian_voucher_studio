@@ -10,6 +10,7 @@ import {
   ArrowDownToLine,
   PanelRightClose,
   PanelRightOpen,
+  Search,
 } from "lucide-react";
 import type { FolderTreeNode, VoucherDocumentRecord, VoucherRevisionRecord } from "../../electron/shared/types";
 import { DocumentHistoryPanel, RevisionHistoryPanel } from "./AppPanels";
@@ -41,11 +42,13 @@ interface TreeNodeProps {
   depth: number;
   onOpenFile: (filePath: string) => void;
   onRevealFile: (filePath: string) => void;
+  autoExpand?: boolean;
+  filterText?: string;
 }
 
 /* ---------- Single tree node (recursive) ---------- */
 
-function TreeNode({ node, depth, onOpenFile, onRevealFile }: TreeNodeProps) {
+function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterText }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(depth < 2);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
@@ -68,6 +71,12 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile }: TreeNodeProps) {
 
   const closeContextMenu = () => setContextMenu(null);
   const fileExtension = !isFolder ? node.name.split(".").pop()?.toLowerCase() : null;
+
+  useEffect(() => {
+    if (autoExpand) {
+      setExpanded(true);
+    }
+  }, [autoExpand]);
 
   useEffect(() => {
     if (!contextMenu || !contextMenuRef.current) return;
@@ -101,6 +110,21 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile }: TreeNodeProps) {
           {isFolder ? (expanded ? <FolderOpen size={14} /> : <Folder size={14} />) : <FileText size={14} />}
         </span>
         <span className="tour-tree-label" title={node.name}>{node.name}</span>
+        
+        {/* Hover quick actions */}
+        {!isFolder && (
+          <div className="tour-tree-hover-actions mr-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="tour-tree-hover-btn"
+              onClick={() => onRevealFile(node.path)}
+              title="Reveal in File Explorer"
+            >
+              <ExternalLink size={10} />
+            </button>
+          </div>
+        )}
+
         {fileExtension && (
           <span className={`tour-tree-badge ${fileExtension === "pdf" ? "tour-tree-badge-pdf" : ""}`}>
             {fileExtension.toUpperCase()}
@@ -127,7 +151,15 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile }: TreeNodeProps) {
       {isFolder && expanded && node.children && (
         <div className="tour-tree-children">
           {node.children.map((child) => (
-            <TreeNode key={child.path} node={child} depth={depth + 1} onOpenFile={onOpenFile} onRevealFile={onRevealFile} />
+            <TreeNode 
+              key={child.path} 
+              node={child} 
+              depth={depth + 1} 
+              onOpenFile={onOpenFile} 
+              onRevealFile={onRevealFile} 
+              autoExpand={autoExpand}
+              filterText={filterText}
+            />
           ))}
           {node.children.length === 0 && (
             <p className="tour-tree-empty-row tour-tree-label opacity-40 italic">
@@ -194,6 +226,52 @@ export function TourExplorerPanel({
   const [expanded, setExpanded] = useState([true, true, true]);
   const [isResizing, setIsResizing] = useState(false);
   const [hoveredSection, setHoveredSection] = useState<number | null>(null);
+  const [filterText, setFilterText] = useState("");
+
+  const getFilteredTree = (nodes: FolderTreeNode[], query: string): FolderTreeNode[] => {
+    const q = query.toLowerCase().trim();
+    const result: FolderTreeNode[] = [];
+
+    const checkNode = (node: FolderTreeNode): FolderTreeNode | null => {
+      const nameMatches = node.name.toLowerCase().includes(q);
+      
+      if (node.type === "folder" && node.children) {
+        const filteredChildren: FolderTreeNode[] = [];
+        
+        for (const child of node.children) {
+          const res = checkNode(child);
+          if (res) {
+            filteredChildren.push(res);
+          }
+        }
+        
+        if (nameMatches || filteredChildren.length > 0) {
+          return {
+            ...node,
+            children: filteredChildren
+          };
+        }
+      } else {
+        if (nameMatches) {
+          return node;
+        }
+      }
+      return null;
+    };
+
+    for (const node of nodes) {
+      const res = checkNode(node);
+      if (res) {
+        result.push(res);
+      }
+    }
+
+    return result;
+  };
+
+  const displayTree = filterText 
+    ? getFilteredTree(toursFolderTree, filterText)
+    : toursFolderTree;
 
   const toggleExpanded = (index: number) => {
     setExpanded(prev => {
@@ -351,6 +429,31 @@ export function TourExplorerPanel({
                   </button>
                 </div>
 
+                {/* Highly productive filter input */}
+                <div className="px-2 py-1.5 border-b border-line bg-surface flex items-center gap-1.5">
+                  <div className="relative flex-1">
+                    <span className="absolute inset-y-0 left-2.5 flex items-center text-steel">
+                      <Search size={11} />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Filter tours & vouchers..."
+                      className="w-full rounded bg-cloud border border-line pl-7 pr-7 py-1 text-[11px] outline-none focus:border-navy focus:bg-surface transition-all placeholder:text-steel/50 font-medium"
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                    />
+                    {filterText && (
+                      <button
+                        type="button"
+                        onClick={() => setFilterText("")}
+                        className="absolute inset-y-0 right-2.5 flex items-center text-steel hover:text-navy text-[10px] font-bold"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {toursFolderTree.length === 0 && !isLoading && (
                   <div className="tour-explorer-migrate-banner">
                     <p className="tour-explorer-migrate-title">Migration Required</p>
@@ -365,15 +468,29 @@ export function TourExplorerPanel({
                   <div className="tour-explorer-loading"><RefreshCw size={16} className="animate-spin" /><span>Scanning folders…</span></div>
                 )}
 
-                {!isLoading && toursFolderTree.length > 0 && (
+                {!isLoading && displayTree.length > 0 && (
                   <div className="tour-tree">
-                    {toursFolderTree.map((node) => (
-                      <TreeNode key={node.path} node={node} depth={0} onOpenFile={onOpenFile} onRevealFile={onRevealFile} />
+                    {displayTree.map((node) => (
+                      <TreeNode 
+                        key={node.path} 
+                        node={node} 
+                        depth={0} 
+                        onOpenFile={onOpenFile} 
+                        onRevealFile={onRevealFile} 
+                        autoExpand={!!filterText}
+                        filterText={filterText}
+                      />
                     ))}
                   </div>
                 )}
 
-                {!isLoading && <TreeStats tree={toursFolderTree} />}
+                {!isLoading && filterText && displayTree.length === 0 && (
+                  <div className="py-6 text-center text-steel text-[11px] font-medium italic">
+                    No matching records found in search.
+                  </div>
+                )}
+
+                {!isLoading && <TreeStats tree={displayTree} />}
               </>
             )}
           </div>
@@ -400,6 +517,11 @@ export function TourExplorerPanel({
           <div className="flex items-center gap-1 w-full">
             <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[1] ? 'rotate-90' : ''}`} />
             <h3 className="tour-explorer-title flex-1">DOCUMENT HISTORY</h3>
+            {documentHistory.length > 0 && (
+              <span className="text-[9px] font-extrabold px-1.5 py-0.2 bg-navy/10 text-navy rounded-full mr-2">
+                {documentHistory.length}
+              </span>
+            )}
           </div>
         </div>
         
@@ -434,6 +556,11 @@ export function TourExplorerPanel({
           <div className="flex items-center gap-1 w-full">
             <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[2] ? 'rotate-90' : ''}`} />
             <h3 className="tour-explorer-title flex-1">REVISION HISTORY</h3>
+            {voucherRevisions.length > 0 && (
+              <span className="text-[9px] font-extrabold px-1.5 py-0.2 bg-navy/10 text-navy rounded-full mr-2">
+                {voucherRevisions.length}
+              </span>
+            )}
           </div>
         </div>
         

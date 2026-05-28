@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { Edit2, Trash2, ChevronLeft, AlertTriangle, Archive, RotateCw } from "lucide-react";
 import type { HotelRateRecord } from "../../electron/shared/types";
 import { friendlyErrorMessage } from "../utils/errors";
@@ -15,6 +15,7 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
   const [error, setError] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedRateId, setExpandedRateId] = useState<string | null>(null);
 
   // Archived (inactive) items states
   const [showArchived, setShowArchived] = useState(false);
@@ -177,38 +178,102 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
                   </tr>
                 ) : (
                   filteredRates.map((r) => (
-                    <tr 
-                      key={r.id} 
-                      className={`reference-row-transition hover:bg-sand/30 ${
-                        deletingIds.includes(r.id!) ? "reference-row-exit" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3 font-semibold text-navy">{r.hotel_name}</td>
-                      <td className="px-4 py-3">{r.market || "-"}</td>
-                      <td className="px-4 py-3">{r.contract_name || "-"}</td>
-                      <td className="px-4 py-3">{r.valid_from} to {r.valid_to}</td>
-                      <td className="px-4 py-3">{r.currency || "USD"}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => onEdit(r.id!)} 
-                            className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" 
-                            aria-label={`Edit rate for ${r.hotel_name}`} 
-                            title={`Edit rate for ${r.hotel_name}`}
+                    <Fragment key={r.id}>
+                      <tr 
+                        className={`reference-row-transition hover:bg-cloud/40 cursor-pointer ${
+                          expandedRateId === r.id ? "bg-cloud/30 border-b-transparent" : ""
+                        } ${
+                          deletingIds.includes(r.id!) ? "reference-row-exit" : ""
+                        }`}
+                        onClick={() => setExpandedRateId(prev => prev === r.id ? null : (r.id || null))}
+                      >
+                        <td className="px-4 py-3 font-semibold text-navy flex items-center gap-2 select-none">
+                          <span 
+                            className={`inline-block text-[8px] transform transition-transform text-steel font-bold ${expandedRateId === r.id ? "rotate-90" : ""}`}
+                            style={{ width: "8px" }}
                           >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteId(r.id!)} 
-                            className="rounded p-1.5 text-steel hover:bg-red-500/10 hover:text-red-500 transition-colors" 
-                            aria-label={`Delete rate for ${r.hotel_name}`} 
-                            title={`Delete rate for ${r.hotel_name}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                            ▶
+                          </span>
+                          <span>{r.hotel_name}</span>
+                        </td>
+                        <td className="px-4 py-3">{r.market || "-"}</td>
+                        <td className="px-4 py-3 font-medium">{r.contract_name || "-"}</td>
+                        <td className="px-4 py-3 text-steel">{r.valid_from} to {r.valid_to}</td>
+                        <td className="px-4 py-3">
+                          <span className="rounded bg-cloud text-navy px-1.5 py-0.5 text-xs font-bold">
+                            {r.currency || "USD"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => onEdit(r.id!)} 
+                              className="rounded p-1.5 text-steel hover:bg-cloud hover:text-navy transition-colors" 
+                              aria-label={`Edit rate for ${r.hotel_name}`} 
+                              title={`Edit rate for ${r.hotel_name}`}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => setDeleteId(r.id!)} 
+                              className="rounded p-1.5 text-steel hover:bg-red-500/10 hover:text-red-500 transition-colors" 
+                              aria-label={`Delete rate for ${r.hotel_name}`} 
+                              title={`Delete rate for ${r.hotel_name}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedRateId === r.id && (
+                        <tr className="bg-cloud/10" onClick={(e) => e.stopPropagation()}>
+                          <td colSpan={6} className="px-8 py-4">
+                            <div className="rounded-app border border-line bg-surface p-4 shadow-sm space-y-4">
+                              <div className="flex justify-between items-center border-b border-line pb-2">
+                                <span className="text-xs font-bold text-navy uppercase tracking-wider">Room Rates Details</span>
+                                {r.billing_instruction && (
+                                  <span className="text-xs text-steel italic">Instruction: {r.billing_instruction}</span>
+                                )}
+                              </div>
+                              {r.room_rates && r.room_rates.length > 0 ? (
+                                <div className="overflow-hidden border border-line rounded-app bg-surface shadow-sm">
+                                  <table className="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                      <tr className="bg-cloud text-steel font-bold border-b border-line">
+                                        <th className="py-2 px-3">Room Category</th>
+                                        <th className="py-2 px-3">Basis</th>
+                                        <th className="py-2 px-3 text-center">SGL</th>
+                                        <th className="py-2 px-3 text-center">DBL</th>
+                                        <th className="py-2 px-3 text-center">TWN</th>
+                                        <th className="py-2 px-3 text-center">TPL</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-line">
+                                      {r.room_rates.map((rate, rateIdx) => (
+                                        <tr key={rateIdx} className="hover:bg-cloud/20">
+                                          <td className="py-2 px-3 font-semibold text-navy">{rate.room_category}</td>
+                                          <td className="py-2 px-3">
+                                            <span className="rounded bg-cloud px-1.5 py-0.5 font-bold">
+                                              {rate.basis}
+                                            </span>
+                                          </td>
+                                          <td className="py-2 px-3 text-center font-mono">{rate.sgl != null ? rate.sgl : "—"}</td>
+                                          <td className="py-2 px-3 text-center font-mono">{rate.dbl != null ? rate.dbl : "—"}</td>
+                                          <td className="py-2 px-3 text-center font-mono">{rate.twn != null ? rate.twn : "—"}</td>
+                                          <td className="py-2 px-3 text-center font-mono">{rate.tpl != null ? rate.tpl : "—"}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-steel italic">No individual room rates found for this contract.</p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))
                 )}
               </tbody>

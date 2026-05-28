@@ -153,17 +153,17 @@ function buildRateApplicableText(
       const bits = [];
       if (sharing) bits.push(`Sharing ${formatVal(sharing)}`);
       if (bed) bits.push(`Bed ${formatVal(bed)}`);
-      if (own) bits.push(`ICON ${formatVal(own)}`);
+      if (own) bits.push(`Own Room ${formatVal(own)}`);
       return bits.join(" / ");
     };
 
     if (hasChild2_5) {
       const summary = formatGranular(childRate.age_2_5_99_sharing, childRate.age_2_5_99_extra_bed, childRate.age_2_5_99_own_room);
-      if (summary) parts.push(`Child (2-5.99 Years) ${summary}`);
+      if (summary) parts.push(`Child (2-5.99 Y) ${summary}`);
     }
     if (hasChild6_11) {
       const summary = formatGranular(childRate.age_6_11_99_sharing, childRate.age_6_11_99_extra_bed, childRate.age_6_11_99_own_room);
-      if (summary) parts.push(`Child (6-11.99 Years) ${summary}`);
+      if (summary) parts.push(`Child (6-11.99 Y) ${summary}`);
     }
   }
 
@@ -204,20 +204,26 @@ function buildGuideText(
       const basis = record.foc_rules.basis || "HB";
       const appliesTo = (record.foc_rules.applies_to || "").toLowerCase();
 
-      // Check each line item to see if it qualifies for Guide or Pax FOC
-      const hasGuideAndBasis = voucher.lineItems.some((li) => Number(li.guide || 0) > 0 && li.guideBasis?.trim());
-      const target = hasGuideAndBasis ? "Guide" : "Pax";
-
-      if (appliesTo.includes(target.toLowerCase())) {
-        const customText = target === "Guide" ? record.foc_rules.guide_custom_text : record.foc_rules.pax_custom_text;
+      // 1. Evaluate Pax FOC
+      if (appliesTo.includes("pax") || appliesTo.includes("both")) {
+        const customText = record.foc_rules.pax_custom_text;
         if (customText?.trim()) {
           parts.push(customText.trim());
         } else {
-          parts.push(`${target} FOC: ${qty} ${target} FOC on ${basis} when ${minPax}+ persons`);
+          parts.push(`Pax FOC: ${qty} Pax FOC on ${basis} when ${minPax}+ persons`);
         }
-        if (target === "Guide") {
-          isGuideFocActive = true;
+      }
+
+      // 2. Evaluate Guide FOC (only if guide is present)
+      const hasGuideAndBasis = voucher.lineItems.some((li) => Number(li.guide || 0) > 0 && li.guideBasis?.trim());
+      if (hasGuideAndBasis && (appliesTo.includes("guide") || appliesTo.includes("both"))) {
+        const customText = record.foc_rules.guide_custom_text;
+        if (customText?.trim()) {
+          parts.push(customText.trim());
+        } else {
+          parts.push(`Guide FOC: ${qty} Guide FOC on ${basis} when ${minPax}+ persons`);
         }
+        isGuideFocActive = true;
       }
     }
   }

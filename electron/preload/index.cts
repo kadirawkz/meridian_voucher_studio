@@ -101,6 +101,11 @@ const api: AppApi = {
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (settings: Record<string, any>) => ipcRenderer.invoke("settings:set", settings),
   selectFolder: (options: { title?: string; defaultPath?: string }) => ipcRenderer.invoke("dialog:select-folder", options),
+  selectFile: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => ipcRenderer.invoke("dialog:select-file", options),
+  listDatabaseTemplates: () => ipcRenderer.invoke("template-db:list"),
+  uploadDatabaseTemplate: (name: string, filePath: string) => ipcRenderer.invoke("template-db:upload", { name, filePath }),
+  downloadDatabaseTemplate: (name: string) => ipcRenderer.invoke("template-db:download", { name }),
+  deleteDatabaseTemplate: (name: string) => ipcRenderer.invoke("template-db:delete", { name }),
 };
 
 contextBridge.exposeInMainWorld("meridian", api);

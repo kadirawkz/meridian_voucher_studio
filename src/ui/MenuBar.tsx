@@ -8,7 +8,10 @@ import {
   Info,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Trash2,
+  FolderOpen,
+  ArrowRight
 } from "lucide-react";
 import logo from "../assets/logo.png";
 
@@ -30,6 +33,17 @@ interface MenuBarProps {
   onReportIssue: () => void;
 }
 
+function formatRelativeTime(timestamp: number): string {
+  const diffMs = Date.now() - timestamp;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  
+  if (diffSec < 10) return "Just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffMin < 60) return `${diffMin}m ago`;
+  return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export function MenuBar({ 
   searchQuery, 
   setSearchQuery, 
@@ -44,8 +58,19 @@ export function MenuBar({
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNoticesOpen, setIsNoticesOpen] = useState(false);
+  const [noticeFilter, setNoticeFilter] = useState<"all" | "error" | "success" | "info">("all");
+  const [hasOpenedNotices, setHasOpenedNotices] = useState(false);
   const menuBarRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const noticeRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const prevNoticesLengthRef = useRef(notices.length);
+
+  // Monitor notifications count to show badge only for newly arrived items
+  useEffect(() => {
+    if (notices.length > prevNoticesLengthRef.current) {
+      setHasOpenedNotices(false);
+    }
+    prevNoticesLengthRef.current = notices.length;
+  }, [notices.length]);
 
   // Expose search focus to window for shortcut Ctrl+K
   useEffect(() => {
@@ -147,11 +172,16 @@ export function MenuBar({
     },
   ];
 
+  // Filtering notices
+  const filteredNotices = notices.filter(
+    (n) => noticeFilter === "all" || n.type === noticeFilter
+  );
+
   return (
-    <div className="app-menu-bar drag relative" ref={menuBarRef}>
+    <div className="app-menu-bar drag relative bg-surface border-b border-line shadow-sm" ref={menuBarRef}>
       {/* Left: Logo and Menus */}
       <div className="flex items-center gap-1 no-drag z-10">
-        <div className="flex h-7 w-7 items-center justify-center rounded overflow-hidden ml-2 bg-cloud">
+        <div className="flex h-7 w-7 items-center justify-center rounded overflow-hidden ml-2 bg-cloud shadow-sm">
           <img src={logo} alt="Logo" className="h-full w-full object-contain" />
         </div>
 
@@ -205,7 +235,7 @@ export function MenuBar({
           <input
             ref={searchInputRef}
             type="text"
-            className="w-full min-w-[120px] rounded-lg border border-line bg-cloud py-1 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-surface transition-all shadow-sm"
+            className="w-full min-w-[120px] rounded-lg border border-line bg-cloud py-1.5 pl-9 pr-4 text-xs outline-none focus:border-navy focus:bg-surface transition-all shadow-sm"
             placeholder="Search... (Ctrl+K)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -214,118 +244,202 @@ export function MenuBar({
       </div>
 
       {/* Right: Feedback & Controls */}
-      <div className="ml-auto flex items-center gap-2 no-drag pr-2 z-10">
+      <div className="ml-auto flex items-center gap-2 no-drag mr-2 z-10">
         <div className="relative" ref={noticeRef}>
           <button
-            onClick={() => setIsNoticesOpen(!isNoticesOpen)}
-            className={`flex items-center gap-2 rounded-full border border-line px-3 py-1 mr-2 transition-all hover:bg-surface active:scale-95 ${
-              isNoticesOpen ? "bg-surface shadow-sm border-navy/30" : "bg-cloud"
+            onClick={() => {
+              setIsNoticesOpen(!isNoticesOpen);
+              if (!isNoticesOpen) {
+                setHasOpenedNotices(true);
+              }
+            }}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 mr-2 transition-all hover:bg-surface active:scale-95 ${
+              isNoticesOpen 
+                ? "bg-surface shadow-md border-navy/30 ring-2 ring-navy/10" 
+                : notices.length > 0
+                  ? notices[0].type === "error"
+                    ? "bg-rose-50 border-rose-200 text-rose-700 hover:border-rose-300"
+                    : notices[0].type === "success"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:border-emerald-300"
+                      : "bg-cloud border-line text-steel"
+                  : "bg-cloud border-line text-steel"
             }`}
           >
             <div className={`relative flex items-center justify-center`}>
-              <Bell size={14} className={notices.length > 0 ? "text-navy" : "text-steel"} />
-              {notices.length > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
+              <Bell size={14} className={
+                isNoticesOpen
+                  ? "text-navy"
+                  : notices.length > 0
+                    ? notices[0].type === "error"
+                      ? "text-rose-500"
+                      : notices[0].type === "success"
+                        ? "text-emerald-500"
+                        : "text-steel"
+                    : "text-steel"
+              } />
+              {notices.length > 0 && !hasOpenedNotices && !isNoticesOpen && (
+                <span className={`absolute -right-1 -top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full text-[7px] font-bold text-white ring-[0.5px] ring-white ${
+                  notices[0]?.type === "error"
+                    ? "bg-rose-500"
+                    : notices[0]?.type === "success"
+                      ? "bg-emerald-500"
+                      : "bg-slate-400"
+                }`}>
                   {notices.length}
                 </span>
               )}
             </div>
-            <span className="text-[10px] font-bold text-steel truncate max-w-[100px]">
-              {notices[0]?.message || "No notifications"}
+            <span className={`text-[10px] font-bold truncate max-w-[130px] ${
+              isNoticesOpen 
+                ? "text-navy"
+                : notices.length > 0
+                  ? notices[0].type === "error"
+                    ? "text-rose-700"
+                    : notices[0].type === "success"
+                      ? "text-emerald-700"
+                      : "text-steel"
+                  : "text-steel"
+            }`}>
+              {notices[0]?.message || "No system alerts"}
             </span>
           </button>
 
           {isNoticesOpen && (
-            <div className="absolute right-0 top-full z-[2000] mt-2 w-80 overflow-hidden rounded-xl border border-line bg-surface shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center justify-between bg-cloud px-4 py-3 border-b border-line">
+            <div className="absolute right-0 top-full z-[2000] mt-2 w-[340px] overflow-hidden rounded-xl border border-line bg-surface shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between bg-cloud px-4 py-3.5 border-b border-line">
                 <h3 className="text-xs font-bold text-navy flex items-center gap-2">
-                  <Bell size={13} />
-                  Notifications
+                  <Bell size={14} className="text-navy" />
+                  Alert Center
                 </h3>
                 {notices.length > 0 && (
                   <button 
                     onClick={onClearAllNotices}
-                    className="text-[10px] font-bold text-steel hover:text-red-500 transition-colors"
+                    className="flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 transition-colors"
                   >
-                    Clear All
+                    <Trash2 size={11} />
+                    Dismiss All
                   </button>
                 )}
               </div>
+
+              {/* Advanced Filter Tab Bar */}
+              <div className="flex border-b border-line/60 bg-cloud/30 p-1.5 gap-1">
+                {(["all", "error", "success", "info"] as const).map((filter) => {
+                  const filterCount = filter === "all" ? notices.length : notices.filter(n => n.type === filter).length;
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setNoticeFilter(filter)}
+                      className={`flex-1 py-1 rounded text-[10px] font-bold uppercase transition-all tracking-wider ${
+                        noticeFilter === filter 
+                          ? "bg-surface text-navy shadow-sm border border-line/80" 
+                          : "text-steel hover:text-navy hover:bg-cloud/50"
+                      }`}
+                    >
+                      {filter} {filterCount > 0 && `(${filterCount})`}
+                    </button>
+                  );
+                })}
+              </div>
               
-              <div className="max-h-[400px] overflow-y-auto">
-                {notices.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-                    <div className="h-12 w-12 rounded-full bg-cloud flex items-center justify-center mb-3">
-                      <Bell size={24} className="text-steel/30" />
+              {/* Notifications Container */}
+              <div className="max-h-[380px] overflow-y-auto">
+                {filteredNotices.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                    <div className="h-12 w-12 rounded-full bg-cloud flex items-center justify-center mb-3 text-steel/30 shadow-inner">
+                      <Bell size={22} />
                     </div>
-                    <p className="text-xs font-semibold text-steel">No notifications yet</p>
-                    <p className="text-[10px] text-steel/60 mt-1">Status updates and alerts will appear here.</p>
+                    <p className="text-xs font-bold text-navy">Clear skies!</p>
+                    <p className="text-[10px] text-steel mt-1 max-w-[200px]">No notifications matching your filters are currently active.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-line/50">
-                    {notices.map((n) => (
-                      <div key={n.id} className="group relative flex gap-3 p-4 hover:bg-cloud/50 transition-colors">
-                        <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                          n.type === "error" ? "bg-red-50 text-red-500" :
-                          n.type === "success" ? "bg-emerald-50 text-emerald-500" :
-                          "bg-blue-50 text-blue-500"
-                        }`}>
-                          {n.type === "error" ? <AlertCircle size={14} /> :
-                           n.type === "success" ? <CheckCircle2 size={14} /> :
-                           <Info size={14} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-navy leading-relaxed break-words">
-                            {n.message}
-                          </p>
-                          <div className="mt-1 flex items-center gap-2 text-[9px] text-steel/60 font-semibold">
-                            <Clock size={10} />
-                            {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className="divide-y divide-line/45">
+                    {filteredNotices.map((n) => {
+                      const isDocumentGen = n.message.toLowerCase().includes("generated") || n.message.toLowerCase().includes("saved");
+                      
+                      return (
+                        <div key={n.id} className="group relative flex gap-3 p-4 hover:bg-cloud/30 transition-all">
+                          <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full shadow-sm ${
+                            n.type === "error" ? "bg-rose-50 text-rose-500 border border-rose-100" :
+                            n.type === "success" ? "bg-emerald-50 text-emerald-500 border border-emerald-100" :
+                            "bg-blue-50 text-blue-500 border border-blue-100"
+                          }`}>
+                            {n.type === "error" ? <AlertCircle size={13} /> :
+                             n.type === "success" ? <CheckCircle2 size={13} /> :
+                             <Info size={13} />}
                           </div>
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <p className="text-xs font-semibold text-slate-800 leading-relaxed break-words">
+                              {n.message}
+                            </p>
+                            
+                            {/* Smart Productivity Quick Action */}
+                            {isDocumentGen && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onNavigate("register");
+                                  setIsNoticesOpen(false);
+                                }}
+                                className="flex items-center gap-1 text-[10px] font-bold text-navy hover:text-navy/80 transition-colors"
+                              >
+                                <FolderOpen size={11} />
+                                <span>Inspect in Register</span>
+                                <ArrowRight size={9} />
+                              </button>
+                            )}
+
+                            <div className="flex items-center gap-1.5 text-[9px] text-steel font-bold">
+                              <Clock size={10} className="text-steel/50" />
+                              <span>{formatRelativeTime(n.timestamp)}</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => onClearNotice(n.id)}
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center rounded-md text-steel hover:bg-rose-50 hover:text-rose-600 transition-all self-start"
+                            title="Dismiss Notice"
+                          >
+                            <X size={13} />
+                          </button>
                         </div>
-                        <button 
-                          onClick={() => onClearNotice(n.id)}
-                          className="opacity-0 group-hover:opacity-100 h-6 w-6 flex items-center justify-center rounded-md text-steel hover:bg-red-500/10 hover:text-red-500 transition-all"
-                          title="Dismiss"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Window Controls */}
-        <div className="flex items-center">
-          <button 
-            onClick={() => window.meridian?.minimizeWindow()}
-            className="h-8 w-10 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
-            aria-label="Minimize window"
-            title="Minimize window"
-          >
-            <Minus size={14} />
-          </button>
-          <button 
-            onClick={() => window.meridian?.maximizeWindow()}
-            className="h-8 w-10 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
-            aria-label="Maximize window"
-            title="Maximize window"
-          >
-            <Square size={12} />
-          </button>
-          <button 
-            onClick={() => window.meridian?.closeWindow()}
-            className="h-8 w-12 flex items-center justify-center text-steel hover:bg-red-500 hover:text-white transition-colors"
-            aria-label="Close window"
-            title="Close window"
-          >
-            <X size={16} />
-          </button>
-        </div>
+      {/* Window Controls */}
+      <div className="flex items-stretch h-full no-drag z-10 self-stretch">
+        <button 
+          onClick={() => window.meridian?.minimizeWindow()}
+          className="w-11 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
+          aria-label="Minimize window"
+          title="Minimize window"
+        >
+          <Minus size={14} />
+        </button>
+        <button 
+          onClick={() => window.meridian?.maximizeWindow()}
+          className="w-11 flex items-center justify-center text-steel hover:bg-cloud transition-colors"
+          aria-label="Maximize window"
+          title="Maximize window"
+        >
+          <Square size={12} />
+        </button>
+        <button 
+          onClick={() => window.meridian?.closeWindow()}
+          className="w-12 flex items-center justify-center text-steel hover:bg-red-500 hover:text-white transition-colors"
+          aria-label="Close window"
+          title="Close window"
+        >
+          <X size={16} />
+        </button>
       </div>
     </div>
   );

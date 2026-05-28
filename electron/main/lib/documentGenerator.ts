@@ -1,10 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Buffer } from "node:buffer";
 import { spawn, type ChildProcess } from "node:child_process";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
-import { getTemplatePath, resolveVoucherOutputDirectory } from "../config.js";
+import { getTemplatePath, resolveVoucherOutputDirectory, getAllSettings } from "../config.js";
 import type { DocumentFormat, GeneratedDocument, VoucherPayload } from "../../shared/types.js";
+import { getVoucherTemplate } from "./supabase.js";
 
 const docxtemplaterTagPattern = /{[#/A-Za-z][^}]*}/;
 const supportedTemplateTags = new Set([
@@ -364,6 +366,19 @@ function assertTemplateTagsAreUsable(xml: string): void {
   }
 }
 
+export async function validateTemplateBuffer(buffer: Buffer): Promise<void> {
+  const zip = new PizZip(buffer);
+  const documentXml = zip.file("word/document.xml")?.asText() ?? "";
+  if (docxtemplaterTagPattern.test(documentXml)) {
+    assertTemplateTagsAreUsable(documentXml);
+  }
+}
+
+export async function validateTemplate(filePath: string): Promise<void> {
+  const content = await fs.readFile(filePath);
+  await validateTemplateBuffer(content);
+}
+
 async function convertDocxToPdf(docxPath: string, outputDirectory: string): Promise<string | undefined> {
   const libreOfficePath = process.env.LIBREOFFICE_PATH || "soffice";
 
@@ -389,12 +404,66 @@ async function convertDocxToPdf(docxPath: string, outputDirectory: string): Prom
   });
 }
 
+function changeFontsToArial(zip: PizZip): void {
+  const xmlFiles = [
+    "word/document.xml",
+    "word/styles.xml",
+    "word/footnotes.xml",
+    "word/endnotes.xml",
+    "word/header1.xml",
+    "word/footer1.xml",
+    "word/theme/theme1.xml",
+    "word/fontTable.xml"
+  ];
+
+  for (const filePath of xmlFiles) {
+    const file = zip.file(filePath);
+    if (!file) continue;
+
+    let content = file.asText();
+
+    if (filePath === "word/theme/theme1.xml") {
+      content = content.replace(/<a:latin typeface="[^"]*"/gu, '<a:latin typeface="Arial"');
+      content = content.replace(/<a:ea typeface="[^"]*"/gu, '<a:ea typeface="Arial"');
+      content = content.replace(/<a:cs typeface="[^"]*"/gu, '<a:cs typeface="Arial"');
+      content = content.replace(/<a:font script="([^"]*)" typeface="[^"]*"/gu, '<a:font script="$1" typeface="Arial"');
+    } else {
+      content = content.replace(/<w:rFonts[^>]*>/gu, (match) => {
+        const isSelfClosing = match.endsWith("/>");
+        return `<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"${isSelfClosing ? "/" : ""}>`;
+      });
+      if (filePath === "word/fontTable.xml" || filePath === "word/styles.xml") {
+        content = content.replace(/<w:font w:name="[^"]*"/gu, '<w:font w:name="Arial"');
+      }
+    }
+
+    zip.file(filePath, content);
+  }
+}
+
 export async function generateDocuments(voucher: VoucherPayload, format: DocumentFormat = "pdf", customOutputDir?: string): Promise<GeneratedDocument> {
-  const templatePath = getTemplatePath();
+  const settings = getAllSettings();
+  let template: Buffer | null = null;
+  
+  if (settings.activeTemplateName) {
+    try {
+      const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+      if (dbTemplate?.file_data) {
+        template = Buffer.from(dbTemplate.file_data, "base64");
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch database template '${settings.activeTemplateName}', falling back to default:`, e);
+    }
+  }
+
+  if (!template) {
+    const templatePath = getTemplatePath();
+    template = await fs.readFile(templatePath);
+  }
+
   const outputDirectory = customOutputDir || resolveVoucherOutputDirectory(voucher.tourType || "", voucher.hotelName || "");
   await fs.mkdir(outputDirectory, { recursive: true });
 
-  const template = await fs.readFile(templatePath);
   const zip = new PizZip(template);
   let documentXml = zip.file("word/document.xml")?.asText() ?? "";
 
@@ -431,6 +500,9 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
     renderLegacyStaticTemplate(zip, voucher);
   }
 
+  // Force all fonts to Arial
+  changeFontsToArial(zip);
+
   const fileBase = [
     voucher.date,
     voucher.voucherType,
@@ -443,6 +515,16 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
     .join("-");
 
   const docxPath = path.join(outputDirectory, `${fileBase}.docx`);
+
+  try {
+    await fs.access(docxPath);
+    throw new Error(`A document with the name "${fileBase}.docx" has already been generated and exists in the output folder.`);
+  } catch (err) {
+    if ((err as { code?: string }).code !== "ENOENT") {
+      throw err;
+    }
+  }
+
   await fs.writeFile(docxPath, zip.generate({ type: "nodebuffer", compression: "DEFLATE" }));
 
   const pdfPath = format === "pdf" ? await convertDocxToPdf(docxPath, outputDirectory) : undefined;

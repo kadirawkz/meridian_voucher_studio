@@ -2,7 +2,7 @@ import express from "express";
 import type { AddressInfo } from "node:net";
 import type { DocumentFormat, VoucherListFilters, VoucherPayload, VoucherStatus } from "../shared/types.js";
 import { generateDocuments } from "./lib/documentGenerator.js";
-import { getVoucher, listVoucherDocuments, listVoucherRevisions, listVouchers, saveGeneratedDocumentRecord, saveVoucher, searchWorkspace, updateVoucherStatus, getActiveSupabaseClient } from "./lib/supabase.js";
+import { getVoucher, listVoucherDocuments, listVoucherRevisions, listVouchers, saveGeneratedDocumentRecord, saveVoucher, searchWorkspace, updateVoucherStatus } from "./lib/supabase.js";
 import {
   autoFillVoucherFromHotelRates,
   getHotelRates,
@@ -59,29 +59,9 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const body = request.body as VoucherPayload | { voucher: VoucherPayload; format?: DocumentFormat; customOutputDir?: string };
       const voucher = "voucher" in body ? body.voucher : body;
       const format = "voucher" in body ? body.format : "pdf";
-      const customOutputDir = "voucher" in body ? (body as any).customOutputDir : undefined;
+      const customOutputDir = "voucher" in body ? (body as { customOutputDir?: string }).customOutputDir : undefined;
 
-      // Skip redundant document generation if standard generation and already generated
-      if (voucher.id && !customOutputDir) {
-        const supabase = await getActiveSupabaseClient();
-        if (supabase) {
-          const { data: dbVoucher } = await supabase.from("vouchers").select("status").eq("id", voucher.id).maybeSingle();
-          if (dbVoucher && (dbVoucher.status === "generated" || dbVoucher.status === "sent")) {
-            const { data: existingDoc } = await supabase.from("voucher_documents")
-              .select("*")
-              .eq("voucher_id", voucher.id)
-              .eq("format", format ?? "pdf")
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
 
-            if (existingDoc) {
-              response.json(existingDoc);
-              return;
-            }
-          }
-        }
-      }
 
       const savedVoucher = await saveVoucher(voucher, "generated");
       const result = await generateDocuments({ ...voucher, id: savedVoucher.id }, format ?? "pdf", customOutputDir);

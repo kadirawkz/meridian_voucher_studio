@@ -29,6 +29,31 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
       .finally(() => setIsCheckingAuth(false));
   }, []);
 
+  // Automatically sync profile/role changes from database in the background every 5 seconds
+  useEffect(() => {
+    if (!accountProfile || !window.meridian?.getAccountProfile) return;
+
+    const interval = setInterval(() => {
+      void window.meridian.getAccountProfile()
+        .then((latestProfile) => {
+          if (latestProfile) {
+            if (
+              latestProfile.role !== accountProfile.role ||
+              latestProfile.employeeName !== accountProfile.employeeName ||
+              latestProfile.employeeEmail !== accountProfile.employeeEmail ||
+              latestProfile.isActive !== accountProfile.isActive
+            ) {
+              setAccountProfile(latestProfile);
+              setAuthState((prev) => ({ ...prev, profile: latestProfile }));
+            }
+          }
+        })
+        .catch((err) => console.error("Error auto-syncing profile:", err));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [accountProfile]);
+
   function handleAuthenticated(state: AuthState) {
     setAuthState(state);
     setAccountProfile(state.profile);

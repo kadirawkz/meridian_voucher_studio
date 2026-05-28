@@ -2,23 +2,44 @@
 # Treat all files as text by default and normalize to LF in the repo
 * text=auto eol=lf
 
-# Explicitly mark binary files to avoid line-ending conversions
+# Common Web & Code Assets
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.sql text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Explicitly mark binary files to avoid line-ending conversions & corruption
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
+*.webp binary
 *.ico binary
 *.pdf binary
 *.zip binary
 *.tar.gz binary
+*.dmg binary
+*.pkg binary
+
+# Document Templates (Word files must remain binary byte-for-byte)
+*.docx binary
+*.doc binary
 
 # Node lockfiles
 package-lock.json binary
 pnpm-lock.yaml binary
 
-# Keep Windows executables binary
+# Keep Windows executables & libraries binary
 *.exe binary
 *.dll binary
+*.sys binary
 
 # Don't try to normalize files in release or build outputs
 /dist/* -text
