@@ -86,13 +86,18 @@ export function MenuBar({
 
   // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: any) => {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (menuBarRef.current && !menuBarRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuBarRef.current &&
+        !menuBarRef.current.contains(event.target as Node)
+      ) {
         setIsMenuOpen(false);
         setActiveMenu(null);
       }
-      if (noticeRef.current && !noticeRef.current.contains(event.target)) {
+      if (
+        noticeRef.current &&
+        !noticeRef.current.contains(event.target as Node)
+      ) {
         setIsNoticesOpen(false);
       }
     };
