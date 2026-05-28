@@ -4,17 +4,47 @@ import { URLSearchParams } from "node:url";
 import fs from "node:fs";
 import { Buffer } from "node:buffer";
 import dotenv from "dotenv";
-import { app, BrowserWindow, ipcMain, shell, dialog, nativeTheme } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  shell,
+  dialog,
+  nativeTheme,
+} from "electron";
 import isDev from "electron-is-dev";
 import { createNativeMenu } from "./menu.js";
 import { createVoucherServer } from "./server.js";
-import { getAccountProfile, getAuthState, resetPassword, signIn, signOut, signUp, updateProfile } from "./lib/auth.js";
+import {
+  getAccountProfile,
+  getAuthState,
+  resetPassword,
+  signIn,
+  signOut,
+  signUp,
+  updateProfile,
+} from "./lib/auth.js";
 import type { AuthCredentials } from "../shared/types.js";
-import type { DocumentFormat, HotelRateRecord, VoucherPayload } from "../shared/types.js";
-import { selectToursFolder, getToursFolder, getToursFolderTree, revealInExplorer, migrateVouchersToTours } from "./lib/toursFolder.js";
+import type {
+  DocumentFormat,
+  HotelRateRecord,
+  VoucherPayload,
+} from "../shared/types.js";
+import {
+  selectToursFolder,
+  getToursFolder,
+  getToursFolderTree,
+  revealInExplorer,
+  migrateVouchersToTours,
+} from "./lib/toursFolder.js";
 import { getAllSettings, updateSettings } from "./config.js";
 import { validateTemplate } from "./lib/documentGenerator.js";
-import { getVoucherTemplate, upsertVoucherTemplate, listVoucherTemplates, deleteVoucherTemplate } from "./lib/supabase.js";
+import {
+  getVoucherTemplate,
+  upsertVoucherTemplate,
+  listVoucherTemplates,
+  deleteVoucherTemplate,
+} from "./lib/supabase.js";
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl = "";
@@ -30,7 +60,7 @@ function loadEnvironmentFile(): void {
   const candidatePaths = [
     path.join(process.cwd(), ".env"),
     path.join(path.dirname(process.execPath), ".env"),
-    path.join(process.resourcesPath, ".env")
+    path.join(process.resourcesPath, ".env"),
   ];
 
   // Clear any stale Supabase env vars so .env values take precedence
@@ -49,7 +79,7 @@ function loadRuntimeConfigFile(): void {
   const candidatePaths = [
     path.join(path.dirname(process.execPath), "config.json"),
     path.join(app.getPath("userData"), "config.json"),
-    path.join(process.resourcesPath, "config.json")
+    path.join(process.resourcesPath, "config.json"),
   ];
 
   for (const configPath of candidatePaths) {
@@ -77,7 +107,10 @@ function loadEnvironmentConfig(): void {
 }
 
 loadEnvironmentConfig();
-console.log("[electron] active SUPABASE_URL=", process.env.SUPABASE_URL || "<not set>");
+console.log(
+  "[electron] active SUPABASE_URL=",
+  process.env.SUPABASE_URL || "<not set>",
+);
 
 async function createWindow(): Promise<void> {
   const settings = getAllSettings();
@@ -97,15 +130,15 @@ async function createWindow(): Promise<void> {
     title: "",
     backgroundColor: initialBgColor,
     show: false,
-    titleBarStyle: 'hidden',
+    titleBarStyle: "hidden",
     icon: path.join(__dirname, "../../build-resources/icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
-      webSecurity: true
-    }
+      webSecurity: true,
+    },
   });
 
   // Show window gracefully after content is ready (avoids flash of white)
@@ -134,7 +167,7 @@ async function createWindow(): Promise<void> {
 app.whenReady().then(async () => {
   const server = await createVoucherServer();
   serverUrl = server.url;
-  
+
   ipcMain.on("window:minimize", () => mainWindow?.minimize());
   ipcMain.on("window:maximize", () => {
     if (mainWindow?.isMaximized()) {
@@ -147,18 +180,30 @@ app.whenReady().then(async () => {
   ipcMain.on("window:back", () => mainWindow?.webContents.goBack());
   ipcMain.on("window:forward", () => mainWindow?.webContents.goForward());
 
-  ipcMain.handle("auth:sign-in", async (_event, credentials: AuthCredentials) => signIn(credentials));
-  ipcMain.handle("auth:sign-up", async (_event, credentials: AuthCredentials) => signUp(credentials));
-  ipcMain.handle("auth:reset-password", async (_event, email: string) => resetPassword(email));
+  ipcMain.handle("auth:sign-in", async (_event, credentials: AuthCredentials) =>
+    signIn(credentials),
+  );
+  ipcMain.handle("auth:sign-up", async (_event, credentials: AuthCredentials) =>
+    signUp(credentials),
+  );
+  ipcMain.handle("auth:reset-password", async (_event, email: string) =>
+    resetPassword(email),
+  );
   ipcMain.handle("auth:sign-out", async () => signOut());
   ipcMain.handle("auth:state", async () => getAuthState());
-  ipcMain.handle("auth:update-profile", async (_event, updates: { employeeName?: string; employeeEmail?: string }) => updateProfile(updates));
+  ipcMain.handle(
+    "auth:update-profile",
+    async (
+      _event,
+      updates: { employeeName?: string; employeeEmail?: string },
+    ) => updateProfile(updates),
+  );
 
   ipcMain.handle("voucher:save", async (_event, voucher: VoucherPayload) => {
     const response = await fetch(`${serverUrl}/api/vouchers`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(voucher)
+      body: JSON.stringify(voucher),
     });
 
     if (!response.ok) {
@@ -168,19 +213,25 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
-  ipcMain.handle("voucher:generate", async (_event, payload: { voucher: VoucherPayload; format: DocumentFormat }) => {
-    const response = await fetch(`${serverUrl}/api/vouchers/generate`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+  ipcMain.handle(
+    "voucher:generate",
+    async (
+      _event,
+      payload: { voucher: VoucherPayload; format: DocumentFormat },
+    ) => {
+      const response = await fetch(`${serverUrl}/api/vouchers/generate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
-    return response.json();
-  });
+      return response.json();
+    },
+  );
 
   ipcMain.handle("voucher-documents:list", async () => {
     const response = await fetch(`${serverUrl}/api/voucher-documents`);
@@ -192,29 +243,42 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
-  ipcMain.handle("vouchers:list", async (_event, filters?: { status?: string; dateFrom?: string; dateTo?: string; query?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (filters?.status) {
-      searchParams.set("status", filters.status);
-    }
-    if (filters?.dateFrom) {
-      searchParams.set("dateFrom", filters.dateFrom);
-    }
-    if (filters?.dateTo) {
-      searchParams.set("dateTo", filters.dateTo);
-    }
-    if (filters?.query) {
-      searchParams.set("query", filters.query);
-    }
+  ipcMain.handle(
+    "vouchers:list",
+    async (
+      _event,
+      filters?: {
+        status?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        query?: string;
+      },
+    ) => {
+      const searchParams = new URLSearchParams();
+      if (filters?.status) {
+        searchParams.set("status", filters.status);
+      }
+      if (filters?.dateFrom) {
+        searchParams.set("dateFrom", filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        searchParams.set("dateTo", filters.dateTo);
+      }
+      if (filters?.query) {
+        searchParams.set("query", filters.query);
+      }
 
-    const response = await fetch(`${serverUrl}/api/vouchers?${searchParams.toString()}`);
+      const response = await fetch(
+        `${serverUrl}/api/vouchers?${searchParams.toString()}`,
+      );
 
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
-    return response.json();
-  });
+      return response.json();
+    },
+  );
 
   ipcMain.handle("voucher:get", async (_event, voucherId: string) => {
     const response = await fetch(`${serverUrl}/api/vouchers/${voucherId}`);
@@ -227,7 +291,9 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("voucher:revisions", async (_event, voucherId: string) => {
-    const response = await fetch(`${serverUrl}/api/vouchers/${voucherId}/revisions`);
+    const response = await fetch(
+      `${serverUrl}/api/vouchers/${voucherId}/revisions`,
+    );
 
     if (!response.ok) {
       throw new Error(await response.text());
@@ -236,23 +302,31 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
-  ipcMain.handle("voucher:status", async (_event, payload: { voucherId: string; status: string }) => {
-    const response = await fetch(`${serverUrl}/api/vouchers/${payload.voucherId}/status`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ status: payload.status })
-    });
+  ipcMain.handle(
+    "voucher:status",
+    async (_event, payload: { voucherId: string; status: string }) => {
+      const response = await fetch(
+        `${serverUrl}/api/vouchers/${payload.voucherId}/status`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ status: payload.status }),
+        },
+      );
 
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
 
-    return response.json();
-  });
+      return response.json();
+    },
+  );
 
   ipcMain.handle("workspace:search", async (_event, query: string) => {
     const searchParams = new URLSearchParams({ q: query });
-    const response = await fetch(`${serverUrl}/api/search?${searchParams.toString()}`);
+    const response = await fetch(
+      `${serverUrl}/api/search?${searchParams.toString()}`,
+    );
 
     if (!response.ok) {
       throw new Error(await response.text());
@@ -307,16 +381,19 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/tour-types`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
   ipcMain.handle("reference:delete-tour-type", async (_event, id) => {
-    const response = await fetch(`${serverUrl}/api/reference/tour-types/${id}`, {
-      method: "DELETE"
-    });
+    const response = await fetch(
+      `${serverUrl}/api/reference/tour-types/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
@@ -331,16 +408,19 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/meal-basis`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
   ipcMain.handle("reference:delete-meal-basis", async (_event, id) => {
-    const response = await fetch(`${serverUrl}/api/reference/meal-basis/${id}`, {
-      method: "DELETE"
-    });
+    const response = await fetch(
+      `${serverUrl}/api/reference/meal-basis/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
@@ -349,7 +429,7 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/markets`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
@@ -357,7 +437,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("reference:delete-market", async (_event, id) => {
     const response = await fetch(`${serverUrl}/api/reference/markets/${id}`, {
-      method: "DELETE"
+      method: "DELETE",
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
@@ -367,7 +447,7 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/customers`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
@@ -375,7 +455,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("reference:delete-customer", async (_event, id) => {
     const response = await fetch(`${serverUrl}/api/reference/customers/${id}`, {
-      method: "DELETE"
+      method: "DELETE",
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
@@ -385,16 +465,19 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/room-categories`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
   ipcMain.handle("reference:delete-room-category", async (_event, id) => {
-    const response = await fetch(`${serverUrl}/api/reference/room-categories/${id}`, {
-      method: "DELETE"
-    });
+    const response = await fetch(
+      `${serverUrl}/api/reference/room-categories/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
@@ -409,45 +492,59 @@ app.whenReady().then(async () => {
     const response = await fetch(`${serverUrl}/api/reference/currencies`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(ref)
+      body: JSON.stringify(ref),
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
   ipcMain.handle("reference:delete-currency", async (_event, id) => {
-    const response = await fetch(`${serverUrl}/api/reference/currencies/${id}`, {
-      method: "DELETE"
-    });
+    const response = await fetch(
+      `${serverUrl}/api/reference/currencies/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
   ipcMain.handle("reference:list-inactive", async (_event, table: string) => {
-    const response = await fetch(`${serverUrl}/api/reference/${table}/inactive`);
+    const response = await fetch(
+      `${serverUrl}/api/reference/${table}/inactive`,
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
 
-  ipcMain.handle("reference:restore", async (_event, payload: { table: string; id: string }) => {
-    const response = await fetch(`${serverUrl}/api/reference/${payload.table}/${payload.id}/restore`, {
-      method: "PATCH"
-    });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  });
+  ipcMain.handle(
+    "reference:restore",
+    async (_event, payload: { table: string; id: string }) => {
+      const response = await fetch(
+        `${serverUrl}/api/reference/${payload.table}/${payload.id}/restore`,
+        {
+          method: "PATCH",
+        },
+      );
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+  );
 
   /* ---------- Rate Master IPC handlers ---------- */
 
-  ipcMain.handle("rate-master:save", async (_event, contract: HotelRateRecord) => {
-    const response = await fetch(`${serverUrl}/api/rate-master`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(contract),
-    });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  });
+  ipcMain.handle(
+    "rate-master:save",
+    async (_event, contract: HotelRateRecord) => {
+      const response = await fetch(`${serverUrl}/api/rate-master`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(contract),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+  );
 
   ipcMain.handle("rate-master:delete", async (_event, id: string) => {
     const response = await fetch(`${serverUrl}/api/rate-master/${id}`, {
@@ -480,7 +577,9 @@ app.whenReady().then(async () => {
   ipcMain.handle("rate-master:list", async (_event, hotelName?: string) => {
     const params = new URLSearchParams();
     if (hotelName) params.set("hotelName", hotelName);
-    const response = await fetch(`${serverUrl}/api/rate-master?${params.toString()}`);
+    const response = await fetch(
+      `${serverUrl}/api/rate-master?${params.toString()}`,
+    );
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
@@ -497,15 +596,21 @@ app.whenReady().then(async () => {
     return response.json();
   });
 
-  ipcMain.handle("rate-master:auto-fill", async (_event, payload: { voucher: VoucherPayload; contractId?: string }) => {
-    const response = await fetch(`${serverUrl}/api/rate-master/auto-fill`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  });
+  ipcMain.handle(
+    "rate-master:auto-fill",
+    async (
+      _event,
+      payload: { voucher: VoucherPayload; contractId?: string },
+    ) => {
+      const response = await fetch(`${serverUrl}/api/rate-master/auto-fill`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+  );
 
   /* ---------- Tours Folder IPC handlers ---------- */
 
@@ -535,64 +640,89 @@ app.whenReady().then(async () => {
     return getAllSettings();
   });
 
-  ipcMain.handle("settings:set", async (_event, settings: Record<string, unknown>) => {
-    return updateSettings(settings);
-  });
+  ipcMain.handle(
+    "settings:set",
+    async (_event, settings: Record<string, unknown>) => {
+      return updateSettings(settings);
+    },
+  );
 
-  ipcMain.handle("dialog:select-folder", async (_event, options: { title?: string; defaultPath?: string }) => {
-    const result = await dialog.showOpenDialog(mainWindow!, {
-      title: options.title || "Select Folder",
-      defaultPath: options.defaultPath || app.getPath("home"),
-      properties: ["openDirectory"]
-    });
-    return result.canceled ? null : result.filePaths[0] || null;
-  });
+  ipcMain.handle(
+    "dialog:select-folder",
+    async (_event, options: { title?: string; defaultPath?: string }) => {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        title: options.title || "Select Folder",
+        defaultPath: options.defaultPath || app.getPath("home"),
+        properties: ["openDirectory"],
+      });
+      return result.canceled ? null : result.filePaths[0] || null;
+    },
+  );
 
-  ipcMain.handle("dialog:select-file", async (_event, options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
-    const result = await dialog.showOpenDialog(mainWindow!, {
-      title: options.title || "Select File",
-      defaultPath: options.defaultPath || app.getPath("home"),
-      properties: ["openFile"],
-      filters: options.filters
-    });
-    return result.canceled ? null : result.filePaths[0] || null;
-  });
+  ipcMain.handle(
+    "dialog:select-file",
+    async (
+      _event,
+      options: {
+        title?: string;
+        defaultPath?: string;
+        filters?: Array<{ name: string; extensions: string[] }>;
+      },
+    ) => {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        title: options.title || "Select File",
+        defaultPath: options.defaultPath || app.getPath("home"),
+        properties: ["openFile"],
+        filters: options.filters,
+      });
+      return result.canceled ? null : result.filePaths[0] || null;
+    },
+  );
 
   ipcMain.handle("template-db:list", async () => {
     return listVoucherTemplates();
   });
 
-  ipcMain.handle("template-db:upload", async (_event, { name, filePath }: { name: string; filePath: string }) => {
-    await validateTemplate(filePath);
-    const content = await fs.promises.readFile(filePath);
-    const base64 = content.toString("base64");
-    await upsertVoucherTemplate(name, base64);
-  });
+  ipcMain.handle(
+    "template-db:upload",
+    async (_event, { name, filePath }: { name: string; filePath: string }) => {
+      await validateTemplate(filePath);
+      const content = await fs.promises.readFile(filePath);
+      const base64 = content.toString("base64");
+      await upsertVoucherTemplate(name, base64);
+    },
+  );
 
-  ipcMain.handle("template-db:download", async (_event, { name }: { name: string }) => {
-    const template = await getVoucherTemplate(name);
-    if (!template?.file_data) {
-      throw new Error(`Template '${name}' not found or empty.`);
-    }
+  ipcMain.handle(
+    "template-db:download",
+    async (_event, { name }: { name: string }) => {
+      const template = await getVoucherTemplate(name);
+      if (!template?.file_data) {
+        throw new Error(`Template '${name}' not found or empty.`);
+      }
 
-    const result = await dialog.showSaveDialog(mainWindow!, {
-      title: "Save Template",
-      defaultPath: path.join(app.getPath("downloads"), `${name}.docx`),
-      filters: [{ name: "Word Documents", extensions: ["docx"] }]
-    });
+      const result = await dialog.showSaveDialog(mainWindow!, {
+        title: "Save Template",
+        defaultPath: path.join(app.getPath("downloads"), `${name}.docx`),
+        filters: [{ name: "Word Documents", extensions: ["docx"] }],
+      });
 
-    if (result.canceled || !result.filePath) {
-      return false;
-    }
+      if (result.canceled || !result.filePath) {
+        return false;
+      }
 
-    const buffer = Buffer.from(template.file_data, "base64");
-    await fs.promises.writeFile(result.filePath, buffer);
-    return true;
-  });
+      const buffer = Buffer.from(template.file_data, "base64");
+      await fs.promises.writeFile(result.filePath, buffer);
+      return true;
+    },
+  );
 
-  ipcMain.handle("template-db:delete", async (_event, { name }: { name: string }) => {
-    await deleteVoucherTemplate(name);
-  });
+  ipcMain.handle(
+    "template-db:delete",
+    async (_event, { name }: { name: string }) => {
+      await deleteVoucherTemplate(name);
+    },
+  );
 
   await createWindow();
 

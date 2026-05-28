@@ -1,7 +1,6 @@
 Public push checklist
 
 1. Verify no tracked secrets
-
    - Ensure `.env` and `build-resources/config.json` are untracked:
 
      ```bash
@@ -19,11 +18,9 @@ Public push checklist
    - To purge a secret from history, use `git filter-repo` or BFG (manual, follow their docs).
 
 2. Provide example config files
-
    - Add `.env.example` and `build-resources/config.example.json` (already present).
 
 3. Build verification
-
    - Install deps and build locally to verify no build-time secrets are required:
 
      ```bash
@@ -32,11 +29,9 @@ Public push checklist
      ```
 
 4. Update README
-
    - Confirm README documents how to create `.env` from `.env.example` and how to configure Supabase.
 
 5. Final push
-
    - Create a release branch or tag, then push to remote:
 
      ```bash

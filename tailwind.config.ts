@@ -13,19 +13,19 @@ export default {
         line: "var(--color-line)",
         success: "var(--color-success)",
         warning: "var(--color-warning)",
-        surface: "var(--color-surface)"
+        surface: "var(--color-surface)",
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["Public Sans", "Inter", "ui-sans-serif", "system-ui"]
+        display: ["Public Sans", "Inter", "ui-sans-serif", "system-ui"],
       },
       borderRadius: {
-        app: "8px"
+        app: "8px",
       },
       boxShadow: {
-        panel: "0 1px 2px rgba(16, 24, 40, 0.06)"
-      }
-    }
+        panel: "0 1px 2px rgba(16, 24, 40, 0.06)",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 } satisfies Config;

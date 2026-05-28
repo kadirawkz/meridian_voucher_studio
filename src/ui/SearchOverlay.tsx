@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { 
-  FileText, 
-  ChevronDown, 
-  ChevronRight, 
-  Folder, 
-  Search, 
-  X, 
+import {
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Search,
+  X,
   ExternalLink,
   Layers,
   Terminal,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
-import type { WorkspaceSearchResult, VoucherRecord } from "../../electron/shared/types";
+import type {
+  WorkspaceSearchResult,
+  VoucherRecord,
+} from "../../electron/shared/types";
 
 interface SearchOverlayProps {
   searchQuery: string;
@@ -28,14 +31,17 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   const parts = text.split(new RegExp(`(${escapedQuery})`, "gi"));
   return (
     <span>
-      {parts.map((part, i) => 
+      {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-amber-100 text-amber-950 rounded-[2px] px-0.5 font-bold">
+          <mark
+            key={i}
+            className="bg-amber-100 text-amber-950 rounded-[2px] px-0.5 font-bold"
+          >
             {part}
           </mark>
         ) : (
           part
-        )
+        ),
       )}
     </span>
   );
@@ -64,11 +70,12 @@ export function SearchOverlay({
 
   if (!searchQuery) return null;
 
-  const totalResults = searchResults.vouchers.length + searchResults.documents.length;
+  const totalResults =
+    searchResults.vouchers.length + searchResults.documents.length;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-navy/20 backdrop-blur-[2px] flex items-center justify-center p-4" 
+    <div
+      className="fixed inset-0 z-50 bg-navy/20 backdrop-blur-[2px] flex items-center justify-center p-4"
       onClick={() => setSearchQuery("")}
     >
       <div
@@ -79,9 +86,11 @@ export function SearchOverlay({
         <div className="bg-cloud/55 px-4 py-3 flex items-center justify-between border-b border-line">
           <div className="flex items-center gap-2">
             <Terminal size={14} className="text-navy" />
-            <span className="font-bold text-navy tracking-tight uppercase">Workspace Search Index</span>
+            <span className="font-bold text-navy tracking-tight uppercase">
+              Workspace Search Index
+            </span>
           </div>
-          <button 
+          <button
             onClick={() => setSearchQuery("")}
             className="text-steel hover:text-navy hover:bg-cloud transition-colors p-1 rounded-full"
             title="Close Search Overlay"
@@ -94,7 +103,10 @@ export function SearchOverlay({
         <div className="bg-surface px-4 py-2.5 border-b border-line/70 flex items-center justify-between text-[11px] text-steel font-medium">
           <div className="flex items-center gap-2">
             <Search size={12} className="text-steel" />
-            <span>Search Term: &quot;<span className="text-navy font-bold">{searchQuery}</span>&quot;</span>
+            <span>
+              Search Term: &quot;
+              <span className="text-navy font-bold">{searchQuery}</span>&quot;
+            </span>
           </div>
           <div className="font-semibold text-navy">
             {totalResults} {totalResults === 1 ? "match" : "matches"} found
@@ -106,24 +118,32 @@ export function SearchOverlay({
           {isSearching ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-steel">
               <RefreshCw className="animate-spin text-navy" size={24} />
-              <span className="font-medium text-xs">Scanning database index records...</span>
+              <span className="font-medium text-xs">
+                Scanning database index records...
+              </span>
             </div>
           ) : totalResults === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-steel gap-2.5">
               <Search size={26} className="text-slate-300" />
-              <span className="font-medium">No results found in workspace matching your criteria.</span>
+              <span className="font-medium">
+                No results found in workspace matching your criteria.
+              </span>
             </div>
           ) : (
             <div className="space-y-3">
               {/* Vouchers Folder Category */}
               {searchResults.vouchers.length > 0 && (
                 <div className="space-y-1">
-                  <div 
+                  <div
                     onClick={() => setVouchersExpanded(!vouchersExpanded)}
                     className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-cloud/60 rounded-app cursor-pointer text-navy font-bold group transition-all"
                   >
                     <span className="text-steel">
-                      {vouchersExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {vouchersExpanded ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
                     </span>
                     <Folder size={14} className="text-navy fill-cloud" />
                     <span>vouchers</span>
@@ -144,15 +164,31 @@ export function SearchOverlay({
                           className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-slate-700 border border-transparent hover:border-blue-100/50 transition-all"
                         >
                           <div className="flex items-center gap-2 overflow-hidden mr-4">
-                            <Layers size={13} className="text-indigo-500 shrink-0" />
+                            <Layers
+                              size={13}
+                              className="text-indigo-500 shrink-0"
+                            />
                             <div className="truncate">
                               <span className="font-bold text-navy mr-2 text-xs">
-                                <HighlightText text={voucher.requisitionNo || voucher.tourNo || "No Ref"} query={searchQuery} />
+                                <HighlightText
+                                  text={
+                                    voucher.requisitionNo ||
+                                    voucher.tourNo ||
+                                    "No Ref"
+                                  }
+                                  query={searchQuery}
+                                />
                               </span>
                               <span className="text-[11px] text-steel font-medium">
-                                <HighlightText text={voucher.hotelName} query={searchQuery} />
+                                <HighlightText
+                                  text={voucher.hotelName}
+                                  query={searchQuery}
+                                />
                                 {" · "}
-                                <HighlightText text={voucher.customerName} query={searchQuery} />
+                                <HighlightText
+                                  text={voucher.customerName}
+                                  query={searchQuery}
+                                />
                               </span>
                             </div>
                           </div>
@@ -169,12 +205,16 @@ export function SearchOverlay({
               {/* Documents Folder Category */}
               {searchResults.documents.length > 0 && (
                 <div className="space-y-1">
-                  <div 
+                  <div
                     onClick={() => setDocumentsExpanded(!documentsExpanded)}
                     className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-cloud/60 rounded-app cursor-pointer text-navy font-bold group transition-all"
                   >
                     <span className="text-steel">
-                      {documentsExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {documentsExpanded ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
                     </span>
                     <Folder size={14} className="text-blue-600 fill-blue-50" />
                     <span>documents</span>
@@ -195,19 +235,35 @@ export function SearchOverlay({
                           className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-slate-700 border border-transparent hover:border-blue-100/50 transition-all"
                         >
                           <div className="flex items-center gap-2 overflow-hidden mr-4">
-                            <FileText size={13} className="text-blue-500 shrink-0" />
+                            <FileText
+                              size={13}
+                              className="text-blue-500 shrink-0"
+                            />
                             <div className="truncate">
                               <span className="font-bold text-navy mr-2 text-xs">
-                                <HighlightText text={doc.requisitionNo || doc.tourNo || "No Ref"} query={searchQuery} />
+                                <HighlightText
+                                  text={
+                                    doc.requisitionNo || doc.tourNo || "No Ref"
+                                  }
+                                  query={searchQuery}
+                                />
                               </span>
                               <span className="text-[11px] text-steel font-medium">
-                                <HighlightText text={doc.hotelName} query={searchQuery} />
+                                <HighlightText
+                                  text={doc.hotelName}
+                                  query={searchQuery}
+                                />
                                 {" · "}
-                                <span className="uppercase text-amber-600 font-bold bg-amber-50 px-1.5 py-0.2 border border-amber-100 rounded text-[9px]">{doc.format}</span>
+                                <span className="uppercase text-amber-600 font-bold bg-amber-50 px-1.5 py-0.2 border border-amber-100 rounded text-[9px]">
+                                  {doc.format}
+                                </span>
                               </span>
                             </div>
                           </div>
-                          <ExternalLink size={12} className="text-steel opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ExternalLink
+                            size={12}
+                            className="text-steel opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </div>
                       ))}
                     </div>

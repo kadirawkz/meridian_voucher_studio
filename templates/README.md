@@ -68,5 +68,6 @@ Reservation-specific wording
 Add the matching boolean fields in `electron/main/lib/documentGenerator.ts` if the final template needs conditional text.
 
 Notes:
+
 - `{rateApplicable}` resolves to computed rate text for backward compatibility.
 - Prefer `{rateApplicableText}` in new templates.

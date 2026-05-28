@@ -11,7 +11,11 @@ export function LoadingScreen({ themeClass }: LoadingScreenProps) {
       <div className="app-loading-screen">
         <div className="app-loading-card">
           <div className="app-loading-logo overflow-hidden bg-cloud">
-            <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+            <img
+              src={logo}
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="app-loading-spinner" />
           <p className="app-loading-text">Meridian Voucher Studio</p>

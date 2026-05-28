@@ -3,7 +3,10 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { defaultVoucher } from "../../domain/defaultVoucher";
 import { VoucherFormValues, voucherSchema } from "../../domain/voucherSchema";
-import { withAccountDefaults, isFormVoucherEqual } from "../../domain/voucherUtils";
+import {
+  withAccountDefaults,
+  isFormVoucherEqual,
+} from "../../domain/voucherUtils";
 import { friendlyErrorMessage } from "../../utils/errors";
 import type {
   AccountProfile,
@@ -14,7 +17,7 @@ import type {
   RoomCategoryRef,
   CustomerRef,
   TourTypeRef,
-  MealBasisRef
+  MealBasisRef,
 } from "../../../electron/shared/types";
 
 interface UseVoucherFormProps {
@@ -36,34 +39,50 @@ export function useVoucherForm({
   refreshVoucherRegister,
   refreshDocumentHistory,
   refreshToursFolderTree,
-  refreshVoucherRevisions
+  refreshVoucherRevisions,
 }: UseVoucherFormProps) {
-  const [actionState, setActionState] = useState<"idle" | "saving" | "generating-docx" | "generating-pdf">("idle");
+  const [actionState, setActionState] = useState<
+    "idle" | "saving" | "generating-docx" | "generating-pdf"
+  >("idle");
   const [generated, setGenerated] = useState<GeneratedDocument | null>(null);
 
   const [hotelOptions, setHotelOptions] = useState<string[]>([]);
   const [marketOptions, setMarketOptions] = useState<readonly string[]>([]);
-  const [roomCategoryOptions, setRoomCategoryOptions] = useState<readonly string[]>([]);
+  const [roomCategoryOptions, setRoomCategoryOptions] = useState<
+    readonly string[]
+  >([]);
   const [customerOptions, setCustomerOptions] = useState<string[]>([]);
   const [tourTypeOptions, setTourTypeOptions] = useState<readonly string[]>([]);
-  const [mealBasisOptionsState, setMealBasisOptionsState] = useState<readonly string[]>([]);
-  
+  const [mealBasisOptionsState, setMealBasisOptionsState] = useState<
+    readonly string[]
+  >([]);
+
   const [selectedHotelRateId, setSelectedHotelRateId] = useState<string>("");
   const [ratesTrigger, setRatesTrigger] = useState(0);
-  const [hotelContracts, setHotelContracts] = useState<HotelRateRecordSummary[]>([]);
-  const [availableSupplements, setAvailableSupplements] = useState<{ supplement_name: string; room_category: string; supplement_amount: number; per: string; }[]>([]);
+  const [hotelContracts, setHotelContracts] = useState<
+    HotelRateRecordSummary[]
+  >([]);
+  const [availableSupplements, setAvailableSupplements] = useState<
+    {
+      supplement_name: string;
+      room_category: string;
+      supplement_amount: number;
+      per: string;
+    }[]
+  >([]);
   const [manualRates, setManualRates] = useState(false);
-  
+
   const [docxDropdownOpen, setDocxDropdownOpen] = useState(false);
   const [pdfDropdownOpen, setPdfDropdownOpen] = useState(false);
 
   const form = useForm<VoucherFormValues>({
     resolver: zodResolver(voucherSchema),
     defaultValues: defaultVoucher,
-    mode: "onChange"
+    mode: "onChange",
   });
 
-  const [lastSavedValues, setLastSavedValues] = useState<VoucherFormValues>(defaultVoucher);
+  const [lastSavedValues, setLastSavedValues] =
+    useState<VoucherFormValues>(defaultVoucher);
 
   function resetForm(newValues: VoucherFormValues) {
     form.reset(newValues);
@@ -77,13 +96,13 @@ export function useVoucherForm({
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "lineItems"
+    name: "lineItems",
   });
 
   const lineItems = useWatch({
     control: form.control,
     name: "lineItems",
-    defaultValue: defaultVoucher.lineItems
+    defaultValue: defaultVoucher.lineItems,
   }) as VoucherFormValues["lineItems"];
 
   const hotelName = form.watch("hotelName");
@@ -114,10 +133,13 @@ export function useVoucherForm({
         Number(item.child6_11OwnRoom || 0);
 
       if (rooms > 0 || children > 0) {
-        const existing = grouped.get(item.requiredDate) || { rooms: 0, children: 0 };
+        const existing = grouped.get(item.requiredDate) || {
+          rooms: 0,
+          children: 0,
+        };
         grouped.set(item.requiredDate, {
           rooms: existing.rooms + rooms,
-          children: existing.children + children
+          children: existing.children + children,
         });
       }
     }
@@ -175,7 +197,8 @@ export function useVoucherForm({
     }
 
     if (window.meridian?.listHotels) {
-      void window.meridian.listHotels()
+      void window.meridian
+        .listHotels()
         .then((refs: HotelRef[]) => {
           const names = refs.map((h) => h.name).filter(Boolean);
           setHotelOptions(names.sort((a, b) => a.localeCompare(b)));
@@ -184,32 +207,47 @@ export function useVoucherForm({
     }
 
     if (window.meridian?.listMarkets) {
-      void window.meridian.listMarkets()
-        .then((refs: MarketRef[]) => setMarketOptions(refs.map((m) => m.code).filter(Boolean)))
+      void window.meridian
+        .listMarkets()
+        .then((refs: MarketRef[]) =>
+          setMarketOptions(refs.map((m) => m.code).filter(Boolean)),
+        )
         .catch(() => setMarketOptions([]));
     }
 
     if (window.meridian?.listRoomCategories) {
-      void window.meridian.listRoomCategories()
-        .then((refs: RoomCategoryRef[]) => setRoomCategoryOptions(refs.map((r) => r.name).filter(Boolean)))
+      void window.meridian
+        .listRoomCategories()
+        .then((refs: RoomCategoryRef[]) =>
+          setRoomCategoryOptions(refs.map((r) => r.name).filter(Boolean)),
+        )
         .catch(() => setRoomCategoryOptions([]));
     }
 
     if (window.meridian?.listCustomers) {
-      void window.meridian.listCustomers()
-        .then((refs: CustomerRef[]) => setCustomerOptions(refs.map((c) => c.name).filter(Boolean)))
+      void window.meridian
+        .listCustomers()
+        .then((refs: CustomerRef[]) =>
+          setCustomerOptions(refs.map((c) => c.name).filter(Boolean)),
+        )
         .catch(() => setCustomerOptions([]));
     }
 
     if (window.meridian?.listTourTypes) {
-      void window.meridian.listTourTypes()
-        .then((refs: TourTypeRef[]) => setTourTypeOptions(refs.map((t) => t.code).filter(Boolean)))
+      void window.meridian
+        .listTourTypes()
+        .then((refs: TourTypeRef[]) =>
+          setTourTypeOptions(refs.map((t) => t.code).filter(Boolean)),
+        )
         .catch(() => setTourTypeOptions([]));
     }
 
     if (window.meridian?.listMealBasis) {
-      void window.meridian.listMealBasis()
-        .then((refs: MealBasisRef[]) => setMealBasisOptionsState(refs.map((b) => b.code).filter(Boolean)))
+      void window.meridian
+        .listMealBasis()
+        .then((refs: MealBasisRef[]) =>
+          setMealBasisOptionsState(refs.map((b) => b.code).filter(Boolean)),
+        )
         .catch(() => setMealBasisOptionsState([]));
     }
   }, [isAuthenticated, activeView, ratesTrigger]);
@@ -221,13 +259,20 @@ export function useVoucherForm({
     const timer = window.setTimeout(async () => {
       try {
         const values = form.getValues();
-        const result = await window.meridian.autoFillVoucher(values, selectedHotelRateId || undefined);
+        const result = await window.meridian.autoFillVoucher(
+          values,
+          selectedHotelRateId || undefined,
+        );
 
         if (result.status === "matched") {
           form.setValue("rateApplicableText", result.rateApplicableText || "");
           form.setValue("matchedHotelRateId", result.matchedHotelRateId ?? "");
-          if (result.billingInstructions) form.setValue("billingInstructions", result.billingInstructions);
-        } else if (result.status === "multiple" && result.candidateHotelRates?.length) {
+          if (result.billingInstructions)
+            form.setValue("billingInstructions", result.billingInstructions);
+        } else if (
+          result.status === "multiple" &&
+          result.candidateHotelRates?.length
+        ) {
           form.setValue("rateApplicableText", "");
           form.setValue("matchedHotelRateId", "");
         } else {
@@ -239,24 +284,51 @@ export function useVoucherForm({
     }, 400);
 
     return () => window.clearTimeout(timer);
-  }, [lineItems, hotelName, market, ratePeriod, form, selectedHotelRateId, manualRates, ratesTrigger]);
+  }, [
+    lineItems,
+    hotelName,
+    market,
+    ratePeriod,
+    form,
+    selectedHotelRateId,
+    manualRates,
+    ratesTrigger,
+  ]);
 
   // Auto set tour name
   useEffect(() => {
     if (!customerName || !tourType) return;
     if (form.formState.dirtyFields.tourName) return;
 
-    const firstDate = lineItems.map((li) => li.requiredDate).filter(Boolean).sort()[0];
+    const firstDate = lineItems
+      .map((li) => li.requiredDate)
+      .filter(Boolean)
+      .sort()[0];
     let dateStr = "";
     if (firstDate) {
       const d = new Date(firstDate);
       if (!isNaN(d.getTime())) {
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
         dateStr = ` ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
       }
     }
 
-    form.setValue("tourName", `${customerName} ${tourType}${dateStr}`.trim(), { shouldValidate: true });
+    form.setValue("tourName", `${customerName} ${tourType}${dateStr}`.trim(), {
+      shouldValidate: true,
+    });
   }, [customerName, tourType, lineItems, form]);
 
   // Auto set voucher title
@@ -267,7 +339,7 @@ export function useVoucherForm({
     const titleMap: Record<string, string> = {
       reservation: "Hotel Reservation Voucher",
       amendment: "Amendment Voucher",
-      pptp: "PPTP Voucher"
+      pptp: "PPTP Voucher",
     };
 
     const title = titleMap[voucherType as string] || "";
@@ -296,7 +368,10 @@ export function useVoucherForm({
     }
   }
 
-  async function handleGenerateDocx(values: VoucherFormValues, customOutputDir?: string) {
+  async function handleGenerateDocx(
+    values: VoucherFormValues,
+    customOutputDir?: string,
+  ) {
     if (!window.meridian) {
       addNotice("Desktop bridge unavailable; restart the application", "error");
       return;
@@ -312,18 +387,28 @@ export function useVoucherForm({
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      addNotice(customOutputDir ? "DOCX generated in custom location" : "DOCX generated");
+      addNotice(
+        customOutputDir
+          ? "DOCX generated in custom location"
+          : "DOCX generated",
+      );
       await refreshDocumentHistory();
       await refreshVoucherRegister();
       await refreshToursFolderTree();
     } catch (error) {
-      addNotice(friendlyErrorMessage(error, "Unable to generate DOCX"), "error");
+      addNotice(
+        friendlyErrorMessage(error, "Unable to generate DOCX"),
+        "error",
+      );
     } finally {
       setActionState("idle");
     }
   }
 
-  async function handleGeneratePdf(values: VoucherFormValues, customOutputDir?: string) {
+  async function handleGeneratePdf(
+    values: VoucherFormValues,
+    customOutputDir?: string,
+  ) {
     if (!window.meridian) {
       addNotice("Desktop bridge unavailable; restart the application", "error");
       return;
@@ -339,7 +424,9 @@ export function useVoucherForm({
         form.setValue("id", result.voucherId);
         await refreshVoucherRevisions(result.voucherId);
       }
-      addNotice(customOutputDir ? "PDF generated in custom location" : "PDF generated");
+      addNotice(
+        customOutputDir ? "PDF generated in custom location" : "PDF generated",
+      );
       await refreshDocumentHistory();
       await refreshVoucherRegister();
       await refreshToursFolderTree();
@@ -399,6 +486,6 @@ export function useVoucherForm({
     handleSave,
     handleGenerateDocx,
     handleGeneratePdf,
-    handleClearForm
+    handleClearForm,
   };
 }

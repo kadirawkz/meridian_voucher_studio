@@ -5,7 +5,7 @@ import prettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["dist/**", "dist-electron/**", "release/**", "node_modules/**"]
+    ignores: ["dist/**", "dist-electron/**", "release/**", "node_modules/**"],
   },
   js.configs.recommended,
   {
@@ -14,7 +14,7 @@ export default [
       parser: tsParser,
       parserOptions: {
         ecmaVersion: "latest",
-        sourceType: "module"
+        sourceType: "module",
       },
       globals: {
         window: "readonly",
@@ -39,15 +39,15 @@ export default [
         Event: "readonly",
         PopStateEvent: "readonly",
         WheelEvent: "readonly",
-        KeyboardEvent: "readonly"
-      }
+        KeyboardEvent: "readonly",
+      },
     },
     plugins: {
-      "@typescript-eslint": tseslint
+      "@typescript-eslint": tseslint,
     },
     rules: {
-      ...tseslint.configs.recommended.rules
-    }
+      ...tseslint.configs.recommended.rules,
+    },
   },
-  prettier
+  prettier,
 ];

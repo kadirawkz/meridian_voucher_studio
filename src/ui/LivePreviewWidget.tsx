@@ -25,7 +25,9 @@ interface LineItem {
 
 interface LivePreviewWidgetProps {
   previewMode: "collapsed" | "thumbnail" | "expanded";
-  setPreviewMode: React.Dispatch<React.SetStateAction<"collapsed" | "thumbnail" | "expanded">>;
+  setPreviewMode: React.Dispatch<
+    React.SetStateAction<"collapsed" | "thumbnail" | "expanded">
+  >;
   previewPos: { x: number; y: number };
   windowSize: { width: number; height: number };
   isDraggingPreview: boolean;
@@ -67,7 +69,7 @@ export function LivePreviewWidget({
   remarks,
   billingInstructions,
   employeeName,
-  employeeEmail
+  employeeEmail,
 }: LivePreviewWidgetProps) {
   const baseWidth = 700;
   const baseHeight = 968;
@@ -80,10 +82,26 @@ export function LivePreviewWidget({
     fitScale = Math.min(1, maxW / baseWidth, maxH / baseHeight);
   }
 
-  const targetWidth = previewMode === "expanded" ? Math.round(baseWidth * fitScale) : previewMode === "collapsed" ? 180 : 270;
-  const targetHeight = previewMode === "expanded" ? Math.round(baseHeight * fitScale) : previewMode === "collapsed" ? 32 : 400;
-  const safeX = Math.max(8, Math.min(previewPos.x, windowSize.width - targetWidth - 8));
-  const safeY = Math.max(48, Math.min(previewPos.y, windowSize.height - targetHeight - 8));
+  const targetWidth =
+    previewMode === "expanded"
+      ? Math.round(baseWidth * fitScale)
+      : previewMode === "collapsed"
+        ? 180
+        : 270;
+  const targetHeight =
+    previewMode === "expanded"
+      ? Math.round(baseHeight * fitScale)
+      : previewMode === "collapsed"
+        ? 32
+        : 400;
+  const safeX = Math.max(
+    8,
+    Math.min(previewPos.x, windowSize.width - targetWidth - 8),
+  );
+  const safeY = Math.max(
+    48,
+    Math.min(previewPos.y, windowSize.height - targetHeight - 8),
+  );
 
   return (
     <div
@@ -94,25 +112,39 @@ export function LivePreviewWidget({
         width: `${targetWidth}px`,
         height: `${targetHeight}px`,
         opacity: previewMode === "expanded" || isDraggingPreview ? 1 : 0.95,
-        boxShadow: previewMode === "expanded" ? '0 25px 50px -12px rgba(0, 0, 0, 0.25)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-        transition: isDraggingPreview ? 'none' : 'left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out',
+        boxShadow:
+          previewMode === "expanded"
+            ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+            : "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+        transition: isDraggingPreview
+          ? "none"
+          : "left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out",
       }}
     >
       <div
         className="border-b border-line bg-navy px-4 flex justify-between items-center text-white shrink-0 h-[32px] cursor-move select-none"
         onMouseDown={startDragPreview}
-        onDoubleClick={() => setPreviewMode(prev => prev === "collapsed" ? "thumbnail" : "collapsed")}
+        onDoubleClick={() =>
+          setPreviewMode((prev) =>
+            prev === "collapsed" ? "thumbnail" : "collapsed",
+          )
+        }
       >
         <div className="flex items-center gap-2 pointer-events-none">
           <FileText size={14} />
-          <h3 className="text-[10px] font-bold uppercase tracking-wide">Live Preview</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-wide">
+            Live Preview
+          </h3>
         </div>
 
         <div className="flex items-center gap-1.5 ml-2">
           {previewMode !== "collapsed" && (
             <button
               className="hover:bg-white/20 p-1 rounded transition-colors"
-              onClick={(e) => { e.stopPropagation(); setPreviewMode("collapsed"); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewMode("collapsed");
+              }}
               title="Minimize"
             >
               <Minus size={16} />
@@ -121,7 +153,10 @@ export function LivePreviewWidget({
           {previewMode === "collapsed" && (
             <button
               className="hover:bg-white/20 p-1 rounded transition-colors"
-              onClick={(e) => { e.stopPropagation(); setPreviewMode("thumbnail"); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewMode("thumbnail");
+              }}
               title="Restore"
             >
               <Maximize2 size={14} />
@@ -132,29 +167,48 @@ export function LivePreviewWidget({
 
       <div
         className="flex-1 bg-white overflow-hidden relative"
-        onClick={() => setPreviewMode(prev => prev === "thumbnail" ? "expanded" : "thumbnail")}
+        onClick={() =>
+          setPreviewMode((prev) =>
+            prev === "thumbnail" ? "expanded" : "thumbnail",
+          )
+        }
       >
         <div
           className="origin-top-left transition-transform duration-300 ease-out absolute"
           style={{
-            top: previewMode === "expanded" ? `${Math.round(8 * fitScale)}px` : '8px',
-            left: previewMode === "expanded" ? `${Math.round(24 * fitScale)}px` : '10px',
+            top:
+              previewMode === "expanded"
+                ? `${Math.round(8 * fitScale)}px`
+                : "8px",
+            left:
+              previewMode === "expanded"
+                ? `${Math.round(24 * fitScale)}px`
+                : "10px",
             transform: `scale(${previewMode === "expanded" ? fitScale : 0.383})`,
-            width: '652px',
-            height: '920px',
-            cursor: previewMode === "thumbnail" ? 'zoom-in' : 'zoom-out'
+            width: "652px",
+            height: "920px",
+            cursor: previewMode === "thumbnail" ? "zoom-in" : "zoom-out",
           }}
         >
-          <div className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800" style={{ backgroundColor: "#ffffff" }}>
+          <div
+            className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800"
+            style={{ backgroundColor: "#ffffff" }}
+          >
             {/* Header Section */}
             <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
               <div className="flex gap-4">
-                <img src={logo} className="w-12 h-12 object-contain opacity-40 grayscale" alt="Meridian Logo" />
+                <img
+                  src={logo}
+                  className="w-12 h-12 object-contain opacity-40 grayscale"
+                  alt="Meridian Logo"
+                />
                 <div className="text-gray-500">
                   <div className="text-[12px]">Meridian</div>
                   <div>Colombo, Sri Lanka</div>
                   <div>Fax: +94-(0)11-2345678</div>
-                  <div className="text-blue-400 underline decoration-blue-400">example@merid.com</div>
+                  <div className="text-blue-400 underline decoration-blue-400">
+                    example@merid.com
+                  </div>
                 </div>
               </div>
               <div className="text-gray-500 font-medium pt-1">
@@ -165,8 +219,11 @@ export function LivePreviewWidget({
             {/* Title */}
             <div className="text-center font-bold text-[14px] mb-8">
               <span className="border-b-2 border-black inline-block pb-0.5">
-                {voucherType === "reservation" ? "Hotel Reservation Voucher" :
-                  voucherType === "amendment" ? "Amendment Voucher" : "PPTP Voucher"}
+                {voucherType === "reservation"
+                  ? "Hotel Reservation Voucher"
+                  : voucherType === "amendment"
+                    ? "Amendment Voucher"
+                    : "PPTP Voucher"}
               </span>
             </div>
 
@@ -195,8 +252,12 @@ export function LivePreviewWidget({
               <table className="w-full text-left">
                 <thead>
                   <tr className="font-bold text-[9px]">
-                    <th className="py-2 px-2 whitespace-nowrap">Required Date</th>
-                    <th className="py-2 px-2 whitespace-nowrap">Room Category</th>
+                    <th className="py-2 px-2 whitespace-nowrap">
+                      Required Date
+                    </th>
+                    <th className="py-2 px-2 whitespace-nowrap">
+                      Room Category
+                    </th>
                     <th className="py-2 px-2">Basis</th>
                     <th className="py-2 px-1 text-center">SGL</th>
                     <th className="py-2 px-1 text-center">DBL</th>
@@ -204,26 +265,55 @@ export function LivePreviewWidget({
                     <th className="py-2 px-1 text-center">TPL</th>
                     <th className="py-2 px-1 text-center">Child</th>
                     <th className="py-2 px-1 text-center">Guide</th>
-                    <th className="py-2 px-2 whitespace-nowrap">Arriving for</th>
+                    <th className="py-2 px-2 whitespace-nowrap">
+                      Arriving for
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {(lineItems || []).map((item, idx) => (
-                    <tr key={idx} className={idx % 2 === 0 ? 'bg-[#f6f8fb]/50' : 'bg-white'}>
-                      <td className="py-1.5 px-2">{item.requiredDate || "—"}</td>
-                      <td className="py-1.5 px-2 whitespace-pre-wrap">{item.roomCategory || "—"}</td>
+                    <tr
+                      key={idx}
+                      className={idx % 2 === 0 ? "bg-[#f6f8fb]/50" : "bg-white"}
+                    >
+                      <td className="py-1.5 px-2">
+                        {item.requiredDate || "—"}
+                      </td>
+                      <td className="py-1.5 px-2 whitespace-pre-wrap">
+                        {item.roomCategory || "—"}
+                      </td>
                       <td className="py-1.5 px-2">{item.basis || "—"}</td>
-                      <td className="py-1.5 px-1 text-center">{item.singleRooms || ""}</td>
-                      <td className="py-1.5 px-1 text-center">{item.doubleRooms || ""}</td>
-                      <td className="py-1.5 px-1 text-center">{item.twinRooms || ""}</td>
-                      <td className="py-1.5 px-1 text-center">{item.tripleRooms || ""}</td>
+                      <td className="py-1.5 px-1 text-center">
+                        {item.singleRooms || ""}
+                      </td>
+                      <td className="py-1.5 px-1 text-center">
+                        {item.doubleRooms || ""}
+                      </td>
+                      <td className="py-1.5 px-1 text-center">
+                        {item.twinRooms || ""}
+                      </td>
+                      <td className="py-1.5 px-1 text-center">
+                        {item.tripleRooms || ""}
+                      </td>
                       <td className="py-1.5 px-1 text-center">
                         {(() => {
-                          const cc = (Number(item.child2_5) || 0) + (Number(item.child2_5Sharing) || 0) + (Number(item.child2_5Bed) || 0) + (Number(item.child2_5OwnRoom) || 0) + (Number(item.child6_11) || 0) + (Number(item.child6_11Sharing) || 0) + (Number(item.child6_11Bed) || 0) + (Number(item.child6_11OwnRoom) || 0);
+                          const cc =
+                            (Number(item.child2_5) || 0) +
+                            (Number(item.child2_5Sharing) || 0) +
+                            (Number(item.child2_5Bed) || 0) +
+                            (Number(item.child2_5OwnRoom) || 0) +
+                            (Number(item.child6_11) || 0) +
+                            (Number(item.child6_11Sharing) || 0) +
+                            (Number(item.child6_11Bed) || 0) +
+                            (Number(item.child6_11OwnRoom) || 0);
                           return cc > 0 ? cc : "";
                         })()}
                       </td>
-                      <td className="py-1.5 px-1 text-center">{item.guide ? `${item.guide} ${item.guideBasis || ""}`.trim() : ""}</td>
+                      <td className="py-1.5 px-1 text-center">
+                        {item.guide
+                          ? `${item.guide} ${item.guideBasis || ""}`.trim()
+                          : ""}
+                      </td>
                       <td className="py-1.5 px-2">{item.arrivingFor || ""}</td>
                     </tr>
                   ))}
@@ -234,7 +324,9 @@ export function LivePreviewWidget({
             {/* Bottom Sections */}
             <div className="space-y-4">
               <div>
-                <div className="font-bold mb-1">Confirmed By - {confirmedBy || "Team"}</div>
+                <div className="font-bold mb-1">
+                  Confirmed By - {confirmedBy || "Team"}
+                </div>
               </div>
 
               <div>
@@ -261,7 +353,9 @@ export function LivePreviewWidget({
             <div className="mt-8 pt-4 text-gray-400 font-medium">
               <div>{employeeName || "kadira"}</div>
               <div>{employeeEmail || "dilshanstoregiriulla@gmail.com"}</div>
-              <div className="font-bold text-gray-500 mt-0.5">Meridian (Pvt.) Ltd.</div>
+              <div className="font-bold text-gray-500 mt-0.5">
+                Meridian (Pvt.) Ltd.
+              </div>
             </div>
           </div>
         </div>

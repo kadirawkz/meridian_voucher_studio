@@ -12,7 +12,11 @@ import {
   PanelRightOpen,
   Search,
 } from "lucide-react";
-import type { FolderTreeNode, VoucherDocumentRecord, VoucherRevisionRecord } from "../../electron/shared/types";
+import type {
+  FolderTreeNode,
+  VoucherDocumentRecord,
+  VoucherRevisionRecord,
+} from "../../electron/shared/types";
 import { DocumentHistoryPanel, RevisionHistoryPanel } from "./AppPanels";
 
 /** Pixel widths — exported so the parent layout can use them for margin calculations. */
@@ -48,9 +52,19 @@ interface TreeNodeProps {
 
 /* ---------- Single tree node (recursive) ---------- */
 
-function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterText }: TreeNodeProps) {
+function TreeNode({
+  node,
+  depth,
+  onOpenFile,
+  onRevealFile,
+  autoExpand,
+  filterText,
+}: TreeNodeProps) {
   const [expanded, setExpanded] = useState(depth < 2);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
   const isFolder = node.type === "folder";
   const hasChildren = isFolder && node.children && node.children.length > 0;
@@ -70,7 +84,9 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterTex
   };
 
   const closeContextMenu = () => setContextMenu(null);
-  const fileExtension = !isFolder ? node.name.split(".").pop()?.toLowerCase() : null;
+  const fileExtension = !isFolder
+    ? node.name.split(".").pop()?.toLowerCase()
+    : null;
 
   useEffect(() => {
     if (autoExpand) {
@@ -103,17 +119,33 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterTex
         </span>
         <span className={`tour-tree-chevron ${hasChildren ? "visible" : ""}`}>
           {hasChildren && (
-            <ChevronRight size={12} className={`transition-transform duration-100 ${expanded ? "rotate-90" : ""}`} />
+            <ChevronRight
+              size={12}
+              className={`transition-transform duration-100 ${expanded ? "rotate-90" : ""}`}
+            />
           )}
         </span>
         <span className="tour-tree-icon">
-          {isFolder ? (expanded ? <FolderOpen size={14} /> : <Folder size={14} />) : <FileText size={14} />}
+          {isFolder ? (
+            expanded ? (
+              <FolderOpen size={14} />
+            ) : (
+              <Folder size={14} />
+            )
+          ) : (
+            <FileText size={14} />
+          )}
         </span>
-        <span className="tour-tree-label" title={node.name}>{node.name}</span>
-        
+        <span className="tour-tree-label" title={node.name}>
+          {node.name}
+        </span>
+
         {/* Hover quick actions */}
         {!isFolder && (
-          <div className="tour-tree-hover-actions mr-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="tour-tree-hover-actions mr-1.5 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="tour-tree-hover-btn"
@@ -126,7 +158,9 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterTex
         )}
 
         {fileExtension && (
-          <span className={`tour-tree-badge ${fileExtension === "pdf" ? "tour-tree-badge-pdf" : ""}`}>
+          <span
+            className={`tour-tree-badge ${fileExtension === "pdf" ? "tour-tree-badge-pdf" : ""}`}
+          >
             {fileExtension.toUpperCase()}
           </span>
         )}
@@ -134,14 +168,29 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterTex
 
       {contextMenu && (
         <>
-          <div className="tour-tree-context-backdrop" onClick={closeContextMenu} />
+          <div
+            className="tour-tree-context-backdrop"
+            onClick={closeContextMenu}
+          />
           <div ref={contextMenuRef} className="tour-tree-context-menu">
             {!isFolder && (
-              <button type="button" onClick={() => { onOpenFile(node.path); closeContextMenu(); }}>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenFile(node.path);
+                  closeContextMenu();
+                }}
+              >
                 <FileText size={13} /> Open File
               </button>
             )}
-            <button type="button" onClick={() => { onRevealFile(node.path); closeContextMenu(); }}>
+            <button
+              type="button"
+              onClick={() => {
+                onRevealFile(node.path);
+                closeContextMenu();
+              }}
+            >
               <ExternalLink size={13} /> Reveal in Explorer
             </button>
           </div>
@@ -151,12 +200,12 @@ function TreeNode({ node, depth, onOpenFile, onRevealFile, autoExpand, filterTex
       {isFolder && expanded && node.children && (
         <div className="tour-tree-children">
           {node.children.map((child) => (
-            <TreeNode 
-              key={child.path} 
-              node={child} 
-              depth={depth + 1} 
-              onOpenFile={onOpenFile} 
-              onRevealFile={onRevealFile} 
+            <TreeNode
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              onOpenFile={onOpenFile}
+              onRevealFile={onRevealFile}
               autoExpand={autoExpand}
               filterText={filterText}
             />
@@ -186,8 +235,12 @@ function TreeStats({ tree }: { tree: FolderTreeNode[] }) {
   let files = 0;
   function count(nodes: FolderTreeNode[]) {
     for (const node of nodes) {
-      if (node.type === "folder") { folders++; if (node.children) count(node.children); }
-      else { files++; }
+      if (node.type === "folder") {
+        folders++;
+        if (node.children) count(node.children);
+      } else {
+        files++;
+      }
     }
   }
   count(tree);
@@ -195,9 +248,13 @@ function TreeStats({ tree }: { tree: FolderTreeNode[] }) {
 
   return (
     <div className="tour-tree-stats">
-      <span>{folders} {folders === 1 ? "tour" : "tours"}</span>
+      <span>
+        {folders} {folders === 1 ? "tour" : "tours"}
+      </span>
       <span className="tour-tree-stats-dot">·</span>
-      <span>{files} {files === 1 ? "voucher" : "vouchers"}</span>
+      <span>
+        {files} {files === 1 ? "voucher" : "vouchers"}
+      </span>
     </div>
   );
 }
@@ -228,27 +285,30 @@ export function TourExplorerPanel({
   const [hoveredSection, setHoveredSection] = useState<number | null>(null);
   const [filterText, setFilterText] = useState("");
 
-  const getFilteredTree = (nodes: FolderTreeNode[], query: string): FolderTreeNode[] => {
+  const getFilteredTree = (
+    nodes: FolderTreeNode[],
+    query: string,
+  ): FolderTreeNode[] => {
     const q = query.toLowerCase().trim();
     const result: FolderTreeNode[] = [];
 
     const checkNode = (node: FolderTreeNode): FolderTreeNode | null => {
       const nameMatches = node.name.toLowerCase().includes(q);
-      
+
       if (node.type === "folder" && node.children) {
         const filteredChildren: FolderTreeNode[] = [];
-        
+
         for (const child of node.children) {
           const res = checkNode(child);
           if (res) {
             filteredChildren.push(res);
           }
         }
-        
+
         if (nameMatches || filteredChildren.length > 0) {
           return {
             ...node,
-            children: filteredChildren
+            children: filteredChildren,
           };
         }
       } else {
@@ -269,12 +329,12 @@ export function TourExplorerPanel({
     return result;
   };
 
-  const displayTree = filterText 
+  const displayTree = filterText
     ? getFilteredTree(toursFolderTree, filterText)
     : toursFolderTree;
 
   const toggleExpanded = (index: number) => {
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const next = [...prev];
       next[index] = !next[index];
       return next;
@@ -284,11 +344,11 @@ export function TourExplorerPanel({
   const startResize = (index: number) => (e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    
+
     // Find nearest expanded panel above
     let topIdx = index;
     while (topIdx >= 0 && !expanded[topIdx]) topIdx--;
-    
+
     // Find nearest expanded panel below
     let botIdx = index + 1;
     while (botIdx < expanded.length && !expanded[botIdx]) botIdx++;
@@ -298,23 +358,27 @@ export function TourExplorerPanel({
 
     const startY = e.clientY;
     const startFlexes = [...flexes];
-    const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
-    const totalFlex = flexes.reduce((sum, val, i) => expanded[i] ? sum + val : sum, 0);
+    const containerHeight =
+      containerRef.current?.clientHeight || window.innerHeight;
+    const totalFlex = flexes.reduce(
+      (sum, val, i) => (expanded[i] ? sum + val : sum),
+      0,
+    );
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaY = moveEvent.clientY - startY;
       const deltaFlex = (deltaY / containerHeight) * totalFlex;
-      
+
       const newFlexes = [...startFlexes];
       newFlexes[topIdx] += deltaFlex;
       newFlexes[botIdx] -= deltaFlex;
 
       if (newFlexes[topIdx] < 0.1) {
-        newFlexes[botIdx] -= (0.1 - newFlexes[topIdx]);
+        newFlexes[botIdx] -= 0.1 - newFlexes[topIdx];
         newFlexes[topIdx] = 0.1;
       }
       if (newFlexes[botIdx] < 0.1) {
-        newFlexes[topIdx] -= (0.1 - newFlexes[botIdx]);
+        newFlexes[topIdx] -= 0.1 - newFlexes[botIdx];
         newFlexes[botIdx] = 0.1;
       }
 
@@ -355,7 +419,10 @@ export function TourExplorerPanel({
   }
 
   return (
-    <aside className="tour-explorer group flex flex-col h-full bg-surface" ref={containerRef}>
+    <aside
+      className="tour-explorer group flex flex-col h-full bg-surface"
+      ref={containerRef}
+    >
       {/* Floating Collapse Button - Outside */}
       <button
         type="button"
@@ -367,25 +434,49 @@ export function TourExplorerPanel({
       </button>
 
       {/* Section 1: Tour Explorer */}
-      <div 
-        className="flex flex-col min-h-0 border-b border-line" 
-        style={{ flex: expanded[0] ? `${flexes[0]} 1 0%` : '0 0 auto' }}
+      <div
+        className="flex flex-col min-h-0 border-b border-line"
+        style={{ flex: expanded[0] ? `${flexes[0]} 1 0%` : "0 0 auto" }}
       >
-        <div 
+        <div
           className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
           onClick={() => toggleExpanded(0)}
         >
           <div className="flex items-center gap-1 w-full">
-            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[0] ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              size={14}
+              className={`text-steel transition-transform shrink-0 ${expanded[0] ? "rotate-90" : ""}`}
+            />
             <h3 className="tour-explorer-title flex-1">TOUR EXPLORER</h3>
             {expanded[0] && (
-              <div className="tour-explorer-actions" onClick={e => e.stopPropagation()}>
+              <div
+                className="tour-explorer-actions"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {toursFolderPath && (
-                  <button type="button" className="tour-explorer-action-btn" onClick={onRefresh} title="Refresh" disabled={isLoading}>
-                    <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                  <button
+                    type="button"
+                    className="tour-explorer-action-btn"
+                    onClick={onRefresh}
+                    title="Refresh"
+                    disabled={isLoading}
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={isLoading ? "animate-spin" : ""}
+                    />
                   </button>
                 )}
-                <button type="button" className="tour-explorer-action-btn" onClick={onSelectFolder} title={toursFolderPath ? "Change Root Folder" : "Select Root Folder"}>
+                <button
+                  type="button"
+                  className="tour-explorer-action-btn"
+                  onClick={onSelectFolder}
+                  title={
+                    toursFolderPath
+                      ? "Change Root Folder"
+                      : "Select Root Folder"
+                  }
+                >
                   <FolderPlus size={14} />
                 </button>
               </div>
@@ -394,26 +485,44 @@ export function TourExplorerPanel({
         </div>
 
         {expanded[0] && (
-          <div 
-            className={`tour-explorer-body ${hoveredSection === 0 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface flex-1 overflow-y-auto min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+          <div
+            className={`tour-explorer-body ${hoveredSection === 0 ? "show-scrollbar" : "hide-scrollbar"} bg-surface flex-1 overflow-y-auto min-h-0 ${isResizing ? "pointer-events-none select-none" : ""}`}
             onMouseEnter={() => setHoveredSection(0)}
             onMouseLeave={() => setHoveredSection(null)}
           >
             {toursFolderExists === false ? (
               <div className="tour-explorer-empty">
-                <div className="tour-explorer-empty-icon text-red-500 animate-pulse"><FolderPlus size={32} /></div>
+                <div className="tour-explorer-empty-icon text-red-500 animate-pulse">
+                  <FolderPlus size={32} />
+                </div>
                 <p className="tour-explorer-empty-title">Folder Not Found</p>
-                <p className="tour-explorer-empty-desc">The configured Tours root folder was deleted or moved from its location. Please locate or re-select the folder.</p>
-                <button type="button" className="tour-explorer-empty-btn" onClick={onSelectFolder}>
+                <p className="tour-explorer-empty-desc">
+                  The configured Tours root folder was deleted or moved from its
+                  location. Please locate or re-select the folder.
+                </p>
+                <button
+                  type="button"
+                  className="tour-explorer-empty-btn"
+                  onClick={onSelectFolder}
+                >
                   <FolderPlus size={15} /> Locate Tours Folder
                 </button>
               </div>
             ) : !toursFolderPath ? (
               <div className="tour-explorer-empty">
-                <div className="tour-explorer-empty-icon"><FolderPlus size={32} /></div>
+                <div className="tour-explorer-empty-icon">
+                  <FolderPlus size={32} />
+                </div>
                 <p className="tour-explorer-empty-title">No Tours Folder</p>
-                <p className="tour-explorer-empty-desc">Select or create a root folder to organize your vouchers by tour type and hotel.</p>
-                <button type="button" className="tour-explorer-empty-btn" onClick={onSelectFolder}>
+                <p className="tour-explorer-empty-desc">
+                  Select or create a root folder to organize your vouchers by
+                  tour type and hotel.
+                </p>
+                <button
+                  type="button"
+                  className="tour-explorer-empty-btn"
+                  onClick={onSelectFolder}
+                >
                   <FolderPlus size={15} /> Select Tours Folder
                 </button>
               </div>
@@ -421,10 +530,18 @@ export function TourExplorerPanel({
               <>
                 <div className="tour-explorer-root">
                   <Folder size={13} />
-                  <span className="tour-explorer-root-path" title={toursFolderPath}>
+                  <span
+                    className="tour-explorer-root-path"
+                    title={toursFolderPath}
+                  >
                     {toursFolderPath.split(/[\\/]/).pop() || "Tours"}
                   </span>
-                  <button type="button" className="tour-explorer-action-btn ml-auto" onClick={() => onRevealFile(toursFolderPath)} title="Open in File Explorer">
+                  <button
+                    type="button"
+                    className="tour-explorer-action-btn ml-auto"
+                    onClick={() => onRevealFile(toursFolderPath)}
+                    title="Open in File Explorer"
+                  >
                     <ExternalLink size={12} />
                   </button>
                 </div>
@@ -456,27 +573,41 @@ export function TourExplorerPanel({
 
                 {toursFolderTree.length === 0 && !isLoading && (
                   <div className="tour-explorer-migrate-banner">
-                    <p className="tour-explorer-migrate-title">Migration Required</p>
-                    <p className="tour-explorer-migrate-desc">Existing voucher files are not yet organized into the tour folder structure. Would you like to migrate them now?</p>
-                    <button type="button" className="tour-explorer-migrate-btn" onClick={onMigrate} disabled={isMigrating}>
-                      <ArrowDownToLine size={13} /> {isMigrating ? "Migrating…" : "Migrate Files Now"}
+                    <p className="tour-explorer-migrate-title">
+                      Migration Required
+                    </p>
+                    <p className="tour-explorer-migrate-desc">
+                      Existing voucher files are not yet organized into the tour
+                      folder structure. Would you like to migrate them now?
+                    </p>
+                    <button
+                      type="button"
+                      className="tour-explorer-migrate-btn"
+                      onClick={onMigrate}
+                      disabled={isMigrating}
+                    >
+                      <ArrowDownToLine size={13} />{" "}
+                      {isMigrating ? "Migrating…" : "Migrate Files Now"}
                     </button>
                   </div>
                 )}
 
                 {isLoading && (
-                  <div className="tour-explorer-loading"><RefreshCw size={16} className="animate-spin" /><span>Scanning folders…</span></div>
+                  <div className="tour-explorer-loading">
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Scanning folders…</span>
+                  </div>
                 )}
 
                 {!isLoading && displayTree.length > 0 && (
                   <div className="tour-tree">
                     {displayTree.map((node) => (
-                      <TreeNode 
-                        key={node.path} 
-                        node={node} 
-                        depth={0} 
-                        onOpenFile={onOpenFile} 
-                        onRevealFile={onRevealFile} 
+                      <TreeNode
+                        key={node.path}
+                        node={node}
+                        depth={0}
+                        onOpenFile={onOpenFile}
+                        onRevealFile={onRevealFile}
                         autoExpand={!!filterText}
                         filterText={filterText}
                       />
@@ -499,23 +630,26 @@ export function TourExplorerPanel({
 
       {/* Resizer 1 */}
       {expanded[0] && (expanded[1] || expanded[2]) && (
-        <div 
-          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10" 
-          onMouseDown={startResize(0)} 
+        <div
+          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10"
+          onMouseDown={startResize(0)}
         />
       )}
 
       {/* Section 2: Document History */}
-      <div 
-        className="flex flex-col min-h-0 border-b border-line" 
-        style={{ flex: expanded[1] ? `${flexes[1]} 1 0%` : '0 0 auto' }}
+      <div
+        className="flex flex-col min-h-0 border-b border-line"
+        style={{ flex: expanded[1] ? `${flexes[1]} 1 0%` : "0 0 auto" }}
       >
-        <div 
+        <div
           className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
           onClick={() => toggleExpanded(1)}
         >
           <div className="flex items-center gap-1 w-full">
-            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[1] ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              size={14}
+              className={`text-steel transition-transform shrink-0 ${expanded[1] ? "rotate-90" : ""}`}
+            />
             <h3 className="tour-explorer-title flex-1">DOCUMENT HISTORY</h3>
             {documentHistory.length > 0 && (
               <span className="text-[9px] font-extrabold px-1.5 py-0.2 bg-navy/10 text-navy rounded-full mr-2">
@@ -524,37 +658,43 @@ export function TourExplorerPanel({
             )}
           </div>
         </div>
-        
+
         {expanded[1] && (
-          <div 
-            className={`flex-1 overflow-y-auto ${hoveredSection === 1 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+          <div
+            className={`flex-1 overflow-y-auto ${hoveredSection === 1 ? "show-scrollbar" : "hide-scrollbar"} bg-surface p-2 min-h-0 ${isResizing ? "pointer-events-none select-none" : ""}`}
             onMouseEnter={() => setHoveredSection(1)}
             onMouseLeave={() => setHoveredSection(null)}
           >
-            <DocumentHistoryPanel documentHistory={documentHistory} onOpenDocument={onOpenDocument} />
+            <DocumentHistoryPanel
+              documentHistory={documentHistory}
+              onOpenDocument={onOpenDocument}
+            />
           </div>
         )}
       </div>
 
       {/* Resizer 2 */}
       {(expanded[0] || expanded[1]) && expanded[2] && (
-        <div 
-          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10" 
-          onMouseDown={startResize(1)} 
+        <div
+          className="h-1 bg-line cursor-ns-resize hover:bg-navy/50 active:bg-navy shrink-0 transition-colors z-10"
+          onMouseDown={startResize(1)}
         />
       )}
 
       {/* Section 3: Revision History */}
-      <div 
-        className="flex flex-col min-h-0" 
-        style={{ flex: expanded[2] ? `${flexes[2]} 1 0%` : '0 0 auto' }}
+      <div
+        className="flex flex-col min-h-0"
+        style={{ flex: expanded[2] ? `${flexes[2]} 1 0%` : "0 0 auto" }}
       >
-        <div 
+        <div
           className="tour-explorer-header shrink-0 cursor-pointer select-none hover:bg-cloud/50 transition-colors"
           onClick={() => toggleExpanded(2)}
         >
           <div className="flex items-center gap-1 w-full">
-            <ChevronRight size={14} className={`text-steel transition-transform shrink-0 ${expanded[2] ? 'rotate-90' : ''}`} />
+            <ChevronRight
+              size={14}
+              className={`text-steel transition-transform shrink-0 ${expanded[2] ? "rotate-90" : ""}`}
+            />
             <h3 className="tour-explorer-title flex-1">REVISION HISTORY</h3>
             {voucherRevisions.length > 0 && (
               <span className="text-[9px] font-extrabold px-1.5 py-0.2 bg-navy/10 text-navy rounded-full mr-2">
@@ -563,10 +703,10 @@ export function TourExplorerPanel({
             )}
           </div>
         </div>
-        
+
         {expanded[2] && (
-          <div 
-            className={`flex-1 overflow-y-auto ${hoveredSection === 2 ? 'show-scrollbar' : 'hide-scrollbar'} bg-surface p-2 min-h-0 ${isResizing ? 'pointer-events-none select-none' : ''}`}
+          <div
+            className={`flex-1 overflow-y-auto ${hoveredSection === 2 ? "show-scrollbar" : "hide-scrollbar"} bg-surface p-2 min-h-0 ${isResizing ? "pointer-events-none select-none" : ""}`}
             onMouseEnter={() => setHoveredSection(2)}
             onMouseLeave={() => setHoveredSection(null)}
           >

@@ -2,7 +2,11 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { dialog, shell, BrowserWindow } from "electron";
-import { getToursFolderRoot, setToursFolderRoot, getOutputDirectory } from "../config.js";
+import {
+  getToursFolderRoot,
+  setToursFolderRoot,
+  getOutputDirectory,
+} from "../config.js";
 import type { FolderTreeNode, MigrationResult } from "../../shared/types.js";
 
 const VOUCHER_EXTENSIONS = new Set([".docx", ".pdf"]);
@@ -10,12 +14,17 @@ const VOUCHER_EXTENSIONS = new Set([".docx", ".pdf"]);
 /**
  * Open a native folder-picker dialog and persist the chosen path.
  */
-export async function selectToursFolder(parentWindow: BrowserWindow | null): Promise<{ path: string } | null> {
-  const result = await dialog.showOpenDialog(parentWindow ?? BrowserWindow.getFocusedWindow()!, {
-    title: "Select or Create Tours Root Folder",
-    properties: ["openDirectory", "createDirectory"],
-    buttonLabel: "Select Folder",
-  });
+export async function selectToursFolder(
+  parentWindow: BrowserWindow | null,
+): Promise<{ path: string } | null> {
+  const result = await dialog.showOpenDialog(
+    parentWindow ?? BrowserWindow.getFocusedWindow()!,
+    {
+      title: "Select or Create Tours Root Folder",
+      properties: ["openDirectory", "createDirectory"],
+      buttonLabel: "Select Folder",
+    },
+  );
 
   if (result.canceled || result.filePaths.length === 0) {
     return null;
@@ -50,7 +59,9 @@ export async function getToursFolderTree(): Promise<FolderTreeNode[]> {
   return buildTreeFromDirectory(root);
 }
 
-async function buildTreeFromDirectory(dirPath: string): Promise<FolderTreeNode[]> {
+async function buildTreeFromDirectory(
+  dirPath: string,
+): Promise<FolderTreeNode[]> {
   let entries: fs.Dirent[];
 
   try {
@@ -120,7 +131,9 @@ export async function revealInExplorer(filePath: string): Promise<void> {
  * we place them in an "Uncategorized" folder grouped by hotel.
  */
 export async function migrateVouchersToTours(
-  lookupVoucherMeta?: (filename: string) => Promise<{ tourType: string; hotelName: string } | null>
+  lookupVoucherMeta?: (
+    filename: string,
+  ) => Promise<{ tourType: string; hotelName: string } | null>,
 ): Promise<MigrationResult> {
   const toursRoot = getToursFolderRoot();
 
@@ -139,11 +152,19 @@ export async function migrateVouchersToTours(
   try {
     entries = await fsp.readdir(legacyDir, { withFileTypes: true });
   } catch {
-    return { moved: 0, failed: 0, errors: ["Unable to read legacy output directory"] };
+    return {
+      moved: 0,
+      failed: 0,
+      errors: ["Unable to read legacy output directory"],
+    };
   }
 
   const result: MigrationResult = { moved: 0, failed: 0, errors: [] };
-  const sanitize = (name: string) => name.replace(/[<>:"/\\|?*]+/g, "-").replace(/^-|-$/g, "").trim();
+  const sanitize = (name: string) =>
+    name
+      .replace(/[<>:"/\\|?*]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .trim();
 
   for (const entry of entries) {
     if (!entry.isFile()) continue;
@@ -193,7 +214,11 @@ export async function migrateVouchersToTours(
       }
     }
 
-    const destDir = path.join(toursRoot, sanitize(tourType), sanitize(hotelName));
+    const destDir = path.join(
+      toursRoot,
+      sanitize(tourType),
+      sanitize(hotelName),
+    );
     const destPath = path.join(destDir, entry.name);
 
     // Don't overwrite if already exists in destination
@@ -207,7 +232,9 @@ export async function migrateVouchersToTours(
       result.moved++;
     } catch (err) {
       result.failed++;
-      result.errors.push(`Failed to migrate ${entry.name}: ${err instanceof Error ? err.message : String(err)}`);
+      result.errors.push(
+        `Failed to migrate ${entry.name}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

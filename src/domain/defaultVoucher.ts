@@ -17,8 +17,7 @@ export const defaultVoucher: VoucherFormValues = {
   rateApplicable: 0,
   employeeName: "",
   employeeEmail: "",
-  billingInstructions:
-    "",
+  billingInstructions: "",
   remarks: "",
   matchedHotelRateId: undefined,
   rateApplicableText: "",
@@ -46,7 +45,7 @@ export const defaultVoucher: VoucherFormValues = {
       guide: 0,
       guideBasis: "",
       arrivingFor: "",
-      supplementary: []
-    }
-  ]
+      supplementary: [],
+    },
+  ],
 };

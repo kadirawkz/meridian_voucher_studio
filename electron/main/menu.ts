@@ -18,9 +18,9 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
               { role: "hideOthers" as const },
               { role: "unhide" as const },
               { type: "separator" as const },
-              { role: "quit" as const }
-            ]
-          }
+              { role: "quit" as const },
+            ],
+          },
         ]
       : []),
     {
@@ -29,16 +29,16 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         {
           label: "New Voucher",
           accelerator: "CmdOrCtrl+N",
-          click: () => mainWindow.webContents.send("menu:navigate", "entry")
+          click: () => mainWindow.webContents.send("menu:navigate", "entry"),
         },
         {
           label: "Save Voucher",
           accelerator: "CmdOrCtrl+S",
-          click: () => mainWindow.webContents.send("menu:save-voucher")
+          click: () => mainWindow.webContents.send("menu:save-voucher"),
         },
         { type: "separator" },
-        isMac ? { role: "close" } : { role: "quit" }
-      ]
+        isMac ? { role: "close" } : { role: "quit" },
+      ],
     },
     {
       label: "Edit",
@@ -53,9 +53,9 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         {
           label: "Search",
           accelerator: "CmdOrCtrl+K",
-          click: () => mainWindow.webContents.send("menu:search-focus")
-        }
-      ]
+          click: () => mainWindow.webContents.send("menu:search-focus"),
+        },
+      ],
     },
     {
       label: "View",
@@ -67,8 +67,8 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         { role: "zoomIn" },
         { role: "zoomOut" },
         { type: "separator" },
-        { role: "togglefullscreen" }
-      ]
+        { role: "togglefullscreen" },
+      ],
     },
     {
       label: "Navigation",
@@ -76,13 +76,14 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         {
           label: "Open Dashboard",
           accelerator: "CmdOrCtrl+D",
-          click: () => mainWindow.webContents.send("menu:navigate", "dashboard")
+          click: () =>
+            mainWindow.webContents.send("menu:navigate", "dashboard"),
         },
         {
           label: "Voucher Entry",
-          click: () => mainWindow.webContents.send("menu:navigate", "entry")
-        }
-      ]
+          click: () => mainWindow.webContents.send("menu:navigate", "entry"),
+        },
+      ],
     },
     {
       label: "Rate Master",
@@ -90,14 +91,16 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         {
           label: "Manage Existing Rates",
           accelerator: "CmdOrCtrl+R",
-          click: () => mainWindow.webContents.send("menu:navigate", "manage-rates")
+          click: () =>
+            mainWindow.webContents.send("menu:navigate", "manage-rates"),
         },
         {
           label: "Add New Rate",
           accelerator: "CmdOrCtrl+Shift+R",
-          click: () => mainWindow.webContents.send("menu:navigate", "rate-master")
-        }
-      ]
+          click: () =>
+            mainWindow.webContents.send("menu:navigate", "rate-master"),
+        },
+      ],
     },
     {
       label: "Voucher",
@@ -105,49 +108,47 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
         {
           label: "Generate PDF",
           accelerator: "CmdOrCtrl+P",
-          click: () => mainWindow.webContents.send("menu:generate-pdf")
+          click: () => mainWindow.webContents.send("menu:generate-pdf"),
         },
         {
           label: "Generate DOCX",
           accelerator: "CmdOrCtrl+L",
-          click: () => mainWindow.webContents.send("menu:generate-docx")
-        }
-      ]
+          click: () => mainWindow.webContents.send("menu:generate-docx"),
+        },
+      ],
     },
     {
       label: "Reports",
-      submenu: [
-        { label: "Coming Soon...", enabled: false }
-      ]
+      submenu: [{ label: "Coming Soon...", enabled: false }],
     },
     {
       label: "Account",
       submenu: [
         {
           label: "Profile",
-          click: () => mainWindow.webContents.send("menu:account", "profile")
+          click: () => mainWindow.webContents.send("menu:account", "profile"),
         },
         {
           label: "Settings",
-          click: () => mainWindow.webContents.send("menu:account", "settings")
+          click: () => mainWindow.webContents.send("menu:account", "settings"),
         },
         { type: "separator" },
         {
           label: "Sign Out",
           accelerator: "CmdOrCtrl+Shift+Q",
-          click: () => mainWindow.webContents.send("menu:sign-out")
-        }
-      ]
+          click: () => mainWindow.webContents.send("menu:sign-out"),
+        },
+      ],
     },
     {
       label: "Help",
       submenu: [
         {
           label: "Supabase Dashboard",
-          click: () => shell.openExternal("https://supabase.com/dashboard")
-        }
-      ]
-    }
+          click: () => shell.openExternal("https://supabase.com/dashboard"),
+        },
+      ],
+    },
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

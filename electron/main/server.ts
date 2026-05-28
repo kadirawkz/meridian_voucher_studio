@@ -1,8 +1,22 @@
 import express from "express";
 import type { AddressInfo } from "node:net";
-import type { DocumentFormat, VoucherListFilters, VoucherPayload, VoucherStatus } from "../shared/types.js";
+import type {
+  DocumentFormat,
+  VoucherListFilters,
+  VoucherPayload,
+  VoucherStatus,
+} from "../shared/types.js";
 import { generateDocuments } from "./lib/documentGenerator.js";
-import { getVoucher, listVoucherDocuments, listVoucherRevisions, listVouchers, saveGeneratedDocumentRecord, saveVoucher, searchWorkspace, updateVoucherStatus } from "./lib/supabase.js";
+import {
+  getVoucher,
+  listVoucherDocuments,
+  listVoucherRevisions,
+  listVouchers,
+  saveGeneratedDocumentRecord,
+  saveVoucher,
+  searchWorkspace,
+  updateVoucherStatus,
+} from "./lib/supabase.js";
 import {
   autoFillVoucherFromHotelRates,
   getHotelRates,
@@ -36,7 +50,10 @@ import {
   restoreReference,
 } from "./lib/hotelRates.js";
 
-export async function createVoucherServer(): Promise<{ url: string; close: () => Promise<void> }> {
+export async function createVoucherServer(): Promise<{
+  url: string;
+  close: () => Promise<void>;
+}> {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "1mb" }));
@@ -50,25 +67,50 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await saveVoucher(request.body as VoucherPayload);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save voucher");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to save voucher",
+        );
     }
   });
 
   app.post("/api/vouchers/generate", async (request, response) => {
     try {
-      const body = request.body as VoucherPayload | { voucher: VoucherPayload; format?: DocumentFormat; customOutputDir?: string };
+      const body = request.body as
+        | VoucherPayload
+        | {
+            voucher: VoucherPayload;
+            format?: DocumentFormat;
+            customOutputDir?: string;
+          };
       const voucher = "voucher" in body ? body.voucher : body;
       const format = "voucher" in body ? body.format : "pdf";
-      const customOutputDir = "voucher" in body ? (body as { customOutputDir?: string }).customOutputDir : undefined;
-
-
+      const customOutputDir =
+        "voucher" in body
+          ? (body as { customOutputDir?: string }).customOutputDir
+          : undefined;
 
       const savedVoucher = await saveVoucher(voucher, "generated");
-      const result = await generateDocuments({ ...voucher, id: savedVoucher.id }, format ?? "pdf", customOutputDir);
-      const documentRecord = await saveGeneratedDocumentRecord(savedVoucher.id, format ?? "pdf", result);
+      const result = await generateDocuments(
+        { ...voucher, id: savedVoucher.id },
+        format ?? "pdf",
+        customOutputDir,
+      );
+      const documentRecord = await saveGeneratedDocumentRecord(
+        savedVoucher.id,
+        format ?? "pdf",
+        result,
+      );
       response.json(documentRecord);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to generate documents");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to generate documents",
+        );
     }
   });
 
@@ -77,22 +119,40 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listVoucherDocuments();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load document history");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load document history",
+        );
     }
   });
 
   app.get("/api/vouchers", async (request, response) => {
     try {
       const filters: VoucherListFilters = {
-        status: typeof request.query.status === "string" ? (request.query.status as VoucherListFilters["status"]) : "all",
-        dateFrom: typeof request.query.dateFrom === "string" ? request.query.dateFrom : "",
-        dateTo: typeof request.query.dateTo === "string" ? request.query.dateTo : "",
-        query: typeof request.query.query === "string" ? request.query.query : ""
+        status:
+          typeof request.query.status === "string"
+            ? (request.query.status as VoucherListFilters["status"])
+            : "all",
+        dateFrom:
+          typeof request.query.dateFrom === "string"
+            ? request.query.dateFrom
+            : "",
+        dateTo:
+          typeof request.query.dateTo === "string" ? request.query.dateTo : "",
+        query:
+          typeof request.query.query === "string" ? request.query.query : "",
       };
       const result = await listVouchers(filters);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load vouchers");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load vouchers",
+        );
     }
   });
 
@@ -101,7 +161,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await getVoucher(request.params.id);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load voucher");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load voucher",
+        );
     }
   });
 
@@ -110,7 +174,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listVoucherRevisions(request.params.id);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load voucher revisions");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load voucher revisions",
+        );
     }
   });
 
@@ -127,7 +197,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await updateVoucherStatus(voucherId, status);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to update voucher status");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to update voucher status",
+        );
     }
   });
 
@@ -137,7 +213,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await searchWorkspace(query);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to search workspace");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to search workspace",
+        );
     }
   });
 
@@ -148,7 +228,9 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listHotels();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load hotels");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Unable to load hotels");
     }
   });
 
@@ -157,7 +239,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listMarkets();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load markets");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load markets",
+        );
     }
   });
 
@@ -166,7 +252,9 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveMarket(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save market");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Unable to save market");
     }
   });
 
@@ -175,7 +263,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteMarket(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete market");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to delete market",
+        );
     }
   });
 
@@ -184,7 +276,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listRoomCategories();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load room categories");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load room categories",
+        );
     }
   });
 
@@ -193,25 +291,44 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveRoomCategory(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save room category");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to save room category",
+        );
     }
   });
 
-  app.delete("/api/reference/room-categories/:id", async (request, response) => {
-    try {
-      await deleteRoomCategory(request.params.id);
-      response.json({ success: true });
-    } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete room category");
-    }
-  });
+  app.delete(
+    "/api/reference/room-categories/:id",
+    async (request, response) => {
+      try {
+        await deleteRoomCategory(request.params.id);
+        response.json({ success: true });
+      } catch (error) {
+        response
+          .status(500)
+          .send(
+            error instanceof Error
+              ? error.message
+              : "Unable to delete room category",
+          );
+      }
+    },
+  );
 
   app.get("/api/reference/customers", async (_request, response) => {
     try {
       const result = await listCustomers();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load customers");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load customers",
+        );
     }
   });
 
@@ -220,7 +337,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveCustomer(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save customer");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to save customer",
+        );
     }
   });
 
@@ -229,7 +350,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteCustomer(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete customer");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to delete customer",
+        );
     }
   });
 
@@ -238,7 +363,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listTourTypes();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load tour types");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load tour types",
+        );
     }
   });
 
@@ -247,7 +376,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveTourType(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save tour type");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to save tour type",
+        );
     }
   });
 
@@ -256,7 +389,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteTourType(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete tour type");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to delete tour type",
+        );
     }
   });
 
@@ -265,7 +402,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listMealBasis();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load meal basis options");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load meal basis options",
+        );
     }
   });
 
@@ -274,7 +417,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveMealBasis(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save meal basis option");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to save meal basis option",
+        );
     }
   });
 
@@ -283,7 +432,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteMealBasis(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete meal basis option");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to delete meal basis option",
+        );
     }
   });
 
@@ -292,7 +447,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listCurrencies();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load currencies");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to load currencies",
+        );
     }
   });
 
@@ -301,7 +460,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await saveCurrency(request.body);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save currency");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to save currency",
+        );
     }
   });
 
@@ -310,7 +473,11 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteCurrency(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete currency");
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to delete currency",
+        );
     }
   });
 
@@ -321,7 +488,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listInactiveReferences(request.params.table);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load inactive references");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load inactive references",
+        );
     }
   });
 
@@ -330,7 +503,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await restoreReference(request.params.table, request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to restore reference");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to restore reference",
+        );
     }
   });
 
@@ -341,17 +520,32 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await saveHotelRates(request.body);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to save rate master data");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to save rate master data",
+        );
     }
   });
 
   app.get("/api/rate-master", async (request, response) => {
     try {
-      const hotelName = typeof request.query.hotelName === "string" ? request.query.hotelName : undefined;
+      const hotelName =
+        typeof request.query.hotelName === "string"
+          ? request.query.hotelName
+          : undefined;
       const result = await listHotelRates(hotelName);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load rate master contracts");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load rate master contracts",
+        );
     }
   });
 
@@ -360,7 +554,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await getAllHotelRates();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load rate master contracts");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load rate master contracts",
+        );
     }
   });
 
@@ -369,7 +569,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listInactiveHotelRates();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load inactive rate master contracts");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load inactive rate master contracts",
+        );
     }
   });
 
@@ -378,7 +584,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await restoreHotelRate(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to restore rate master contract");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to restore rate master contract",
+        );
     }
   });
 
@@ -387,7 +599,9 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await listHotelsFromRates();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load hotels");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Unable to load hotels");
     }
   });
 
@@ -396,7 +610,13 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       const result = await getHotelRates(request.params.id);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to load rate master contract");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to load rate master contract",
+        );
     }
   });
 
@@ -405,17 +625,32 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
       await deleteHotelRate(request.params.id);
       response.json({ success: true });
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to delete rate master contract");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to delete rate master contract",
+        );
     }
   });
 
   app.post("/api/rate-master/auto-fill", async (request, response) => {
     try {
-      const { voucher, contractId } = request.body as { voucher: VoucherPayload; contractId?: string };
+      const { voucher, contractId } = request.body as {
+        voucher: VoucherPayload;
+        contractId?: string;
+      };
       const result = await autoFillVoucherFromHotelRates(voucher, contractId);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Unable to auto-fill voucher");
+      response
+        .status(500)
+        .send(
+          error instanceof Error
+            ? error.message
+            : "Unable to auto-fill voucher",
+        );
     }
   });
 
@@ -428,8 +663,10 @@ export async function createVoucherServer(): Promise<{ url: string; close: () =>
         url: `http://127.0.0.1:${address.port}`,
         close: () =>
           new Promise((closeResolve, closeReject) => {
-            server.close((error) => (error ? closeReject(error) : closeResolve()));
-          })
+            server.close((error) =>
+              error ? closeReject(error) : closeResolve(),
+            );
+          }),
       });
     });
   });

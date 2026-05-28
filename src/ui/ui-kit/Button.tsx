@@ -26,8 +26,9 @@ export function Button({
   return (
     <button
       {...props}
-      className={[base, variants[variant], sizes[size], className].filter(Boolean).join(" ")}
+      className={[base, variants[variant], sizes[size], className]
+        .filter(Boolean)
+        .join(" ")}
     />
   );
 }
-

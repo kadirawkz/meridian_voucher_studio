@@ -2,9 +2,13 @@ import { useState, useEffect } from "react";
 
 export function useAppTheme() {
   const [activeTheme, setActiveTheme] = useState<"light" | "dark" | "system">(
-    () => (localStorage.getItem("meridian-theme") as "light" | "dark" | "system") || "system"
+    () =>
+      (localStorage.getItem("meridian-theme") as "light" | "dark" | "system") ||
+      "system",
   );
-  const [systemIsDark, setSystemIsDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const [systemIsDark, setSystemIsDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   // Load theme on startup
   useEffect(() => {
@@ -24,16 +28,20 @@ export function useAppTheme() {
       setSystemIsDark(e.matches);
     };
     mediaQuery.addEventListener("change", handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    return () =>
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
   }, []);
 
-  const isDark = activeTheme === "dark" || (activeTheme === "system" && systemIsDark);
+  const isDark =
+    activeTheme === "dark" || (activeTheme === "system" && systemIsDark);
   const themeClass = isDark ? "dark" : "light";
 
   // Sync theme changes to localStorage and DOM
   useEffect(() => {
     localStorage.setItem("meridian-theme", activeTheme);
-    document.documentElement.style.backgroundColor = isDark ? "#090d16" : "#f6f8fb";
+    document.documentElement.style.backgroundColor = isDark
+      ? "#090d16"
+      : "#f6f8fb";
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
@@ -44,6 +52,6 @@ export function useAppTheme() {
   return {
     activeTheme,
     setActiveTheme,
-    themeClass
+    themeClass,
   };
 }

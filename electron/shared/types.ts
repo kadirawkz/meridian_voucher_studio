@@ -51,7 +51,7 @@ export interface CurrencyRef {
 export interface VoucherLineItem {
   requiredDate: string;
   roomCategoryId?: string;
-  roomCategory: string;  // read-only, populated by JOIN
+  roomCategory: string; // read-only, populated by JOIN
   basis: string;
   singleRooms: number;
   doubleRooms: number;
@@ -79,11 +79,11 @@ export interface VoucherPayload {
   date: string;
   voucherTitle?: string;
   hotelId?: string;
-  hotelName: string;       // read-only on load, resolved from hotelId
+  hotelName: string; // read-only on load, resolved from hotelId
   marketId?: string;
-  market?: string;         // read-only on load, resolved from marketId
+  market?: string; // read-only on load, resolved from marketId
   customerId?: string;
-  customerName: string;    // read-only on load, resolved from customerId
+  customerName: string; // read-only on load, resolved from customerId
   requisitionNo: string;
   tourNo: string;
   tourName: string;
@@ -91,8 +91,8 @@ export interface VoucherPayload {
   rateApplicable: number;
   ratePeriod?: string;
   totalPax?: number;
-  employeeName: string;    // read-only, populated from employee_profiles via created_by
-  employeeEmail: string;   // read-only, populated from employee_profiles via created_by
+  employeeName: string; // read-only, populated from employee_profiles via created_by
+  employeeEmail: string; // read-only, populated from employee_profiles via created_by
   billingInstructions?: string;
   remarks?: string;
   lineItems: VoucherLineItem[];
@@ -194,7 +194,7 @@ export type HotelRateRoomRate = {
   from: string;
   to: string;
   room_category_id?: string;
-  room_category: string;  // read-only, populated by JOIN
+  room_category: string; // read-only, populated by JOIN
   basis: string;
   sgl?: number | null;
   dbl?: number | null;
@@ -207,7 +207,7 @@ export type HotelRateChildRate = {
   from: string;
   to: string;
   room_category_id?: string;
-  room_category: string;  // read-only, populated by JOIN
+  room_category: string; // read-only, populated by JOIN
   basis: string;
   age_2_5_99_sharing?: string | null;
   age_2_5_99_extra_bed?: string | null;
@@ -261,18 +261,18 @@ export type HotelRateGuideRates = Record<string, number | null>;
 export type HotelRateRoomSupplement = {
   id?: string;
   room_category_id?: string;
-  room_category: string;  // read-only, populated by JOIN
+  room_category: string; // read-only, populated by JOIN
   supplement_name: string;
   supplement_amount: number;
-  per: string;            // e.g. "per room per night"
+  per: string; // e.g. "per room per night"
 };
 
 export interface HotelRateRecord {
   id?: string;
   hotel_id?: string;
-  hotel_name: string;      // read-only, populated by JOIN
+  hotel_name: string; // read-only, populated by JOIN
   market_id?: string;
-  market: string;           // read-only, populated by JOIN
+  market: string; // read-only, populated by JOIN
   currency: string;
   contract_name: string;
   valid_from: string;
@@ -294,7 +294,13 @@ export interface HotelRateRecord {
 
 export type HotelRateRecordSummary = Pick<
   HotelRateRecord,
-  "id" | "hotel_name" | "market" | "contract_name" | "valid_from" | "valid_to" | "currency"
+  | "id"
+  | "hotel_name"
+  | "market"
+  | "contract_name"
+  | "valid_from"
+  | "valid_to"
+  | "currency"
 >;
 
 export type AutoFillStatus = "matched" | "no-match" | "multiple";
@@ -314,7 +320,7 @@ export interface AutoFillResult {
 export interface FolderTreeNode {
   name: string;
   path: string;
-  type: 'folder' | 'file';
+  type: "folder" | "file";
   children?: FolderTreeNode[];
 }
 
@@ -344,16 +350,30 @@ export interface AppApi {
   resetPassword: (email: string) => Promise<{ message: string }>;
   signOut: () => Promise<AuthState>;
   getAuthState: () => Promise<AuthState>;
-  updateProfile: (updates: { employeeName?: string; employeeEmail?: string }) => Promise<AccountProfile>;
-  saveVoucher: (voucher: VoucherPayload) => Promise<{ id: string; status: VoucherStatus }>;
+  updateProfile: (updates: {
+    employeeName?: string;
+    employeeEmail?: string;
+  }) => Promise<AccountProfile>;
+  saveVoucher: (
+    voucher: VoucherPayload,
+  ) => Promise<{ id: string; status: VoucherStatus }>;
   generateDocuments?: (voucher: VoucherPayload) => Promise<GeneratedDocument>;
-  generateDocx: (voucher: VoucherPayload, customOutputDir?: string) => Promise<GeneratedDocument>;
-  generatePdf: (voucher: VoucherPayload, customOutputDir?: string) => Promise<GeneratedDocument>;
+  generateDocx: (
+    voucher: VoucherPayload,
+    customOutputDir?: string,
+  ) => Promise<GeneratedDocument>;
+  generatePdf: (
+    voucher: VoucherPayload,
+    customOutputDir?: string,
+  ) => Promise<GeneratedDocument>;
   listVoucherDocuments: () => Promise<VoucherDocumentRecord[]>;
   listVouchers: (filters?: VoucherListFilters) => Promise<VoucherRecord[]>;
   getVoucher: (voucherId: string) => Promise<VoucherPayload>;
   listVoucherRevisions: (voucherId: string) => Promise<VoucherRevisionRecord[]>;
-  updateVoucherStatus: (voucherId: string, status: VoucherStatus) => Promise<{ id: string; status: VoucherStatus }>;
+  updateVoucherStatus: (
+    voucherId: string,
+    status: VoucherStatus,
+  ) => Promise<{ id: string; status: VoucherStatus }>;
   searchWorkspace: (query: string) => Promise<WorkspaceSearchResult>;
   openDocument: (filePath: string) => Promise<void>;
   getAccountProfile: () => Promise<AccountProfile>;
@@ -394,7 +414,10 @@ export interface AppApi {
   deleteCurrency: (id: string) => Promise<void>;
   listInactiveReferences: (table: string) => Promise<Record<string, unknown>[]>;
   restoreReference: (table: string, id: string) => Promise<void>;
-  autoFillVoucher: (voucher: VoucherPayload, contractId?: string) => Promise<AutoFillResult>;
+  autoFillVoucher: (
+    voucher: VoucherPayload,
+    contractId?: string,
+  ) => Promise<AutoFillResult>;
   selectToursFolder: () => Promise<{ path: string } | null>;
   getToursFolder: () => Promise<string | null>;
   getToursFolderTree: () => Promise<FolderTreeNode[]>;
@@ -406,12 +429,20 @@ export interface AppApi {
   navigateBack: () => void;
   navigateForward: () => void;
   getSettings: () => Promise<Record<string, unknown>>;
-  saveSettings: (settings: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  selectFolder: (options: { title?: string; defaultPath?: string }) => Promise<string | null>;
-  selectFile: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<string | null>;
+  saveSettings: (
+    settings: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+  selectFolder: (options: {
+    title?: string;
+    defaultPath?: string;
+  }) => Promise<string | null>;
+  selectFile: (options: {
+    title?: string;
+    defaultPath?: string;
+    filters?: Array<{ name: string; extensions: string[] }>;
+  }) => Promise<string | null>;
   listDatabaseTemplates: () => Promise<VoucherTemplateInfo[]>;
   uploadDatabaseTemplate: (name: string, filePath: string) => Promise<void>;
   downloadDatabaseTemplate: (name: string) => Promise<boolean>;
   deleteDatabaseTemplate: (name: string) => Promise<void>;
 }
-

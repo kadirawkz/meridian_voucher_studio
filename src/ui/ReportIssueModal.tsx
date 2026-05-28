@@ -14,7 +14,8 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
         <div className="mb-6 flex flex-col items-center text-center">
           <h3 className="text-xl font-bold text-navy">Report an Issue</h3>
           <p className="mt-2 text-sm text-steel">
-            We're sorry you're experiencing trouble. Please describe the issue or visit our support page.
+            We're sorry you're experiencing trouble. Please describe the issue
+            or visit our support page.
           </p>
         </div>
 
@@ -27,7 +28,10 @@ export function ReportIssueModal({ isOpen, onClose }: ReportIssueModalProps) {
 
           <button
             onClick={() =>
-              window.open("https://github.com/kadirawkz/meridian_voucher_studio/issues", "_blank")
+              window.open(
+                "https://github.com/kadirawkz/meridian_voucher_studio/issues",
+                "_blank",
+              )
             }
             className="app-button-primary w-full"
           >

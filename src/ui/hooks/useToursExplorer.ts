@@ -6,7 +6,10 @@ interface UseToursExplorerProps {
   addNotice: (message: string, type?: "info" | "success" | "error") => void;
 }
 
-export function useToursExplorer({ isAuthenticated, addNotice }: UseToursExplorerProps) {
+export function useToursExplorer({
+  isAuthenticated,
+  addNotice,
+}: UseToursExplorerProps) {
   const [toursFolderPath, setToursFolderPath] = useState<string | null>(null);
   const [toursFolderTree, setToursFolderTree] = useState<FolderTreeNode[]>([]);
   const [toursFolderExists, setToursFolderExists] = useState<boolean>(true);
@@ -44,7 +47,10 @@ export function useToursExplorer({ isAuthenticated, addNotice }: UseToursExplore
 
   async function handleSelectToursFolder() {
     if (!window.meridian?.selectToursFolder) {
-      addNotice("Tours folder selection unavailable; restart the application", "error");
+      addNotice(
+        "Tours folder selection unavailable; restart the application",
+        "error",
+      );
       return;
     }
 
@@ -73,7 +79,10 @@ export function useToursExplorer({ isAuthenticated, addNotice }: UseToursExplore
         addNotice("No vouchers to migrate");
       }
       if (result.errors.length > 0) {
-        addNotice(`Migration: ${result.moved} moved, ${result.failed} failed`, "error");
+        addNotice(
+          `Migration: ${result.moved} moved, ${result.failed} failed`,
+          "error",
+        );
       }
       await refreshToursFolderTree();
     } catch {
@@ -105,6 +114,6 @@ export function useToursExplorer({ isAuthenticated, addNotice }: UseToursExplore
     refreshToursFolderTree,
     handleSelectToursFolder,
     handleMigrateVouchers,
-    handleRevealFile
+    handleRevealFile,
   };
 }

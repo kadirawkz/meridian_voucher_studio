@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 
-export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: ReactNode }) {
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: ReactNode;
+}) {
   return (
     <label className="space-y-2">
       <span className="app-label">{label}</span>
@@ -9,4 +17,3 @@ export function Field({ label, children, hint }: { label: string; children: Reac
     </label>
   );
 }
-

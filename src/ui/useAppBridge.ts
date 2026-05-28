@@ -11,15 +11,26 @@ import type { VoucherFormValues } from "../domain/voucherSchema";
 import type { AppNotification } from "./MenuBar";
 import type { VoucherRecord } from "../../electron/shared/types";
 
-type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings" | "profile";
+type ActiveView =
+  | "entry"
+  | "dashboard"
+  | "register"
+  | "rate-master"
+  | "manage-rates"
+  | "settings"
+  | "profile";
 
 export function useAppBridge() {
   // Global notice/notification state (needed across various hooks)
   const [notices, setNotices] = useState<AppNotification[]>([]);
-  const clearNotice = (id: string) => setNotices((prev) => prev.filter((n) => n.id !== id));
+  const clearNotice = (id: string) =>
+    setNotices((prev) => prev.filter((n) => n.id !== id));
   const clearAllNotices = () => setNotices([]);
 
-  const addNotice = (message: string, type: AppNotification["type"] = "info") => {
+  const addNotice = (
+    message: string,
+    type: AppNotification["type"] = "info",
+  ) => {
     const id = Math.random().toString(36).substring(2, 9);
 
     setNotices((prev) => {
@@ -28,7 +39,10 @@ export function useAppBridge() {
       if (duplicate && Date.now() - duplicate.timestamp < 4000) {
         return prev;
       }
-      return [{ id, message, type, timestamp: Date.now() }, ...prev].slice(0, 50);
+      return [{ id, message, type, timestamp: Date.now() }, ...prev].slice(
+        0,
+        50,
+      );
     });
   };
 
@@ -39,8 +53,10 @@ export function useAppBridge() {
   const auth = useAppAuth({
     addNotice,
     onAuthLoaded: (profile) => {
-      formHook.resetForm(withAccountDefaults(formHook.form.getValues(), profile));
-    }
+      formHook.resetForm(
+        withAccountDefaults(formHook.form.getValues(), profile),
+      );
+    },
   });
 
   // Basic layout state
@@ -65,11 +81,19 @@ export function useAppBridge() {
     }
   }, [activeView]);
 
-  const [previewMode, setPreviewMode] = useState<"collapsed" | "thumbnail" | "expanded">("thumbnail");
-  const [previewPos, setPreviewPos] = useState(() => ({ x: 8, y: Math.max(8, window.innerHeight / 2 - 224) }));
+  const [previewMode, setPreviewMode] = useState<
+    "collapsed" | "thumbnail" | "expanded"
+  >("thumbnail");
+  const [previewPos, setPreviewPos] = useState(() => ({
+    x: 8,
+    y: Math.max(8, window.innerHeight / 2 - 224),
+  }));
   const [isDraggingPreview, setIsDraggingPreview] = useState(false);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, startX: 0, startY: 0 });
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
   const [showReportIssue, setShowReportIssue] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -82,7 +106,7 @@ export function useAppBridge() {
       mouseX: e.clientX,
       mouseY: e.clientY,
       startX: previewPos.x,
-      startY: previewPos.y
+      startY: previewPos.y,
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -90,7 +114,7 @@ export function useAppBridge() {
       const dy = moveEvent.clientY - dragStartRef.current.mouseY;
       setPreviewPos({
         x: dragStartRef.current.startX + dx,
-        y: dragStartRef.current.startY + dy
+        y: dragStartRef.current.startY + dy,
       });
     };
 
@@ -113,7 +137,10 @@ export function useAppBridge() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
         setShowAccountMenu(false);
       }
     };
@@ -124,7 +151,7 @@ export function useAppBridge() {
   // 3. Tours Directories Hook
   const explorer = useToursExplorer({
     isAuthenticated: auth.authState.isAuthenticated,
-    addNotice
+    addNotice,
   });
 
   // Automatically update windowSize and collapse side panels on window resize
@@ -132,23 +159,23 @@ export function useAppBridge() {
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      
+
       setWindowSize({ width, height });
-      
+
       // Auto-collapse left sidebar on smaller screens
       if (width < 1024) {
         setNavCollapsed(true);
       }
-      
+
       // Auto-collapse right explorer panel on smaller screens
       if (width < 1280) {
         explorer.setExplorerCollapsed(true);
       }
     };
-    
+
     // Set initial collapse state on mount based on viewport
     handleResize();
-    
+
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -156,7 +183,7 @@ export function useAppBridge() {
   // 4. Workspace Search Hook
   const search = useWorkspaceSearch({
     isAuthenticated: auth.authState.isAuthenticated,
-    addNotice
+    addNotice,
   });
 
   // 5. Saved Register Lists Hook
@@ -164,10 +191,15 @@ export function useAppBridge() {
     isAuthenticated: auth.authState.isAuthenticated,
     addNotice,
     onVoucherLoaded: (fullVoucher) => {
-      formHook.resetForm(withAccountDefaults({ ...defaultVoucher, ...fullVoucher } as VoucherFormValues, auth.accountProfile));
+      formHook.resetForm(
+        withAccountDefaults(
+          { ...defaultVoucher, ...fullVoucher } as VoucherFormValues,
+          auth.accountProfile,
+        ),
+      );
       setActiveView("entry");
       formHook.setGenerated(null);
-    }
+    },
   });
 
   // 6. Voucher Forms State Hook
@@ -176,10 +208,11 @@ export function useAppBridge() {
     activeView,
     accountProfile: auth.accountProfile,
     addNotice,
-    refreshVoucherRegister: () => register.refreshVoucherRegister(register.voucherFilters),
+    refreshVoucherRegister: () =>
+      register.refreshVoucherRegister(register.voucherFilters),
     refreshDocumentHistory: () => register.refreshDocumentHistory(),
     refreshToursFolderTree: () => explorer.refreshToursFolderTree(),
-    refreshVoucherRevisions: (id) => register.refreshVoucherRevisions(id)
+    refreshVoucherRevisions: (id) => register.refreshVoucherRevisions(id),
   });
 
   return {
@@ -224,12 +257,13 @@ export function useAppBridge() {
     isCheckingAuth: auth.isCheckingAuth,
     setIsCheckingAuth: auth.setIsCheckingAuth,
     handleAuthenticated: auth.handleAuthenticated,
-    handleSignOut: () => auth.handleSignOut(() => {
-      formHook.setGenerated(null);
-      register.setDocumentHistory([]);
-      register.setVoucherRevisions([]);
-      formHook.resetForm(defaultVoucher);
-    }),
+    handleSignOut: () =>
+      auth.handleSignOut(() => {
+        formHook.setGenerated(null);
+        register.setDocumentHistory([]);
+        register.setVoucherRevisions([]);
+        formHook.resetForm(defaultVoucher);
+      }),
 
     // Composed Explorer variables
     toursFolderPath: explorer.toursFolderPath,
@@ -276,7 +310,8 @@ export function useAppBridge() {
     refreshVoucherRegister: register.refreshVoucherRegister,
     refreshVoucherRevisions: register.refreshVoucherRevisions,
     handleVoucherStatusUpdate: register.handleVoucherStatusUpdate,
-    openVoucherFromSearch: (voucher: VoucherRecord) => register.openVoucherFromSearch(voucher, () => setActiveView("entry")),
+    openVoucherFromSearch: (voucher: VoucherRecord) =>
+      register.openVoucherFromSearch(voucher, () => setActiveView("entry")),
 
     // Composed Forms state properties
     form: formHook.form,
@@ -330,6 +365,6 @@ export function useAppBridge() {
     scrollPositionsRef,
     mainRef,
     prevViewRef,
-    accountMenuRef
+    accountMenuRef,
   };
 }

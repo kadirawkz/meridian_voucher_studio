@@ -5,7 +5,7 @@ import type {
   VoucherRecord,
   VoucherListFilters,
   VoucherStatus,
-  VoucherPayload
+  VoucherPayload,
 } from "../../../electron/shared/types";
 import { friendlyErrorMessage } from "../../utils/errors";
 
@@ -15,15 +15,23 @@ interface UseVoucherRegisterProps {
   onVoucherLoaded: (voucher: VoucherPayload) => void;
 }
 
-export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded }: UseVoucherRegisterProps) {
-  const [documentHistory, setDocumentHistory] = useState<VoucherDocumentRecord[]>([]);
-  const [voucherRevisions, setVoucherRevisions] = useState<VoucherRevisionRecord[]>([]);
+export function useVoucherRegister({
+  isAuthenticated,
+  addNotice,
+  onVoucherLoaded,
+}: UseVoucherRegisterProps) {
+  const [documentHistory, setDocumentHistory] = useState<
+    VoucherDocumentRecord[]
+  >([]);
+  const [voucherRevisions, setVoucherRevisions] = useState<
+    VoucherRevisionRecord[]
+  >([]);
   const [voucherRegister, setVoucherRegister] = useState<VoucherRecord[]>([]);
   const [voucherFilters, setVoucherFilters] = useState<VoucherListFilters>({
     status: "all",
     dateFrom: "",
     dateTo: "",
-    query: ""
+    query: "",
   });
   const [isLoadingRegister, setIsLoadingRegister] = useState(false);
   const [openingVoucherId, setOpeningVoucherId] = useState<string | null>(null);
@@ -39,7 +47,10 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
       .listVoucherDocuments()
       .then(setDocumentHistory)
       .catch((error) => {
-        addNotice(friendlyErrorMessage(error, "Unable to load document history"), "error");
+        addNotice(
+          friendlyErrorMessage(error, "Unable to load document history"),
+          "error",
+        );
       });
   }, [isAuthenticated]);
 
@@ -61,11 +72,16 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
       const history = await window.meridian.listVoucherDocuments();
       setDocumentHistory(history);
     } catch (error) {
-      addNotice(friendlyErrorMessage(error, "Unable to load document history"), "error");
+      addNotice(
+        friendlyErrorMessage(error, "Unable to load document history"),
+        "error",
+      );
     }
   }
 
-  async function refreshVoucherRegister(nextFilters: VoucherListFilters = voucherFilters) {
+  async function refreshVoucherRegister(
+    nextFilters: VoucherListFilters = voucherFilters,
+  ) {
     if (!window.meridian?.listVouchers) {
       return;
     }
@@ -75,7 +91,10 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
       const vouchers = await window.meridian.listVouchers(nextFilters);
       setVoucherRegister(vouchers);
     } catch (error) {
-      addNotice(friendlyErrorMessage(error, "Unable to load vouchers"), "error");
+      addNotice(
+        friendlyErrorMessage(error, "Unable to load vouchers"),
+        "error",
+      );
     } finally {
       setIsLoadingRegister(false);
     }
@@ -90,32 +109,53 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
       const revisions = await window.meridian.listVoucherRevisions(voucherId);
       setVoucherRevisions(revisions);
     } catch (error) {
-      addNotice(friendlyErrorMessage(error, "Unable to load voucher history"), "error");
+      addNotice(
+        friendlyErrorMessage(error, "Unable to load voucher history"),
+        "error",
+      );
     }
   }
 
-  async function handleVoucherStatusUpdate(voucherId: string, status: VoucherStatus) {
+  async function handleVoucherStatusUpdate(
+    voucherId: string,
+    status: VoucherStatus,
+  ) {
     if (!window.meridian?.updateVoucherStatus) {
-      addNotice("Voucher status update is unavailable; restart the application", "error");
+      addNotice(
+        "Voucher status update is unavailable; restart the application",
+        "error",
+      );
       return;
     }
 
     setStatusUpdatingId(voucherId);
     try {
-      const result = await window.meridian.updateVoucherStatus(voucherId, status);
+      const result = await window.meridian.updateVoucherStatus(
+        voucherId,
+        status,
+      );
       addNotice(`Voucher marked as ${result.status}`);
       await refreshVoucherRevisions(voucherId);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {
-      addNotice(friendlyErrorMessage(error, "Unable to update voucher status"), "error");
+      addNotice(
+        friendlyErrorMessage(error, "Unable to update voucher status"),
+        "error",
+      );
     } finally {
       setStatusUpdatingId(null);
     }
   }
 
-  async function openVoucherFromSearch(voucher: VoucherRecord, onOpenSuccess?: () => void) {
+  async function openVoucherFromSearch(
+    voucher: VoucherRecord,
+    onOpenSuccess?: () => void,
+  ) {
     if (!window.meridian?.getVoucher) {
-      addNotice("Voucher loading is unavailable; restart the application", "error");
+      addNotice(
+        "Voucher loading is unavailable; restart the application",
+        "error",
+      );
       return;
     }
 
@@ -127,7 +167,9 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
       if (onOpenSuccess) {
         onOpenSuccess();
       }
-      addNotice(`Loaded voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)}`);
+      addNotice(
+        `Loaded voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)}`,
+      );
     } catch (error) {
       addNotice(friendlyErrorMessage(error, "Unable to load voucher"), "error");
     } finally {
@@ -154,6 +196,6 @@ export function useVoucherRegister({ isAuthenticated, addNotice, onVoucherLoaded
     refreshVoucherRegister,
     refreshVoucherRevisions,
     handleVoucherStatusUpdate,
-    openVoucherFromSearch
+    openVoucherFromSearch,
   };
 }

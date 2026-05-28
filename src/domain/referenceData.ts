@@ -1,4 +1,12 @@
-export const tourTypes = ["SL", "ASL", "WSL", "FSS", "CSL", "DSL", "SLH"] as const;
+export const tourTypes = [
+  "SL",
+  "ASL",
+  "WSL",
+  "FSS",
+  "CSL",
+  "DSL",
+  "SLH",
+] as const;
 
 export const hotels = [] as const;
 
@@ -12,9 +20,18 @@ export const roomCategories = [
   "Luxury Super",
   "Executive Room",
   "Family Room",
-  "Superior Room"
+  "Superior Room",
 ] as const;
 
 export const mealBasisOptions = ["BB", "FB", "HB"] as const;
 
-export const markets = ["LOCAL", "UK", "GERMAN", "CHINESE", "INDIAN", "FRANCE", "ITALY", "JAPAN"] as const;
+export const markets = [
+  "LOCAL",
+  "UK",
+  "GERMAN",
+  "CHINESE",
+  "INDIAN",
+  "FRANCE",
+  "ITALY",
+  "JAPAN",
+] as const;

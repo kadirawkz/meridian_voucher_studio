@@ -19,7 +19,7 @@ function formatDisplayDate(value: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   })
     .format(date)
     .replace(/ /g, "-");
@@ -27,51 +27,73 @@ function formatDisplayDate(value: string): string {
 
 function generateVoucherHtml(voucher: VoucherPayload): string {
   const totalRooms = voucher.lineItems.reduce(
-    (total, item) => total + (item.singleRooms || 0) + (item.doubleRooms || 0) + (item.twinRooms || 0) + (item.tripleRooms || 0),
-    0
+    (total, item) =>
+      total +
+      (item.singleRooms || 0) +
+      (item.doubleRooms || 0) +
+      (item.twinRooms || 0) +
+      (item.tripleRooms || 0),
+    0,
   );
 
   const totalChildren = voucher.lineItems.reduce(
-    (total, item) => total + (item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 
-                             (item.child6_11Sharing || 0) + (item.child6_11Bed || 0) + (item.child6_11OwnRoom || 0),
-    0
+    (total, item) =>
+      total +
+      (item.child2_5Sharing || 0) +
+      (item.child2_5Bed || 0) +
+      (item.child2_5OwnRoom || 0) +
+      (item.child6_11Sharing || 0) +
+      (item.child6_11Bed || 0) +
+      (item.child6_11OwnRoom || 0),
+    0,
   );
 
-  const title = voucher.voucherType === "amendment" 
-    ? "AMENDMENT VOUCHER" 
-    : voucher.voucherType === "pptp" 
-    ? "PPTP VOUCHER" 
-    : "HOTEL RESERVATION VOUCHER";
+  const title =
+    voucher.voucherType === "amendment"
+      ? "AMENDMENT VOUCHER"
+      : voucher.voucherType === "pptp"
+        ? "PPTP VOUCHER"
+        : "HOTEL RESERVATION VOUCHER";
 
-  const rowsHtml = voucher.lineItems.map((item, index) => {
-    const guideStr = item.guide ? `${item.guide} ${item.guideBasis ? `(${item.guideBasis})` : ""}`.trim() : "-";
-    const roomsStr = [
-      item.singleRooms ? `${item.singleRooms} SGL` : "",
-      item.doubleRooms ? `${item.doubleRooms} DBL` : "",
-      item.twinRooms ? `${item.twinRooms} TWN` : "",
-      item.tripleRooms ? `${item.tripleRooms} TPL` : ""
-    ].filter(Boolean).join(", ") || "-";
+  const rowsHtml = voucher.lineItems
+    .map((item, index) => {
+      const guideStr = item.guide
+        ? `${item.guide} ${item.guideBasis ? `(${item.guideBasis})` : ""}`.trim()
+        : "-";
+      const roomsStr =
+        [
+          item.singleRooms ? `${item.singleRooms} SGL` : "",
+          item.doubleRooms ? `${item.doubleRooms} DBL` : "",
+          item.twinRooms ? `${item.twinRooms} TWN` : "",
+          item.tripleRooms ? `${item.tripleRooms} TPL` : "",
+        ]
+          .filter(Boolean)
+          .join(", ") || "-";
 
-    const childParts: string[] = [];
-    if (item.child2_5Sharing || item.child2_5Bed || item.child2_5OwnRoom) {
-      const parts = [
-        item.child2_5Sharing ? `${item.child2_5Sharing} Shg` : "",
-        item.child2_5Bed ? `${item.child2_5Bed} Bed` : "",
-        item.child2_5OwnRoom ? `${item.child2_5OwnRoom} Own` : ""
-      ].filter(Boolean).join("/");
-      childParts.push(`2-5y: ${parts}`);
-    }
-    if (item.child6_11Sharing || item.child6_11Bed || item.child6_11OwnRoom) {
-      const parts = [
-        item.child6_11Sharing ? `${item.child6_11Sharing} Shg` : "",
-        item.child6_11Bed ? `${item.child6_11Bed} Bed` : "",
-        item.child6_11OwnRoom ? `${item.child6_11OwnRoom} Own` : ""
-      ].filter(Boolean).join("/");
-      childParts.push(`6-11y: ${parts}`);
-    }
-    const childStr = childParts.join("<br/>") || "-";
+      const childParts: string[] = [];
+      if (item.child2_5Sharing || item.child2_5Bed || item.child2_5OwnRoom) {
+        const parts = [
+          item.child2_5Sharing ? `${item.child2_5Sharing} Shg` : "",
+          item.child2_5Bed ? `${item.child2_5Bed} Bed` : "",
+          item.child2_5OwnRoom ? `${item.child2_5OwnRoom} Own` : "",
+        ]
+          .filter(Boolean)
+          .join("/");
+        childParts.push(`2-5y: ${parts}`);
+      }
+      if (item.child6_11Sharing || item.child6_11Bed || item.child6_11OwnRoom) {
+        const parts = [
+          item.child6_11Sharing ? `${item.child6_11Sharing} Shg` : "",
+          item.child6_11Bed ? `${item.child6_11Bed} Bed` : "",
+          item.child6_11OwnRoom ? `${item.child6_11OwnRoom} Own` : "",
+        ]
+          .filter(Boolean)
+          .join("/");
+        childParts.push(`6-11y: ${parts}`);
+      }
+      const childStr = childParts.join("<br/>") || "-";
 
-    return `
+      return `
       <tr>
         <td style="text-align: center;">${index + 1}</td>
         <td>${escapeHtml(formatDisplayDate(item.requiredDate))}</td>
@@ -83,7 +105,8 @@ function generateVoucherHtml(voucher: VoucherPayload): string {
         <td style="font-size: 11px; line-height: 1.2;">${childStr}</td>
       </tr>
     `;
-  }).join("");
+    })
+    .join("");
 
   return `
 <!DOCTYPE html>
@@ -460,19 +483,27 @@ function generateVoucherHtml(voucher: VoucherPayload): string {
       <div class="details-box-content" style="font-weight: 500;">${escapeHtml(voucher.rateApplicableText || (voucher.rateApplicable != null ? String(voucher.rateApplicable) : "Nil"))}</div>
     </div>
 
-    ${voucher.remarks ? `
+    ${
+      voucher.remarks
+        ? `
     <div class="details-box">
       <div class="details-box-title">Special Remarks & Notes</div>
       <div class="details-box-content">${escapeHtml(voucher.remarks)}</div>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
 
-    ${voucher.billingInstructions ? `
+    ${
+      voucher.billingInstructions
+        ? `
     <div class="details-box">
       <div class="details-box-title">Billing & Invoicing Instructions</div>
       <div class="details-box-content">${escapeHtml(voucher.billingInstructions)}</div>
     </div>
-    ` : ""}
+    `
+        : ""
+    }
   </div>
 
   <div class="footer-section">
@@ -492,7 +523,10 @@ function generateVoucherHtml(voucher: VoucherPayload): string {
   `;
 }
 
-export async function generatePdf(voucher: VoucherPayload, outputPath: string): Promise<void> {
+export async function generatePdf(
+  voucher: VoucherPayload,
+  outputPath: string,
+): Promise<void> {
   const htmlContent = generateVoucherHtml(voucher);
 
   const win = new BrowserWindow({
@@ -500,18 +534,20 @@ export async function generatePdf(voucher: VoucherPayload, outputPath: string): 
     webPreferences: {
       offscreen: true,
       nodeIntegration: false,
-      contextIsolation: true
-    }
+      contextIsolation: true,
+    },
   });
 
   try {
-    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-    
+    await win.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`,
+    );
+
     // Print background is true so the styling background-colors are printed
     const pdfBuffer = await win.webContents.printToPDF({
       printBackground: true,
       pageSize: "A4",
-      landscape: false
+      landscape: false,
     });
 
     await fs.writeFile(outputPath, pdfBuffer);

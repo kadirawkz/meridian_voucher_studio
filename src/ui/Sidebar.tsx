@@ -8,11 +8,21 @@ import {
   PanelLeftOpen,
   ReceiptText,
   Settings,
-  UserCircle
+  UserCircle,
 } from "lucide-react";
-import type { AccountProfile, VoucherListFilters } from "../../electron/shared/types";
+import type {
+  AccountProfile,
+  VoucherListFilters,
+} from "../../electron/shared/types";
 
-type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings" | "profile";
+type ActiveView =
+  | "entry"
+  | "dashboard"
+  | "register"
+  | "rate-master"
+  | "manage-rates"
+  | "settings"
+  | "profile";
 
 interface SidebarProps {
   navCollapsed: boolean;
@@ -39,7 +49,7 @@ export function Sidebar({
   setShowAccountMenu,
   accountProfile,
   handleSignOut,
-  accountMenuRef
+  accountMenuRef,
 }: SidebarProps) {
   return (
     <aside className={`app-sidebar group`}>
@@ -50,10 +60,16 @@ export function Sidebar({
         className="absolute -right-3 top-4 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-surface shadow-md border border-line text-steel hover:text-navy opacity-0 group-hover:opacity-100 transition-opacity"
         title={navCollapsed ? "Expand Navigation" : "Collapse Navigation"}
       >
-        {navCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        {navCollapsed ? (
+          <PanelLeftOpen size={14} />
+        ) : (
+          <PanelLeftClose size={14} />
+        )}
       </button>
 
-      <nav className={`space-y-1 ${navCollapsed ? "p-2" : "p-5"} text-sm font-semibold`}>
+      <nav
+        className={`space-y-1 ${navCollapsed ? "p-2" : "p-5"} text-sm font-semibold`}
+      >
         <button
           type="button"
           className={`app-nav-button ${activeView === "dashboard" ? "app-nav-button-active" : ""}`}
@@ -109,7 +125,9 @@ export function Sidebar({
             <UserCircle size={18} />
             {!navCollapsed && (
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate">{accountProfile?.employeeName || "Employee"}</p>
+                <p className="truncate">
+                  {accountProfile?.employeeName || "Employee"}
+                </p>
               </div>
             )}
           </button>

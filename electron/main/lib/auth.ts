@@ -1,10 +1,18 @@
-import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import {
+  createClient,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { app } from "electron";
 import WebSocket from "ws";
-import type { AccountProfile, AuthCredentials, AuthState } from "../../shared/types.js";
+import type {
+  AccountProfile,
+  AuthCredentials,
+  AuthState,
+} from "../../shared/types.js";
 
 let supabase: SupabaseClient | null = null;
 const sessionFileName = "auth-session.json";
@@ -17,7 +25,9 @@ function getSessionPath(): string {
 
 async function saveRememberedSession(session: unknown): Promise<void> {
   await fs.mkdir(app.getPath("userData"), { recursive: true });
-  await fs.writeFile(getSessionPath(), JSON.stringify(session), { encoding: "utf8" });
+  await fs.writeFile(getSessionPath(), JSON.stringify(session), {
+    encoding: "utf8",
+  });
 }
 
 async function clearRememberedSession(): Promise<void> {
@@ -36,11 +46,11 @@ function getSupabaseClient(): SupabaseClient | null {
     supabase = createClient(url, key, {
       auth: {
         persistSession: false,
-        autoRefreshToken: true
+        autoRefreshToken: true,
       },
       realtime: {
-        transport: WebSocket as unknown as WebSocketLikeConstructor
-      }
+        transport: WebSocket as unknown as WebSocketLikeConstructor,
+      },
     });
   }
 
@@ -50,12 +60,15 @@ function getSupabaseClient(): SupabaseClient | null {
 async function restoreRememberedSession(client: SupabaseClient): Promise<void> {
   try {
     const rawSession = await fs.readFile(getSessionPath(), "utf8");
-    const session = JSON.parse(rawSession) as { access_token?: string; refresh_token?: string };
+    const session = JSON.parse(rawSession) as {
+      access_token?: string;
+      refresh_token?: string;
+    };
 
     if (session.access_token && session.refresh_token) {
       const { error } = await client.auth.setSession({
         access_token: session.access_token,
-        refresh_token: session.refresh_token
+        refresh_token: session.refresh_token,
       });
 
       if (error) {
@@ -67,7 +80,9 @@ async function restoreRememberedSession(client: SupabaseClient): Promise<void> {
   }
 }
 
-async function ensureRememberedSessionRestored(client: SupabaseClient): Promise<void> {
+async function ensureRememberedSessionRestored(
+  client: SupabaseClient,
+): Promise<void> {
   if (isSessionRestored) {
     return;
   }
@@ -100,7 +115,7 @@ function fallbackProfileFromUser(user: User | null): AccountProfile {
       employeeName: "",
       employeeEmail: "",
       role: "employee",
-      isActive: false
+      isActive: false,
     };
   }
 
@@ -116,18 +131,22 @@ function fallbackProfileFromUser(user: User | null): AccountProfile {
     employeeName: displayName || user.email?.split("@")[0] || "",
     employeeEmail: user.email || "",
     role: "employee",
-    isActive: true
+    isActive: true,
   };
 }
 
-async function upsertEmployeeProfile(client: SupabaseClient, user: User, employeeName?: string): Promise<AccountProfile> {
+async function upsertEmployeeProfile(
+  client: SupabaseClient,
+  user: User,
+  employeeName?: string,
+): Promise<AccountProfile> {
   const fallback = fallbackProfileFromUser(user);
   const row = {
     id: user.id,
     employee_name: employeeName || fallback.employeeName,
     email: user.email || fallback.employeeEmail,
     role: "employee" as const,
-    is_active: true
+    is_active: true,
   };
 
   const { data, error } = await client
@@ -149,11 +168,14 @@ function profileFromRow(row: EmployeeProfileRow): AccountProfile {
     employeeName: row.employee_name,
     employeeEmail: row.email,
     role: row.role,
-    isActive: row.is_active
+    isActive: row.is_active,
   };
 }
 
-async function getEmployeeProfile(client: SupabaseClient, user: User): Promise<AccountProfile> {
+async function getEmployeeProfile(
+  client: SupabaseClient,
+  user: User,
+): Promise<AccountProfile> {
   const { data, error } = await client
     .from("employee_profiles")
     .select("id, employee_name, email, role, is_active")
@@ -170,12 +192,14 @@ async function getEmployeeProfile(client: SupabaseClient, user: User): Promise<A
 export async function signIn(credentials: AuthCredentials): Promise<AuthState> {
   const client = getSupabaseClient();
   if (!client) {
-    throw new Error("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.");
+    throw new Error(
+      "Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.",
+    );
   }
 
   const { data, error } = await client.auth.signInWithPassword({
     email: credentials.email,
-    password: credentials.password
+    password: credentials.password,
   });
 
   if (error) {
@@ -191,14 +215,16 @@ export async function signIn(credentials: AuthCredentials): Promise<AuthState> {
 
   return {
     isAuthenticated: Boolean(data.session),
-    profile: data.user ? await getEmployeeProfile(client, data.user) : null
+    profile: data.user ? await getEmployeeProfile(client, data.user) : null,
   };
 }
 
 export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
   const client = getSupabaseClient();
   if (!client) {
-    throw new Error("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.");
+    throw new Error(
+      "Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.",
+    );
   }
 
   const { data, error } = await client.auth.signUp({
@@ -206,9 +232,9 @@ export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
     password: credentials.password,
     options: {
       data: {
-        employeeName: credentials.employeeName
-      }
-    }
+        employeeName: credentials.employeeName,
+      },
+    },
   });
 
   if (error) {
@@ -222,8 +248,12 @@ export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
 
   return {
     isAuthenticated: Boolean(data.session),
-    profile: data.user ? await upsertEmployeeProfile(client, data.user, credentials.employeeName) : null,
-    message: data.session ? "Account created" : "Account created. Check email if confirmation is enabled."
+    profile: data.user
+      ? await upsertEmployeeProfile(client, data.user, credentials.employeeName)
+      : null,
+    message: data.session
+      ? "Account created"
+      : "Account created. Check email if confirmation is enabled.",
   };
 }
 
@@ -237,14 +267,18 @@ export async function signOut(): Promise<AuthState> {
 
   return {
     isAuthenticated: false,
-    profile: null
+    profile: null,
   };
 }
 
-export async function resetPassword(email: string): Promise<{ message: string }> {
+export async function resetPassword(
+  email: string,
+): Promise<{ message: string }> {
   const client = getSupabaseClient();
   if (!client) {
-    throw new Error("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.");
+    throw new Error(
+      "Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.",
+    );
   }
 
   const { error } = await client.auth.resetPasswordForEmail(email);
@@ -254,7 +288,7 @@ export async function resetPassword(email: string): Promise<{ message: string }>
   }
 
   return {
-    message: "Password reset email sent"
+    message: "Password reset email sent",
   };
 }
 
@@ -264,7 +298,7 @@ export async function getAuthState(): Promise<AuthState> {
     return {
       isAuthenticated: false,
       profile: null,
-      message: "Supabase is not configured"
+      message: "Supabase is not configured",
     };
   }
 
@@ -273,7 +307,7 @@ export async function getAuthState(): Promise<AuthState> {
 
   return {
     isAuthenticated: Boolean(data.user),
-    profile: data.user ? await getEmployeeProfile(client, data.user) : null
+    profile: data.user ? await getEmployeeProfile(client, data.user) : null,
   };
 }
 
@@ -283,7 +317,7 @@ export async function getAccountProfile(): Promise<AccountProfile> {
   return (
     state.profile ?? {
       employeeName: "",
-      employeeEmail: ""
+      employeeEmail: "",
     }
   );
 }
@@ -304,7 +338,9 @@ export async function getCurrentUser(): Promise<User | null> {
   return data.user;
 }
 
-export async function getCurrentEmployeeProfile(user?: User): Promise<AccountProfile | null> {
+export async function getCurrentEmployeeProfile(
+  user?: User,
+): Promise<AccountProfile | null> {
   const client = getSupabaseClient();
   const resolvedUser = user ?? (await getCurrentUser());
 
@@ -319,7 +355,10 @@ export function getAuthenticatedSupabaseClient(): SupabaseClient | null {
   return getSupabaseClient();
 }
 
-export async function updateProfile(updates: { employeeName?: string; employeeEmail?: string }): Promise<AccountProfile> {
+export async function updateProfile(updates: {
+  employeeName?: string;
+  employeeEmail?: string;
+}): Promise<AccountProfile> {
   const client = getSupabaseClient();
   const user = await getCurrentUser();
 
@@ -331,7 +370,7 @@ export async function updateProfile(updates: { employeeName?: string; employeeEm
     .from("employee_profiles")
     .update({
       employee_name: updates.employeeName,
-      email: updates.employeeEmail
+      email: updates.employeeEmail,
     })
     .eq("id", user.id)
     .select("id, employee_name, email, role, is_active")

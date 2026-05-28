@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meridian Voucher Studio</title>
     <script>
-      (function() {
+      (function () {
         try {
           const theme = localStorage.getItem("meridian-theme");
-          const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const isDark = theme === "dark" || ((!theme || theme === "system") && systemIsDark);
-          document.documentElement.style.backgroundColor = isDark ? "#090d16" : "#f6f8fb";
+          const systemIsDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          const isDark =
+            theme === "dark" ||
+            ((!theme || theme === "system") && systemIsDark);
+          document.documentElement.style.backgroundColor = isDark
+            ? "#090d16"
+            : "#f6f8fb";
           if (isDark) {
             document.documentElement.classList.add("dark");
           } else {

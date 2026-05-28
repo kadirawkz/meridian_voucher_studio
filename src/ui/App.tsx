@@ -18,7 +18,14 @@ import { defaultVoucher } from "../domain/defaultVoucher";
 import { withAccountDefaults } from "../domain/voucherUtils";
 import type { VoucherRecord } from "../../electron/shared/types";
 
-type ActiveView = "entry" | "dashboard" | "register" | "rate-master" | "manage-rates" | "settings" | "profile";
+type ActiveView =
+  | "entry"
+  | "dashboard"
+  | "register"
+  | "rate-master"
+  | "manage-rates"
+  | "settings"
+  | "profile";
 
 export function App() {
   const {
@@ -106,7 +113,7 @@ export function App() {
     handleClearForm,
     setRatesTrigger,
     setActiveTheme,
-    activeTheme
+    activeTheme,
   } = useAppBridge();
 
   if (isCheckingAuth) {
@@ -123,7 +130,9 @@ export function App() {
 
   return (
     <div className={`min-h-screen ${themeClass} bg-bg text-ink`}>
-      <div className={`app-shell ${navCollapsed ? "app-shell-nav-collapsed" : "app-shell-nav-expanded"}`}>
+      <div
+        className={`app-shell ${navCollapsed ? "app-shell-nav-collapsed" : "app-shell-nav-expanded"}`}
+      >
         <MenuBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -205,11 +214,15 @@ export function App() {
             {activeView === "dashboard" ? (
               <DashboardScreen
                 onNewVoucher={() => {
-                  resetForm(withAccountDefaults(defaultVoucher, accountProfile));
+                  resetForm(
+                    withAccountDefaults(defaultVoucher, accountProfile),
+                  );
                   handleClearForm();
                   setActiveView("entry");
                 }}
-                onOpenVoucher={(id: string) => void openVoucherFromSearch({ id } as VoucherRecord)}
+                onOpenVoucher={(id: string) =>
+                  void openVoucherFromSearch({ id } as VoucherRecord)
+                }
                 onGoToRateMaster={() => setActiveView("rate-master")}
                 onGoToRegister={() => {
                   setActiveView("register");
@@ -226,9 +239,9 @@ export function App() {
                 onRatesChanged={() => setRatesTrigger((prev) => prev + 1)}
               />
             ) : activeView === "settings" ? (
-              <SettingsScreen 
+              <SettingsScreen
                 activeTheme={activeTheme}
-                onThemeChange={setActiveTheme} 
+                onThemeChange={setActiveTheme}
                 onReferencesChanged={() => setRatesTrigger((prev) => prev + 1)}
                 accountProfile={accountProfile}
                 onProfileUpdated={setAccountProfile}
@@ -274,11 +287,16 @@ export function App() {
             onSelectFolder={handleSelectToursFolder}
             onRefresh={refreshToursFolderTree}
             onOpenFile={(filePath) => window.meridian?.openDocument(filePath)}
-            onOpenDocument={(filePath) => window.meridian?.openDocument(filePath)}
+            onOpenDocument={(filePath) =>
+              window.meridian?.openDocument(filePath)
+            }
             onRevealFile={handleRevealFile}
             onMigrate={handleMigrateVouchers}
           />
-          <ReportIssueModal isOpen={showReportIssue} onClose={() => setShowReportIssue(false)} />
+          <ReportIssueModal
+            isOpen={showReportIssue}
+            onClose={() => setShowReportIssue(false)}
+          />
         </div>
       </div>
     </div>

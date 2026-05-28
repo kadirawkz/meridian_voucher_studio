@@ -21,8 +21,14 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (!window.meridian || !window.meridian.signIn || !window.meridian.signUp) {
-      setStatus("Auth bridge unavailable. Run npm run build, then fully restart Electron.");
+    if (
+      !window.meridian ||
+      !window.meridian.signIn ||
+      !window.meridian.signUp
+    ) {
+      setStatus(
+        "Auth bridge unavailable. Run npm run build, then fully restart Electron.",
+      );
       return;
     }
 
@@ -36,7 +42,12 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       const state =
         mode === "login"
           ? await window.meridian.signIn({ email, password, rememberMe })
-          : await window.meridian.signUp({ email, password, employeeName, rememberMe });
+          : await window.meridian.signUp({
+              email,
+              password,
+              employeeName,
+              rememberMe,
+            });
 
       if (state.isAuthenticated) {
         setPassword("");
@@ -48,7 +59,10 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       if (mode === "signup") {
         setMode("login");
       }
-      setStatus(state.message || "Check your email to confirm the account, then sign in.");
+      setStatus(
+        state.message ||
+          "Check your email to confirm the account, then sign in.",
+      );
     } catch (error) {
       setStatus(friendlyErrorMessage(error, "Authentication failed"));
     } finally {
@@ -78,7 +92,9 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       setPassword("");
       setStatus(result.message);
     } catch (error) {
-      setStatus(friendlyErrorMessage(error, "Unable to send password reset email"));
+      setStatus(
+        friendlyErrorMessage(error, "Unable to send password reset email"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -89,11 +105,19 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       <form className="app-panel w-full max-w-md p-8" onSubmit={handleSubmit}>
         <div className="mb-8 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-app overflow-hidden bg-cloud">
-            <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+            <img
+              src={logo}
+              alt="Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-navy">Meridian Voucher Studio</h1>
-            <p className="text-sm text-steel">{mode === "login" ? "Employee Login" : "Create Employee Account"}</p>
+            <h1 className="font-display text-xl font-bold text-navy">
+              Meridian Voucher Studio
+            </h1>
+            <p className="text-sm text-steel">
+              {mode === "login" ? "Employee Login" : "Create Employee Account"}
+            </p>
           </div>
         </div>
 
@@ -148,7 +172,11 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Please wait" : mode === "login" ? "Login" : "Sign Up"}
+          {isSubmitting
+            ? "Please wait"
+            : mode === "login"
+              ? "Login"
+              : "Sign Up"}
         </button>
 
         <button
@@ -157,7 +185,11 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           onClick={() => {
             setMode(mode === "login" ? "signup" : "login");
             setPassword("");
-            setStatus(mode === "login" ? "Create an account with your company email" : "Sign in with your company account");
+            setStatus(
+              mode === "login"
+                ? "Create an account with your company email"
+                : "Sign in with your company account",
+            );
           }}
         >
           {mode === "login" ? "Create account" : "Back to login"}

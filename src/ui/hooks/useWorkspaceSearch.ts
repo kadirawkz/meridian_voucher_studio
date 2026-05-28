@@ -7,10 +7,16 @@ interface UseWorkspaceSearchProps {
   addNotice: (message: string, type?: "info" | "success" | "error") => void;
 }
 
-export function useWorkspaceSearch({ isAuthenticated, addNotice }: UseWorkspaceSearchProps) {
+export function useWorkspaceSearch({
+  isAuthenticated,
+  addNotice,
+}: UseWorkspaceSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [searchResults, setSearchResults] = useState<WorkspaceSearchResult>({ vouchers: [], documents: [] });
+  const [searchResults, setSearchResults] = useState<WorkspaceSearchResult>({
+    vouchers: [],
+    documents: [],
+  });
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -40,7 +46,10 @@ export function useWorkspaceSearch({ isAuthenticated, addNotice }: UseWorkspaceS
         })
         .catch((error) => {
           if (!isCancelled) {
-            addNotice(friendlyErrorMessage(error, "Unable to search workspace"), "error");
+            addNotice(
+              friendlyErrorMessage(error, "Unable to search workspace"),
+              "error",
+            );
           }
         })
         .finally(() => {
@@ -62,6 +71,6 @@ export function useWorkspaceSearch({ isAuthenticated, addNotice }: UseWorkspaceS
     searchResults,
     setSearchResults,
     isSearching,
-    setIsSearching
+    setIsSearching,
   };
 }

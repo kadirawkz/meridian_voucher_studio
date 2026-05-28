@@ -16,24 +16,24 @@
 
 ## 🌟 Core Capabilities
 
-*   **🖥️ Bespoke Native Shell & Anchor Steel Theme**
-    Wrapped in a high-performance Electron shell featuring customized native OS menus and context options. Engineered with the **Anchor Steel Dark Theme**—a premium, low-contrast metallic interface designed to reduce operator eye fatigue during high-volume processing.
-*   **📊 Transactional Entry Grid**
-    A high-fidelity spreadsheet-like grid that enables rapid multi-row voucher inputs. Fully backed by **React Hook Form** and strict **Zod** schema validation to catch errors before compilation.
-*   **🛌 Intelligent Occupancy Splits**
-    Fully customizable lodging inputs accommodating complex occupancy matrices (Single, Double, Twin, Triple) coupled with age-stratified child category splits (2–5 years and 6–11 years) and sub-allocations (Extra Bed, Sharing Bed, or Dedicated Room).
-*   **🏷️ Premium Supplement Overrides**
-    Bespoke multi-select interfaces with checkbox indicators for boarding rules (e.g. `HB`, `FB`). Supplements are parsed as compact tokens (e.g. `HB|FB`) and formatted cleanly without layout overflow.
-*   **⚡ Real-Time Rate Validation Engine**
-    An automated lookups engine scanning active hotel contracts inside a **Supabase** cloud datastore, instantly matching reservation dates, rooms, markets, and guest configurations to suggest current contractual rates.
-*   **📂 Resilient Folder Integrity & Relocation Explorer**
-    An active path monitoring service. If the local export folder is disconnected, the interface renders a smooth recovery wizard in the side drawer for fast, one-click storage relocation.
-*   **📄 Premium Document Compilation**
-    Compiles standard Microsoft Word templates (`.docx`) utilizing **Docxtemplater** with full support for looping tables (`{#lineItems}...{/lineItems}`), fallback values, and dynamic reservation-vs-amendment conditional layouts.
-*   **🖨️ Headless PDF Engine**
-    Utilizes Electron-native offscreen printing to instantly compile high-fidelity, customer-facing PDF copies of vouchers locally with zero third-party software requirements.
-*   **⚙️ Core Settings & Workspace Manager**
-    Securely persists application-wide preferences (export paths, default operator profiles) in a local reactive state store.
+- **🖥️ Bespoke Native Shell & Anchor Steel Theme**
+  Wrapped in a high-performance Electron shell featuring customized native OS menus and context options. Engineered with the **Anchor Steel Dark Theme**—a premium, low-contrast metallic interface designed to reduce operator eye fatigue during high-volume processing.
+- **📊 Transactional Entry Grid**
+  A high-fidelity spreadsheet-like grid that enables rapid multi-row voucher inputs. Fully backed by **React Hook Form** and strict **Zod** schema validation to catch errors before compilation.
+- **🛌 Intelligent Occupancy Splits**
+  Fully customizable lodging inputs accommodating complex occupancy matrices (Single, Double, Twin, Triple) coupled with age-stratified child category splits (2–5 years and 6–11 years) and sub-allocations (Extra Bed, Sharing Bed, or Dedicated Room).
+- **🏷️ Premium Supplement Overrides**
+  Bespoke multi-select interfaces with checkbox indicators for boarding rules (e.g. `HB`, `FB`). Supplements are parsed as compact tokens (e.g. `HB|FB`) and formatted cleanly without layout overflow.
+- **⚡ Real-Time Rate Validation Engine**
+  An automated lookups engine scanning active hotel contracts inside a **Supabase** cloud datastore, instantly matching reservation dates, rooms, markets, and guest configurations to suggest current contractual rates.
+- **📂 Resilient Folder Integrity & Relocation Explorer**
+  An active path monitoring service. If the local export folder is disconnected, the interface renders a smooth recovery wizard in the side drawer for fast, one-click storage relocation.
+- **📄 Premium Document Compilation**
+  Compiles standard Microsoft Word templates (`.docx`) utilizing **Docxtemplater** with full support for looping tables (`{#lineItems}...{/lineItems}`), fallback values, and dynamic reservation-vs-amendment conditional layouts.
+- **🖨️ Headless PDF Engine**
+  Utilizes Electron-native offscreen printing to instantly compile high-fidelity, customer-facing PDF copies of vouchers locally with zero third-party software requirements.
+- **⚙️ Core Settings & Workspace Manager**
+  Securely persists application-wide preferences (export paths, default operator profiles) in a local reactive state store.
 
 ---
 
@@ -75,16 +75,20 @@ Follow these steps to configure your local development workspace.
 ### 🔧 Installation & Setup
 
 1.  **Install Node Modules**:
+
     ```bash
     npm ci
     ```
 
 2.  **Configure Environment Defaults**:
     Duplicate the configuration template to establish your local `.env` file:
+
     ```bash
     cp .env.example .env
     ```
+
     Populate the variables with your development credentials:
+
     ```ini
     SUPABASE_URL=https://your-project.supabase.co
     SUPABASE_ANON_KEY=your-anon-public-key
@@ -94,6 +98,7 @@ Follow these steps to configure your local development workspace.
 
 3.  **Synchronize Runtime Configuration**:
     Generate target configuration manifests for the Electron shell process:
+
     ```bash
     npm run sync:public-config
     ```
@@ -110,8 +115,8 @@ Follow these steps to configure your local development workspace.
 
 Automated integration workflows are configured using **GitHub Actions**:
 
-*   **Continuous Integration (`ci.yml`)**: Triggered automatically on pushes and pull requests to `main`, `master`, and `dev` branches. Executes Prettier verification, strict ESLint analysis (`npm run lint`), TypeScript checks (`npm run typecheck`), and verifies build compatibility (`npm run build`).
-*   **Continuous Delivery & Draft Releases (`release.yml`)**: Triggered when pushing tags starting with `v` (e.g., `v1.0.0`). Compiles production builds and packages installers for Windows (`.exe`) and macOS (`.dmg`) using standard runner pools, uploading assets directly to a draft release in your repository.
+- **Continuous Integration (`ci.yml`)**: Triggered automatically on pushes and pull requests to `main`, `master`, and `dev` branches. Executes Prettier verification, strict ESLint analysis (`npm run lint`), TypeScript checks (`npm run typecheck`), and verifies build compatibility (`npm run build`).
+- **Continuous Delivery & Draft Releases (`release.yml`)**: Triggered when pushing tags starting with `v` (e.g., `v1.0.0`). Compiles production builds and packages installers for Windows (`.exe`) and macOS (`.dmg`) using standard runner pools, uploading assets directly to a draft release in your repository.
 
 ---
 
@@ -121,35 +126,36 @@ Master templates are maintained under `templates/voucher-template.docx`. Customi
 
 ### 🏷️ Standard Tags
 
-| Placeholder | Resolution |
-| :--- | :--- |
-| `{voucherTypeLabel}` | Resolves to "Hotel Reservation Voucher", "Amendment Voucher", etc. |
-| `{hotelName}` | Targeted hotel name. |
-| `{requisitionNo}` | Unique tracking reservation requisition number. |
-| `{tourNo}` | Operator reference tour number. |
-| `{tourName}` | Name of the tourist group or itinerary path. |
-| `{customerName}` | Lead guest / primary passenger. |
-| `{employeeName}` | Creating Meridian operator name. |
-| `{employeeEmail}` | Creating Meridian operator email. |
-| `{totalRooms}` | Combined count of rooms (Single, Double, Twin, Triple). |
-| `{rateApplicable}` | Standard pricing structure format with supplements: `Rate: USD 150 (HB|FB)`. |
-| `{remarks}` | Freeform billing exceptions or coordinator remarks. |
+| Placeholder          | Resolution                                                             |
+| :------------------- | :--------------------------------------------------------------------- | ----- |
+| `{voucherTypeLabel}` | Resolves to "Hotel Reservation Voucher", "Amendment Voucher", etc.     |
+| `{hotelName}`        | Targeted hotel name.                                                   |
+| `{requisitionNo}`    | Unique tracking reservation requisition number.                        |
+| `{tourNo}`           | Operator reference tour number.                                        |
+| `{tourName}`         | Name of the tourist group or itinerary path.                           |
+| `{customerName}`     | Lead guest / primary passenger.                                        |
+| `{employeeName}`     | Creating Meridian operator name.                                       |
+| `{employeeEmail}`    | Creating Meridian operator email.                                      |
+| `{totalRooms}`       | Combined count of rooms (Single, Double, Twin, Triple).                |
+| `{rateApplicable}`   | Standard pricing structure format with supplements: `Rate: USD 150 (HB | FB)`. |
+| `{remarks}`          | Freeform billing exceptions or coordinator remarks.                    |
 
 ### 🔄 Multi-Row Booking Iterations
 
 Insert standard loops inside table rows to dynamically generate invoice grids:
 
-| Date | Category | Basis | Sgl | Dbl | Twin | Tpl | Guide | Notes |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Date           | Category         | Basis     | Sgl     | Dbl     | Twin     | Tpl     | Guide              | Notes           |
+| :------------- | :--------------- | :-------- | :------ | :------ | :------- | :------ | :----------------- | :-------------- |
 | `{#lineItems}` | `{roomCategory}` | `{basis}` | `{sgl}` | `{dbl}` | `{twin}` | `{tpl}` | `{guideWithBasis}` | `{arrivingFor}` |
-| | | | | | | | | `{/lineItems}` |
+|                |                  |           |         |         |          |         |                    | `{/lineItems}`  |
 
-*   `{guideWithBasis}`: Pre-formatted guide credentials, e.g., `1 (HB)`.
-*   `{requiredDateDisplay}`: Formatted dates, e.g., `14-Feb-2026`.
+- `{guideWithBasis}`: Pre-formatted guide credentials, e.g., `1 (HB)`.
+- `{requiredDateDisplay}`: Formatted dates, e.g., `14-Feb-2026`.
 
 ### 🔀 Section Conditions
 
 Toggle specific text blocks depending on the booking type:
+
 ```text
 {#isReservation}
 Payment settled by Meridian (Pvt) Ltd.
@@ -165,6 +171,7 @@ AMENDMENT NOTICE: Please replace and ignore prior vouchers.
 ## 🏛️ Database Migrations
 
 Database tables are stored in **Supabase**. To initialize or migrate the database:
+
 1. Navigate to your Supabase project's SQL editor dashboard.
 2. Load and execute the schema configurations found in [schema.sql](file:///d:/repos/meridian_voucher_studio/supabase/schema.sql).
 

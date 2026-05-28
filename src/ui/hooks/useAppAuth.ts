@@ -7,8 +7,13 @@ interface UseAppAuthProps {
 }
 
 export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
-  const [authState, setAuthState] = useState<AuthState>({ isAuthenticated: false, profile: null });
-  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null);
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    profile: null,
+  });
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(
+    null,
+  );
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
@@ -34,7 +39,8 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
     if (!accountProfile || !window.meridian?.getAccountProfile) return;
 
     const interval = setInterval(() => {
-      void window.meridian.getAccountProfile()
+      void window.meridian
+        .getAccountProfile()
         .then((latestProfile) => {
           if (latestProfile) {
             if (
@@ -84,6 +90,6 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
     isCheckingAuth,
     setIsCheckingAuth,
     handleAuthenticated,
-    handleSignOut
+    handleSignOut,
   };
 }

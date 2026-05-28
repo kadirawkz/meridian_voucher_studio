@@ -3,8 +3,16 @@ import path from "node:path";
 import { Buffer } from "node:buffer";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
-import { getTemplatePath, resolveVoucherOutputDirectory, getAllSettings } from "../config.js";
-import type { DocumentFormat, GeneratedDocument, VoucherPayload } from "../../shared/types.js";
+import {
+  getTemplatePath,
+  resolveVoucherOutputDirectory,
+  getAllSettings,
+} from "../config.js";
+import type {
+  DocumentFormat,
+  GeneratedDocument,
+  VoucherPayload,
+} from "../../shared/types.js";
 import { getVoucherTemplate } from "./supabase.js";
 import { generatePdf } from "./pdfGenerator.js";
 
@@ -74,19 +82,34 @@ const supportedTemplateTags = new Set([
   "arrivingFor",
   "ArrivingFor",
   "arriving_for",
-  "child2_5Sharing", "c25s",
-  "child2_5Bed", "c25b",
-  "child2_5OwnRoom", "c25i",
-  "child6_11Sharing", "c611s",
-  "child6_11Bed", "c611b",
-  "child6_11OwnRoom", "c611i",
-  "totalPax", "total_pax", "market",
-  "surchargeText", "eventSupplementText", "manuallyEdited",
-  "guideorDriver", "child", "roomCategor"
+  "child2_5Sharing",
+  "c25s",
+  "child2_5Bed",
+  "c25b",
+  "child2_5OwnRoom",
+  "c25i",
+  "child6_11Sharing",
+  "c611s",
+  "child6_11Bed",
+  "c611b",
+  "child6_11OwnRoom",
+  "c611i",
+  "totalPax",
+  "total_pax",
+  "market",
+  "surchargeText",
+  "eventSupplementText",
+  "manuallyEdited",
+  "guideorDriver",
+  "child",
+  "roomCategor",
 ]);
 
 function normalizeFileName(value: string): string {
-  return value.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
+  return value
+    .replace(/[^a-z0-9-_]+/gi, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
 }
 
 function escapeXml(value: string | number | undefined): string {
@@ -111,7 +134,7 @@ function formatDisplayDate(value: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   })
     .format(date)
     .replace(/ /g, "-");
@@ -129,34 +152,61 @@ function voucherTitle(voucher: VoucherPayload): string {
   return "Hotel Reservation Voucher";
 }
 
-function replaceTextNode(xml: string, search: string, replacement: string): string {
+function replaceTextNode(
+  xml: string,
+  search: string,
+  replacement: string,
+): string {
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return xml.replace(new RegExp(`(<w:t(?: [^>]*)?>)${escapedSearch}(</w:t>)`, "u"), `$1${escapeXml(replacement)}$2`);
+  return xml.replace(
+    new RegExp(`(<w:t(?: [^>]*)?>)${escapedSearch}(</w:t>)`, "u"),
+    `$1${escapeXml(replacement)}$2`,
+  );
 }
 
-function replaceTextNodeOccurrences(xml: string, search: string, replacements: string[]): string {
+function replaceTextNodeOccurrences(
+  xml: string,
+  search: string,
+  replacements: string[],
+): string {
   let index = 0;
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  return xml.replace(new RegExp(`(<w:t(?: [^>]*)?>)${escapedSearch}(</w:t>)`, "gu"), (match, open, close) => {
-    if (index >= replacements.length) {
-      return match;
-    }
+  return xml.replace(
+    new RegExp(`(<w:t(?: [^>]*)?>)${escapedSearch}(</w:t>)`, "gu"),
+    (match, open, close) => {
+      if (index >= replacements.length) {
+        return match;
+      }
 
-    const replacement = replacements[index];
-    index += 1;
-    return `${open}${escapeXml(replacement)}${close}`;
-  });
+      const replacement = replacements[index];
+      index += 1;
+      return `${open}${escapeXml(replacement)}${close}`;
+    },
+  );
 }
 
-function insertValueAfterLabel(xml: string, label: string, value: string): string {
+function insertValueAfterLabel(
+  xml: string,
+  label: string,
+  value: string,
+): string {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`(<w:t(?: [^>]*)?>${escapedLabel}</w:t>[\\s\\S]*?<w:t(?: [^>]*)?>:\\s*)(</w:t>)`, "u");
+  const pattern = new RegExp(
+    `(<w:t(?: [^>]*)?>${escapedLabel}</w:t>[\\s\\S]*?<w:t(?: [^>]*)?>:\\s*)(</w:t>)`,
+    "u",
+  );
 
-  return xml.replace(pattern, (_match, before, after) => `${before}${escapeXml(value)}${after}`);
+  return xml.replace(
+    pattern,
+    (_match, before, after) => `${before}${escapeXml(value)}${after}`,
+  );
 }
 
-function renderLegacyStaticTemplate(zip: PizZip, voucher: VoucherPayload): void {
+function renderLegacyStaticTemplate(
+  zip: PizZip,
+  voucher: VoucherPayload,
+): void {
   const document = zip.file("word/document.xml");
   const originalXml = document?.asText();
 
@@ -169,20 +219,41 @@ function renderLegacyStaticTemplate(zip: PizZip, voucher: VoucherPayload): void 
   const rowTwo = rows[1];
 
   let xml = originalXml;
-  xml = replaceTextNode(xml, "Hotel Reservation Voucher", voucherTitle(voucher));
+  xml = replaceTextNode(
+    xml,
+    "Hotel Reservation Voucher",
+    voucherTitle(voucher),
+  );
   xml = replaceTextNode(xml, "Hotel name", voucher.hotelName);
   xml = insertValueAfterLabel(xml, "Requisition No", voucher.requisitionNo);
   xml = insertValueAfterLabel(xml, "Tour No", voucher.tourNo);
   xml = insertValueAfterLabel(xml, "Tour Name", voucher.tourName);
   xml = insertValueAfterLabel(xml, "Customer", voucher.customerName);
 
-  xml = replaceTextNodeOccurrences(xml, "13-Feb-2026", [formatDisplayDate(rowOne?.requiredDate ?? "")]);
-  xml = replaceTextNodeOccurrences(xml, "14-Feb-2026", [formatDisplayDate(rowTwo?.requiredDate ?? "")]);
-  xml = replaceTextNodeOccurrences(xml, "BB", [rowOne?.basis ?? "", rowTwo?.basis ?? ""]);
-  xml = replaceTextNodeOccurrences(xml, "6", [String(rowOne?.singleRooms ?? ""), String(rowTwo?.singleRooms ?? "")]);
-  xml = replaceTextNodeOccurrences(xml, "4", [String(rowOne?.twinRooms ?? ""), String(rowTwo?.twinRooms ?? "")]);
-  const getGuideStr = (row: typeof rowOne) => row?.guide ? `${row.guide} ${row.guideBasis || ""}`.trim() : "";
-  xml = replaceTextNodeOccurrences(xml, "1 (HB)", [getGuideStr(rowOne), getGuideStr(rowTwo)]);
+  xml = replaceTextNodeOccurrences(xml, "13-Feb-2026", [
+    formatDisplayDate(rowOne?.requiredDate ?? ""),
+  ]);
+  xml = replaceTextNodeOccurrences(xml, "14-Feb-2026", [
+    formatDisplayDate(rowTwo?.requiredDate ?? ""),
+  ]);
+  xml = replaceTextNodeOccurrences(xml, "BB", [
+    rowOne?.basis ?? "",
+    rowTwo?.basis ?? "",
+  ]);
+  xml = replaceTextNodeOccurrences(xml, "6", [
+    String(rowOne?.singleRooms ?? ""),
+    String(rowTwo?.singleRooms ?? ""),
+  ]);
+  xml = replaceTextNodeOccurrences(xml, "4", [
+    String(rowOne?.twinRooms ?? ""),
+    String(rowTwo?.twinRooms ?? ""),
+  ]);
+  const getGuideStr = (row: typeof rowOne) =>
+    row?.guide ? `${row.guide} ${row.guideBasis || ""}`.trim() : "";
+  xml = replaceTextNodeOccurrences(xml, "1 (HB)", [
+    getGuideStr(rowOne),
+    getGuideStr(rowTwo),
+  ]);
   xml = replaceTextNode(xml, "Employee name", voucher.employeeName);
   xml = replaceTextNode(xml, "employeename@merid.com", voucher.employeeEmail);
 
@@ -190,27 +261,40 @@ function renderLegacyStaticTemplate(zip: PizZip, voucher: VoucherPayload): void 
     `Confirmed By: ${voucher.confirmedBy}`,
     `Rate Applicable: ${voucher.rateApplicableText || (voucher.rateApplicable != null ? String(voucher.rateApplicable) : "")}`,
     voucher.remarks ? `Remarks: ${voucher.remarks}` : "Remarks:",
-    "Please reserve and confirm the above arrangements."
+    "Please reserve and confirm the above arrangements.",
   ].join("\n");
 
-  xml = xml.replace(/Confirmed By:\s*[\s\S]*?Please reserve and confirm the above arrangements\./u, escapeXml(rateDetails));
+  xml = xml.replace(
+    /Confirmed By:\s*[\s\S]*?Please reserve and confirm the above arrangements\./u,
+    escapeXml(rateDetails),
+  );
 
   zip.file("word/document.xml", xml);
 }
 
 function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
   const totalRooms = voucher.lineItems.reduce(
-    (total, item) => total + item.singleRooms + item.doubleRooms + item.twinRooms + item.tripleRooms,
-    0
+    (total, item) =>
+      total +
+      item.singleRooms +
+      item.doubleRooms +
+      item.twinRooms +
+      item.tripleRooms,
+    0,
   );
   const firstLineItem = voucher.lineItems[0];
-  const billingInstructions =
-    voucher.billingInstructions?.trim() || "";
+  const billingInstructions = voucher.billingInstructions?.trim() || "";
 
   const totalChildren = voucher.lineItems.reduce(
-    (total, item) => total + (item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 
-                             (item.child6_11Sharing || 0) + (item.child6_11Bed || 0) + (item.child6_11OwnRoom || 0),
-    0
+    (total, item) =>
+      total +
+      (item.child2_5Sharing || 0) +
+      (item.child2_5Bed || 0) +
+      (item.child2_5OwnRoom || 0) +
+      (item.child6_11Sharing || 0) +
+      (item.child6_11Bed || 0) +
+      (item.child6_11OwnRoom || 0),
+    0,
   );
 
   const lineItems = voucher.lineItems.map((item) => ({
@@ -231,7 +315,9 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     guideBasis: item.guideBasis,
     guide_basis: item.guideBasis,
     "guide-basis": item.guideBasis,
-    guideWithBasis: [item.guide, item.guideBasis ? `(${item.guideBasis})` : ""].filter(Boolean).join(" "),
+    guideWithBasis: [item.guide, item.guideBasis ? `(${item.guideBasis})` : ""]
+      .filter(Boolean)
+      .join(" "),
     ArrivingFor: item.arrivingFor,
     arriving_for: item.arrivingFor,
     child2_5Sharing: item.child2_5Sharing || "",
@@ -247,8 +333,13 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     child6_11OwnRoom: item.child6_11OwnRoom || "",
     c611i: item.child6_11OwnRoom || "",
     guideorDriver: item.guide || "",
-    child: ((item.child2_5Sharing || 0) + (item.child2_5Bed || 0) + (item.child2_5OwnRoom || 0) + 
-           (item.child6_11Sharing || 0) + (item.child6_11Bed || 0) + (item.child6_11OwnRoom || 0)) || ""
+    child:
+      (item.child2_5Sharing || 0) +
+        (item.child2_5Bed || 0) +
+        (item.child2_5OwnRoom || 0) +
+        (item.child6_11Sharing || 0) +
+        (item.child6_11Bed || 0) +
+        (item.child6_11OwnRoom || 0) || "",
   }));
 
   const resolvedRateApplicable =
@@ -273,7 +364,9 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     "Billing_instructions.": billingInstructions,
     "BillingInstructions.": billingInstructions,
     RequiredDate: firstLineItem?.requiredDate ?? "",
-    required_date: firstLineItem ? formatDisplayDate(firstLineItem.requiredDate) : "",
+    required_date: firstLineItem
+      ? formatDisplayDate(firstLineItem.requiredDate)
+      : "",
     RoomCategory: firstLineItem?.roomCategory ?? "",
     "room-category": firstLineItem?.roomCategory ?? "",
     roomCategor: firstLineItem?.roomCategory ?? "",
@@ -289,13 +382,28 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     guide_basis: firstLineItem?.guideBasis ?? "",
     "guide-basis": firstLineItem?.guideBasis ?? "",
     guideOnly: firstLineItem
-      ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
+      ? [
+          firstLineItem.guide,
+          firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
       : "",
     GuideOnly: firstLineItem
-      ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
+      ? [
+          firstLineItem.guide,
+          firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
       : "",
     guideWithBasis: firstLineItem
-      ? [firstLineItem.guide, firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : ""].filter(Boolean).join(" ")
+      ? [
+          firstLineItem.guide,
+          firstLineItem.guideBasis ? `(${firstLineItem.guideBasis})` : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
       : "",
     ArrivingFor: firstLineItem?.arrivingFor ?? "",
     arriving_for: firstLineItem?.arrivingFor ?? "",
@@ -327,7 +435,7 @@ function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
     surchargeText: voucher.surchargeText ?? "",
     eventSupplementText: voucher.eventSupplementText ?? "",
     manuallyEdited: voucher.manuallyEdited ?? false,
-    lineItems
+    lineItems,
   };
 }
 
@@ -356,12 +464,13 @@ function assertTemplateTagsAreUsable(xml: string): void {
   if (unsupportedTags.length > 0) {
     const uniqueTags = [...new Set(unsupportedTags)];
     const previewTags = uniqueTags.slice(0, 8).join(", ");
-    const extraCount = uniqueTags.length > 8 ? `, and ${uniqueTags.length - 8} more` : "";
+    const extraCount =
+      uniqueTags.length > 8 ? `, and ${uniqueTags.length - 8} more` : "";
 
     throw new Error(
       `Voucher template has unsupported tags: ${previewTags}${extraCount}. ` +
         "Replace sample-value tags with field-name tags, for example {hotelName}, {requisitionNo}, {tourNo}, {tourName}, {customerName}, " +
-        "and table loop tags {#lineItems}...{/lineItems}."
+        "and table loop tags {#lineItems}...{/lineItems}.",
     );
   }
 }
@@ -388,7 +497,7 @@ function changeFontsToArial(zip: PizZip): void {
     "word/header1.xml",
     "word/footer1.xml",
     "word/theme/theme1.xml",
-    "word/fontTable.xml"
+    "word/fontTable.xml",
   ];
 
   for (const filePath of xmlFiles) {
@@ -398,17 +507,32 @@ function changeFontsToArial(zip: PizZip): void {
     let content = file.asText();
 
     if (filePath === "word/theme/theme1.xml") {
-      content = content.replace(/<a:latin typeface="[^"]*"/gu, '<a:latin typeface="Arial"');
-      content = content.replace(/<a:ea typeface="[^"]*"/gu, '<a:ea typeface="Arial"');
-      content = content.replace(/<a:cs typeface="[^"]*"/gu, '<a:cs typeface="Arial"');
-      content = content.replace(/<a:font script="([^"]*)" typeface="[^"]*"/gu, '<a:font script="$1" typeface="Arial"');
+      content = content.replace(
+        /<a:latin typeface="[^"]*"/gu,
+        '<a:latin typeface="Arial"',
+      );
+      content = content.replace(
+        /<a:ea typeface="[^"]*"/gu,
+        '<a:ea typeface="Arial"',
+      );
+      content = content.replace(
+        /<a:cs typeface="[^"]*"/gu,
+        '<a:cs typeface="Arial"',
+      );
+      content = content.replace(
+        /<a:font script="([^"]*)" typeface="[^"]*"/gu,
+        '<a:font script="$1" typeface="Arial"',
+      );
     } else {
       content = content.replace(/<w:rFonts[^>]*>/gu, (match) => {
         const isSelfClosing = match.endsWith("/>");
         return `<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"${isSelfClosing ? "/" : ""}>`;
       });
       if (filePath === "word/fontTable.xml" || filePath === "word/styles.xml") {
-        content = content.replace(/<w:font w:name="[^"]*"/gu, '<w:font w:name="Arial"');
+        content = content.replace(
+          /<w:font w:name="[^"]*"/gu,
+          '<w:font w:name="Arial"',
+        );
       }
     }
 
@@ -416,10 +540,14 @@ function changeFontsToArial(zip: PizZip): void {
   }
 }
 
-export async function generateDocuments(voucher: VoucherPayload, format: DocumentFormat = "pdf", customOutputDir?: string): Promise<GeneratedDocument> {
+export async function generateDocuments(
+  voucher: VoucherPayload,
+  format: DocumentFormat = "pdf",
+  customOutputDir?: string,
+): Promise<GeneratedDocument> {
   const settings = getAllSettings();
   let template: Buffer | null = null;
-  
+
   if (settings.activeTemplateName) {
     try {
       const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
@@ -427,7 +555,10 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
         template = Buffer.from(dbTemplate.file_data, "base64");
       }
     } catch (e) {
-      console.warn(`Failed to fetch database template '${settings.activeTemplateName}', falling back to default:`, e);
+      console.warn(
+        `Failed to fetch database template '${settings.activeTemplateName}', falling back to default:`,
+        e,
+      );
     }
   }
 
@@ -436,7 +567,12 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
     template = await fs.readFile(templatePath);
   }
 
-  const outputDirectory = customOutputDir || resolveVoucherOutputDirectory(voucher.tourType || "", voucher.hotelName || "");
+  const outputDirectory =
+    customOutputDir ||
+    resolveVoucherOutputDirectory(
+      voucher.tourType || "",
+      voucher.hotelName || "",
+    );
   await fs.mkdir(outputDirectory, { recursive: true });
 
   const zip = new PizZip(template);
@@ -445,18 +581,25 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
   if (docxtemplaterTagPattern.test(documentXml)) {
     // Auto-fix legacy templates that use {RequiredDate} but lack a {#lineItems} loop
     const rawText = documentXml.replace(/<[^>]+>/g, "");
-    if (!rawText.includes("{#lineItems}") && rawText.includes("{RequiredDate}")) {
-      const requiredDateRegex = /<w:tr[\s>](?:(?!<w:tr[\s>]).)*?R(?:<[^>]+>)*e(?:<[^>]+>)*q(?:<[^>]+>)*u(?:<[^>]+>)*i(?:<[^>]+>)*r(?:<[^>]+>)*e(?:<[^>]+>)*d(?:<[^>]+>)*D(?:<[^>]+>)*a(?:<[^>]+>)*t(?:<[^>]+>)*e(?:<[^>]+>)*.*?(?:<\/w:tr>)/g;
-      
+    if (
+      !rawText.includes("{#lineItems}") &&
+      rawText.includes("{RequiredDate}")
+    ) {
+      const requiredDateRegex =
+        /<w:tr[\s>](?:(?!<w:tr[\s>]).)*?R(?:<[^>]+>)*e(?:<[^>]+>)*q(?:<[^>]+>)*u(?:<[^>]+>)*i(?:<[^>]+>)*r(?:<[^>]+>)*e(?:<[^>]+>)*d(?:<[^>]+>)*D(?:<[^>]+>)*a(?:<[^>]+>)*t(?:<[^>]+>)*e(?:<[^>]+>)*.*?(?:<\/w:tr>)/g;
+
       const newXml = documentXml.replace(requiredDateRegex, (match) => {
         let replaced = match.replace(/(<w:t(?: [^>]*)?>)/, "$1{#lineItems}");
         const lastIndex = replaced.lastIndexOf("</w:t>");
         if (lastIndex !== -1) {
-          replaced = replaced.substring(0, lastIndex) + "{/lineItems}" + replaced.substring(lastIndex);
+          replaced =
+            replaced.substring(0, lastIndex) +
+            "{/lineItems}" +
+            replaced.substring(lastIndex);
         }
         return replaced;
       });
-      
+
       if (newXml !== documentXml) {
         documentXml = newXml;
         zip.file("word/document.xml", documentXml);
@@ -467,7 +610,7 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
 
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
-      linebreaks: true
+      linebreaks: true,
     });
 
     doc.render(buildTemplateData(voucher));
@@ -484,7 +627,7 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
     normalizeFileName(voucher.tourType || ""),
     normalizeFileName(voucher.market || ""),
     voucher.requisitionNo,
-    normalizeFileName(voucher.hotelName)
+    normalizeFileName(voucher.hotelName),
   ]
     .filter(Boolean)
     .join("-");
@@ -493,18 +636,26 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
 
   try {
     await fs.access(docxPath);
-    throw new Error(`A document with the name "${fileBase}.docx" has already been generated and exists in the output folder.`);
+    throw new Error(
+      `A document with the name "${fileBase}.docx" has already been generated and exists in the output folder.`,
+    );
   } catch (err) {
     if ((err as { code?: string }).code !== "ENOENT") {
       throw err;
     }
   }
 
-  await fs.writeFile(docxPath, zip.generate({ type: "nodebuffer", compression: "DEFLATE" }));
+  await fs.writeFile(
+    docxPath,
+    zip.generate({ type: "nodebuffer", compression: "DEFLATE" }),
+  );
   let pdfPath: string | undefined;
   if (format === "pdf") {
     try {
-      pdfPath = path.join(outputDirectory, `${path.basename(docxPath, ".docx")}.pdf`);
+      pdfPath = path.join(
+        outputDirectory,
+        `${path.basename(docxPath, ".docx")}.pdf`,
+      );
       await generatePdf(voucher, pdfPath);
     } catch (err) {
       console.error("PDF generation failed:", err);
@@ -513,11 +664,13 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
   }
 
   if (format === "pdf" && !pdfPath) {
-    throw new Error("PDF conversion failed. Ensure your Electron environment supports printToPDF offscreen rendering.");
+    throw new Error(
+      "PDF conversion failed. Ensure your Electron environment supports printToPDF offscreen rendering.",
+    );
   }
 
   return {
     docxPath,
-    pdfPath
+    pdfPath,
   };
 }

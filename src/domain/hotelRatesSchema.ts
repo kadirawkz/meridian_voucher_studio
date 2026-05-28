@@ -39,7 +39,14 @@ export type HotelRateRecordValue = z.output<typeof hotelRateRecordSchema>;
  */
 export const hotelRateJsonSchema = {
   type: "object",
-  required: ["hotel_name", "market", "currency", "contract_name", "valid_from", "valid_to"],
+  required: [
+    "hotel_name",
+    "market",
+    "currency",
+    "contract_name",
+    "valid_from",
+    "valid_to",
+  ],
   properties: {
     id: { type: "string", format: "uuid" },
     hotel_name: { type: "string" },

@@ -7,14 +7,17 @@ interface ProfileScreenProps {
   onProfileUpdated: (profile: AccountProfile) => void;
 }
 
-export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScreenProps) {
+export function ProfileScreen({
+  accountProfile,
+  onProfileUpdated,
+}: ProfileScreenProps) {
   const [profile, setProfile] = useState<AccountProfile | null>(accountProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [formData, setFormData] = useState({
     employeeName: "",
-    employeeEmail: ""
+    employeeEmail: "",
   });
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
       setProfile(accountProfile);
       setFormData({
         employeeName: accountProfile.employeeName || "",
-        employeeEmail: accountProfile.employeeEmail || ""
+        employeeEmail: accountProfile.employeeEmail || "",
       });
     }
   }, [accountProfile]);
@@ -32,7 +35,7 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
       setIsSaving(true);
       const result = await window.meridian.updateProfile({
         employeeName: formData.employeeName,
-        employeeEmail: formData.employeeEmail
+        employeeEmail: formData.employeeEmail,
       });
       setProfile(result);
       onProfileUpdated(result);
@@ -51,7 +54,7 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
     if (accountProfile) {
       setFormData({
         employeeName: accountProfile.employeeName || "",
-        employeeEmail: accountProfile.employeeEmail || ""
+        employeeEmail: accountProfile.employeeEmail || "",
       });
     }
     setIsEditing(false);
@@ -68,17 +71,25 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
   return (
     <div className="mx-auto max-w-2xl p-4 md:p-8">
       <div className="mb-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">User / Account</p>
-        <h2 className="mt-1 font-display text-3xl font-bold text-navy">Profile</h2>
-        <p className="mt-2 text-sm text-steel">Manage your account information and settings.</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
+          User / Account
+        </p>
+        <h2 className="mt-1 font-display text-3xl font-bold text-navy">
+          Profile
+        </h2>
+        <p className="mt-2 text-sm text-steel">
+          Manage your account information and settings.
+        </p>
       </div>
 
       {feedback && (
-        <div className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
-          feedback.includes("success")
-            ? "border-green-500/20 bg-green-500/10 text-green-500"
-            : "border-red-500/20 bg-red-500/10 text-red-500"
-        }`}>
+        <div
+          className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
+            feedback.includes("success")
+              ? "border-green-500/20 bg-green-500/10 text-green-500"
+              : "border-red-500/20 bg-red-500/10 text-red-500"
+          }`}
+        >
           {feedback}
         </div>
       )}
@@ -148,15 +159,23 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
               <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4 overflow-hidden">
                 <User size={20} className="text-navy shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase text-steel">Employee Name</p>
-                  <p className="text-base font-semibold text-navy truncate">{profile.employeeName}</p>
+                  <p className="text-xs font-bold uppercase text-steel">
+                    Employee Name
+                  </p>
+                  <p className="text-base font-semibold text-navy truncate">
+                    {profile.employeeName}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4 overflow-hidden">
                 <Mail size={20} className="text-navy shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase text-steel">Email Address</p>
-                  <p className="text-base font-semibold text-navy truncate">{profile.employeeEmail}</p>
+                  <p className="text-xs font-bold uppercase text-steel">
+                    Email Address
+                  </p>
+                  <p className="text-base font-semibold text-navy truncate">
+                    {profile.employeeEmail}
+                  </p>
                 </div>
               </div>
             </div>
@@ -170,21 +189,33 @@ export function ProfileScreen({ accountProfile, onProfileUpdated }: ProfileScree
             <div className="flex items-center gap-3 rounded-app border border-line bg-cloud p-4">
               <Shield size={20} className="text-navy" />
               <div>
-                <p className="text-xs font-bold uppercase text-steel">Account Role</p>
-                <p className="text-base font-semibold text-navy capitalize">{profile.role || "Employee"}</p>
+                <p className="text-xs font-bold uppercase text-steel">
+                  Account Role
+                </p>
+                <p className="text-base font-semibold text-navy capitalize">
+                  {profile.role || "Employee"}
+                </p>
               </div>
             </div>
             <div className="rounded-app border border-line bg-cloud p-4">
-              <p className="text-xs font-bold uppercase text-steel">Account Status</p>
+              <p className="text-xs font-bold uppercase text-steel">
+                Account Status
+              </p>
               <p className="mt-2 flex items-center gap-2 text-base font-semibold text-navy">
-                <span className={`h-2 w-2 rounded-full ${profile.isActive ? "bg-green-500" : "bg-red-500"}`} />
+                <span
+                  className={`h-2 w-2 rounded-full ${profile.isActive ? "bg-green-500" : "bg-red-500"}`}
+                />
                 {profile.isActive ? "Active" : "Inactive"}
               </p>
             </div>
             {profile.id && (
               <div className="rounded-app border border-line bg-cloud p-4">
-                <p className="text-xs font-bold uppercase text-steel">User ID</p>
-                <p className="mt-2 font-mono text-xs text-steel">{profile.id}</p>
+                <p className="text-xs font-bold uppercase text-steel">
+                  User ID
+                </p>
+                <p className="mt-2 font-mono text-xs text-steel">
+                  {profile.id}
+                </p>
               </div>
             )}
           </div>
