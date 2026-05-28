@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Buffer } from "node:buffer";
-import { spawn, type ChildProcess } from "node:child_process";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import { getTemplatePath, resolveVoucherOutputDirectory, getAllSettings } from "../config.js";
 import type { DocumentFormat, GeneratedDocument, VoucherPayload } from "../../shared/types.js";
 import { getVoucherTemplate } from "./supabase.js";
+import { generatePdf } from "./pdfGenerator.js";
 
 const docxtemplaterTagPattern = /{[#/A-Za-z][^}]*}/;
 const supportedTemplateTags = new Set([
@@ -379,31 +379,6 @@ export async function validateTemplate(filePath: string): Promise<void> {
   await validateTemplateBuffer(content);
 }
 
-async function convertDocxToPdf(docxPath: string, outputDirectory: string): Promise<string | undefined> {
-  const libreOfficePath = process.env.LIBREOFFICE_PATH || "soffice";
-
-  return new Promise((resolve) => {
-    const child = spawn(libreOfficePath, [
-      "--headless",
-      "--convert-to",
-      "pdf",
-      "--outdir",
-      outputDirectory,
-      docxPath
-    ]) as ChildProcess;
-
-    child.on("error", () => resolve(undefined));
-    child.on("close", (code: number | null) => {
-      if (code !== 0) {
-        resolve(undefined);
-        return;
-      }
-
-      resolve(path.join(outputDirectory, `${path.basename(docxPath, ".docx")}.pdf`));
-    });
-  });
-}
-
 function changeFontsToArial(zip: PizZip): void {
   const xmlFiles = [
     "word/document.xml",
@@ -526,11 +501,19 @@ export async function generateDocuments(voucher: VoucherPayload, format: Documen
   }
 
   await fs.writeFile(docxPath, zip.generate({ type: "nodebuffer", compression: "DEFLATE" }));
-
-  const pdfPath = format === "pdf" ? await convertDocxToPdf(docxPath, outputDirectory) : undefined;
+  let pdfPath: string | undefined;
+  if (format === "pdf") {
+    try {
+      pdfPath = path.join(outputDirectory, `${path.basename(docxPath, ".docx")}.pdf`);
+      await generatePdf(voucher, pdfPath);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      pdfPath = undefined;
+    }
+  }
 
   if (format === "pdf" && !pdfPath) {
-    throw new Error("PDF conversion failed. Check that LibreOffice is installed and LIBREOFFICE_PATH points to soffice.");
+    throw new Error("PDF conversion failed. Ensure your Electron environment supports printToPDF offscreen rendering.");
   }
 
   return {

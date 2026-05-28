@@ -31,9 +31,9 @@
 *   **📄 Premium Document Compilation**
     Compiles standard Microsoft Word templates (`.docx`) utilizing **Docxtemplater** with full support for looping tables (`{#lineItems}...{/lineItems}`), fallback values, and dynamic reservation-vs-amendment conditional layouts.
 *   **🖨️ Headless PDF Engine**
-    Programmatically orchestrates a local background connection to **LibreOffice** to convert compiled DOCX vouchers into customer-facing PDF copies instantly.
+    Utilizes Electron-native offscreen printing to instantly compile high-fidelity, customer-facing PDF copies of vouchers locally with zero third-party software requirements.
 *   **⚙️ Core Settings & Workspace Manager**
-    Securely persists application-wide preferences (export paths, custom LibreOffice executables, default operator profiles) in a local reactive state store.
+    Securely persists application-wide preferences (export paths, default operator profiles) in a local reactive state store.
 
 ---
 
@@ -71,7 +71,6 @@ Follow these steps to configure your local development workspace.
 ### 📋 Prerequisites
 
 1.  **Node.js**: Recommended `v18.x` or `v20.x` LTS.
-2.  **LibreOffice**: Required for PDF generation. Ensure `soffice` is globally registered in your system's PATH, or provide a direct pointer to the binary in your `.env` configuration.
 
 ### 🔧 Installation & Setup
 
@@ -90,7 +89,6 @@ Follow these steps to configure your local development workspace.
     SUPABASE_URL=https://your-project.supabase.co
     SUPABASE_ANON_KEY=your-anon-public-key
     VOUCHER_API_PORT=5183
-    LIBREOFFICE_PATH="C:\\Program Files\\LibreOffice\\program\\soffice.exe"
     MERIDIAN_EMPLOYEE_EMAIL=operator@meridian.com
     ```
 

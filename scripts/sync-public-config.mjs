@@ -14,8 +14,7 @@ dotenv.config({ path: envPath });
 const publicConfig = {
   supabaseUrl: process.env.SUPABASE_URL || "",
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
-  voucherApiPort: Number(process.env.VOUCHER_API_PORT || 0),
-  libreOfficePath: process.env.LIBREOFFICE_PATH || ""
+  voucherApiPort: Number(process.env.VOUCHER_API_PORT || 0)
 };
 
 await fs.mkdir(outputDir, { recursive: true });

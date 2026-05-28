@@ -24,7 +24,6 @@ type PublicRuntimeConfig = {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   voucherApiPort?: number;
-  libreOfficePath?: string;
 };
 
 function loadEnvironmentFile(): void {
@@ -65,7 +64,6 @@ function loadRuntimeConfigFile(): void {
       process.env.SUPABASE_URL ||= config.supabaseUrl || "";
       process.env.SUPABASE_ANON_KEY ||= config.supabaseAnonKey || "";
       process.env.VOUCHER_API_PORT ||= String(config.voucherApiPort ?? 0);
-      process.env.LIBREOFFICE_PATH ||= config.libreOfficePath || "";
       break;
     } catch {
       // Ignore malformed config file and continue to the next candidate.

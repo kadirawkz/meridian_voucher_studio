@@ -1,6 +1,5 @@
 {
   "supabaseUrl": "",
   "supabaseAnonKey": "",
-  "voucherApiPort": 0,
-  "libreOfficePath": ""
+  "voucherApiPort": 0
 }
