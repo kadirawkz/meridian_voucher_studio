@@ -38,6 +38,7 @@ MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 ## Quick Start
 
 1. **Build and Start the Containers**:
+
    ```bash
    docker compose up --build -d
    ```
@@ -58,5 +59,6 @@ MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 > [!IMPORTANT]
 > **PDF Document Generation**:
 > The desktop application uses Electron's offscreen Chromium rendering pipeline to print HTML templates into clean PDF files. Headless container environments running standard Node.js do not have accessibility to the desktop GUI pipeline.
+>
 > - **DOCX document generation** works flawlessly inside Docker since it is executed via a pure Node.js template processor (`docxtemplater` + `pizzip`).
 > - Selecting the **PDF Generation** action in the browser will fallback to DOCX generation or display a status warning, because Electron's window printing API is disabled in headless contexts.

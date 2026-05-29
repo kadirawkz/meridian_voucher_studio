@@ -437,8 +437,7 @@ export function SavedVouchersScreen({
 
                     // Status style badges
                     let statusDot = "bg-slate-400";
-                    let statusBg =
-                      "bg-cloud text-steel border border-line";
+                    let statusBg = "bg-cloud text-steel border border-line";
                     if (voucher.status === "draft") {
                       statusDot = "bg-amber-400";
                       statusBg =

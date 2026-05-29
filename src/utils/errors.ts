@@ -47,7 +47,6 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
     return "Please log in first.";
   }
 
-
   // In production, check if the error is likely a system/database/connection error
   const isSystemError =
     normalizedMessage.includes("failed to fetch") ||

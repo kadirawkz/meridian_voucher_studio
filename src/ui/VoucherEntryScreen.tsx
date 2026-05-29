@@ -315,7 +315,9 @@ export function VoucherEntryScreen({
           </Button>
           <Button
             type="submit"
-            disabled={actionState !== "idle" || (!!form.watch("id") && !hasChanges)}
+            disabled={
+              actionState !== "idle" || (!!form.watch("id") && !hasChanges)
+            }
             onClick={handleTriggerShake}
             variant="primary"
             className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
@@ -760,7 +762,9 @@ export function VoucherEntryScreen({
                         className="bg-cloud hover:bg-cloud-dark border border-line rounded px-2 py-0.5 text-navy font-bold cursor-pointer focus:ring-0 text-xs"
                       >
                         <option value="detailed">Detailed (By Date)</option>
-                        <option value="grouped">Grouped (By Room & Date)</option>
+                        <option value="grouped">
+                          Grouped (By Room & Date)
+                        </option>
                       </select>
                     </label>
                     <label className="flex items-center gap-2 text-xs font-semibold text-steel hover:text-navy cursor-pointer">

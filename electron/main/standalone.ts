@@ -15,7 +15,10 @@ if (!process.env.VOUCHER_API_HOST) {
 console.log("[API Standalone] Starting Voucher Express Server...");
 console.log(`[API Standalone] Port: ${process.env.VOUCHER_API_PORT}`);
 console.log(`[API Standalone] Host: ${process.env.VOUCHER_API_HOST}`);
-console.log("[API Standalone] SUPABASE_URL =", process.env.SUPABASE_URL || "<not set>");
+console.log(
+  "[API Standalone] SUPABASE_URL =",
+  process.env.SUPABASE_URL || "<not set>",
+);
 
 createVoucherServer()
   .then(({ url }) => {

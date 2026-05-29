@@ -414,7 +414,14 @@ export function HotelRateMasterScreen({
     // Set initial lastSavedState
     setLastSavedState(
       JSON.stringify({
-        contract: { hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" },
+        contract: {
+          hotelName: "",
+          market: "",
+          currency: "",
+          contractName: "",
+          validFrom: "",
+          validTo: "",
+        },
         rates: [],
         childRates: [],
         roomSupplements: [],
@@ -422,12 +429,20 @@ export function HotelRateMasterScreen({
         seasonalSurcharges: [],
         events: [],
         focRules: {
-          enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "",
-          countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: ""
+          enabled: false,
+          appliesTo: "Guide",
+          minimumPersons: "15",
+          focQuantity: "1",
+          basis: "",
+          countAdults: true,
+          countChild2_5: false,
+          countChild6_11: false,
+          paxCustomText: "",
+          guideCustomText: "",
         },
         billingText: "",
         skippedSections: [],
-      })
+      }),
     );
   }, []);
 
@@ -480,9 +495,7 @@ export function HotelRateMasterScreen({
       age_6_11_sharing:
         r.age_6_11_99_sharing == null ? "" : String(r.age_6_11_99_sharing),
       age_6_11_extra_bed:
-        r.age_6_11_99_extra_bed == null
-          ? ""
-          : String(r.age_6_11_99_extra_bed),
+        r.age_6_11_99_extra_bed == null ? "" : String(r.age_6_11_99_extra_bed),
       age_6_11_own_room:
         r.age_6_11_99_own_room == null ? "" : String(r.age_6_11_99_own_room),
     }));
@@ -497,10 +510,12 @@ export function HotelRateMasterScreen({
     }));
     setRoomSupplements(loadedSupplements);
 
-    const loadedGuide = Object.entries(record.guide_rates ?? {}).map(([basis, amount]) => ({
-      basis,
-      amount: amount == null ? "" : String(amount),
-    }));
+    const loadedGuide = Object.entries(record.guide_rates ?? {}).map(
+      ([basis, amount]) => ({
+        basis,
+        amount: amount == null ? "" : String(amount),
+      }),
+    );
     setGuideRates(loadedGuide);
 
     const loadedSurcharges = (record.seasonal_surcharges ?? []).map((s) => ({
@@ -571,7 +586,7 @@ export function HotelRateMasterScreen({
         focRules: loadedFocRules,
         billingText: loadedBilling,
         skippedSections: loadedSkipped,
-      })
+      }),
     );
   }
 
@@ -755,7 +770,14 @@ export function HotelRateMasterScreen({
     setSaveNotice("Cleared");
     setLastSavedState(
       JSON.stringify({
-        contract: { hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" },
+        contract: {
+          hotelName: "",
+          market: "",
+          currency: "",
+          contractName: "",
+          validFrom: "",
+          validTo: "",
+        },
         rates: [],
         childRates: [],
         roomSupplements: [],
@@ -763,12 +785,20 @@ export function HotelRateMasterScreen({
         seasonalSurcharges: [],
         events: [],
         focRules: {
-          enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "",
-          countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: ""
+          enabled: false,
+          appliesTo: "Guide",
+          minimumPersons: "",
+          focQuantity: "1",
+          basis: "",
+          countAdults: true,
+          countChild2_5: false,
+          countChild6_11: false,
+          paxCustomText: "",
+          guideCustomText: "",
         },
         billingText: "",
         skippedSections: [],
-      })
+      }),
     );
     setTimeout(() => {
       setSaveNotice((prev) => (prev === "Cleared" ? "" : prev));
@@ -900,7 +930,8 @@ export function HotelRateMasterScreen({
     skippedSections,
   ]);
 
-  const canSave = sectionStates.every((s) => s.status !== "Empty") && hasChanges;
+  const canSave =
+    sectionStates.every((s) => s.status !== "Empty") && hasChanges;
 
   /* ---------- save to backend ---------- */
 
@@ -1035,7 +1066,7 @@ export function HotelRateMasterScreen({
           focRules,
           billingText,
           skippedSections,
-        })
+        }),
       );
       setSaveNotice("");
       if (addNotice)
@@ -1199,7 +1230,7 @@ export function HotelRateMasterScreen({
                           focRules: initialFoc,
                           billingText: "",
                           skippedSections: [],
-                        })
+                        }),
                       );
                     }}
                   >

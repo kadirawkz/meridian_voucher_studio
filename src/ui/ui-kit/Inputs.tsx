@@ -98,7 +98,9 @@ export const Select = forwardRef<
         !containerRef.current.contains(event.target as Node)
       ) {
         // Also ensure we aren't clicking inside the portal-rendered dropdown container itself
-        const portalDropdowns = document.querySelectorAll(".app-portal-dropdown");
+        const portalDropdowns = document.querySelectorAll(
+          ".app-portal-dropdown",
+        );
         let clickedInsidePortal = false;
         portalDropdowns.forEach((dropdown) => {
           if (dropdown.contains(event.target as Node)) {
@@ -192,46 +194,48 @@ export const Select = forwardRef<
         />
       </div>
 
-      {isOpen && !props.disabled && createPortal(
-        <div
-          className="app-portal-dropdown fixed bg-surface border border-line shadow-2xl rounded-app z-[99999] max-h-60 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
-          style={{
-            top: `${coords.top}px`,
-            left: `${coords.left}px`,
-            width: `${coords.width}px`,
-          }}
-        >
-          {options.length === 0 ? (
-            <div className="p-3 text-xs text-steel text-center select-none font-medium">
-              No options available
-            </div>
-          ) : (
-            options.map((opt) => {
-              const isSelected = opt.value === selectedValue;
-              return (
-                <button
-                  type="button"
-                  key={opt.value}
-                  disabled={opt.disabled}
-                  onClick={() => handleSelectOption(opt.value)}
-                  className={[
-                    "flex w-full items-center justify-between px-3 py-2 text-xs font-semibold rounded transition-colors select-none text-left",
-                    isSelected
-                      ? "bg-navy text-white font-bold"
-                      : "text-ink hover:bg-cloud hover:text-navy cursor-pointer",
-                    opt.disabled ? "opacity-50 cursor-not-allowed" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <span className="truncate">{opt.label}</span>
-                </button>
-              );
-            })
-          )}
-        </div>,
-        document.body
-      )}
+      {isOpen &&
+        !props.disabled &&
+        createPortal(
+          <div
+            className="app-portal-dropdown fixed bg-surface border border-line shadow-2xl rounded-app z-[99999] max-h-60 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
+            style={{
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: `${coords.width}px`,
+            }}
+          >
+            {options.length === 0 ? (
+              <div className="p-3 text-xs text-steel text-center select-none font-medium">
+                No options available
+              </div>
+            ) : (
+              options.map((opt) => {
+                const isSelected = opt.value === selectedValue;
+                return (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    disabled={opt.disabled}
+                    onClick={() => handleSelectOption(opt.value)}
+                    className={[
+                      "flex w-full items-center justify-between px-3 py-2 text-xs font-semibold rounded transition-colors select-none text-left",
+                      isSelected
+                        ? "bg-navy text-white font-bold"
+                        : "text-ink hover:bg-cloud hover:text-navy cursor-pointer",
+                      opt.disabled ? "opacity-50 cursor-not-allowed" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

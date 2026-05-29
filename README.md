@@ -114,6 +114,7 @@ Follow these steps to configure your local development workspace.
 
 4.  **Launch Local Server (Electron)**:
     Boot the Vite dev environment, TypeScript compiler, and Electron container concurrently:
+
     ```bash
     npm run dev
     ```

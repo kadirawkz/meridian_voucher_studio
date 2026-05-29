@@ -566,12 +566,16 @@ export async function saveHotelRates(
   if (record.id) {
     const { data: existing, error: existingError } = await supabase
       .from("hotel_rates")
-      .select("hotel_id, market_id, currency, contract_name, valid_from, valid_to")
+      .select(
+        "hotel_id, market_id, currency, contract_name, valid_from, valid_to",
+      )
       .eq("id", record.id)
       .maybeSingle();
 
     if (existingError) {
-      throw new Error(`Unable to fetch existing rate contract: ${existingError.message}`);
+      throw new Error(
+        `Unable to fetch existing rate contract: ${existingError.message}`,
+      );
     }
 
     if (existing) {
@@ -584,7 +588,7 @@ export async function saveHotelRates(
         existing.valid_to !== record.valid_to
       ) {
         throw new Error(
-          "Cannot modify basic contract information (Hotel, Market, Currency, Contract Name, Valid From, Valid To) once saved."
+          "Cannot modify basic contract information (Hotel, Market, Currency, Contract Name, Valid From, Valid To) once saved.",
         );
       }
     }
@@ -992,10 +996,14 @@ function buildRateApplicableText(
       );
 
       if (match) {
-        if (hasSgl && match.sgl != null) roomParts.push(`Single-${basisUpper} ${currency} ${match.sgl}`);
-        if (hasDbl && match.dbl != null) roomParts.push(`Double-${basisUpper} ${currency} ${match.dbl}`);
-        if (hasTwn && match.twn != null) roomParts.push(`Twin-${basisUpper} ${currency} ${match.twn}`);
-        if (hasTpl && match.tpl != null) roomParts.push(`Triple-${basisUpper} ${currency} ${match.tpl}`);
+        if (hasSgl && match.sgl != null)
+          roomParts.push(`Single-${basisUpper} ${currency} ${match.sgl}`);
+        if (hasDbl && match.dbl != null)
+          roomParts.push(`Double-${basisUpper} ${currency} ${match.dbl}`);
+        if (hasTwn && match.twn != null)
+          roomParts.push(`Twin-${basisUpper} ${currency} ${match.twn}`);
+        if (hasTpl && match.tpl != null)
+          roomParts.push(`Triple-${basisUpper} ${currency} ${match.tpl}`);
       }
       if (roomParts.length > 0) {
         parts.push(roomParts.join(" / "));
@@ -1067,15 +1075,31 @@ function buildRateApplicableText(
         // Child 2-5.99
         if (hasC25) {
           const c25Parts: string[] = [];
-          if (hasC25Sharing && matchChild.age_2_5_99_sharing) c25Parts.push(`Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`);
-          if (hasC25Bed && matchChild.age_2_5_99_extra_bed) c25Parts.push(`Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`);
-          if (hasC25OwnRoom && matchChild.age_2_5_99_own_room) c25Parts.push(`Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`);
+          if (hasC25Sharing && matchChild.age_2_5_99_sharing)
+            c25Parts.push(
+              `Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`,
+            );
+          if (hasC25Bed && matchChild.age_2_5_99_extra_bed)
+            c25Parts.push(`Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`);
+          if (hasC25OwnRoom && matchChild.age_2_5_99_own_room)
+            c25Parts.push(
+              `Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`,
+            );
 
           // Fallback to showing all if they only filled generic child field
           if (c25Parts.length === 0) {
-            if (matchChild.age_2_5_99_sharing) c25Parts.push(`Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`);
-            if (matchChild.age_2_5_99_extra_bed) c25Parts.push(`Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`);
-            if (matchChild.age_2_5_99_own_room) c25Parts.push(`Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`);
+            if (matchChild.age_2_5_99_sharing)
+              c25Parts.push(
+                `Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`,
+              );
+            if (matchChild.age_2_5_99_extra_bed)
+              c25Parts.push(
+                `Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`,
+              );
+            if (matchChild.age_2_5_99_own_room)
+              c25Parts.push(
+                `Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`,
+              );
           }
 
           if (c25Parts.length > 0) {
@@ -1086,15 +1110,33 @@ function buildRateApplicableText(
         // Child 6-11.99
         if (hasC611) {
           const c611Parts: string[] = [];
-          if (hasC611Sharing && matchChild.age_6_11_99_sharing) c611Parts.push(`Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`);
-          if (hasC611Bed && matchChild.age_6_11_99_extra_bed) c611Parts.push(`Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`);
-          if (hasC611OwnRoom && matchChild.age_6_11_99_own_room) c611Parts.push(`Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`);
+          if (hasC611Sharing && matchChild.age_6_11_99_sharing)
+            c611Parts.push(
+              `Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`,
+            );
+          if (hasC611Bed && matchChild.age_6_11_99_extra_bed)
+            c611Parts.push(
+              `Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`,
+            );
+          if (hasC611OwnRoom && matchChild.age_6_11_99_own_room)
+            c611Parts.push(
+              `Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`,
+            );
 
           // Fallback to showing all if they only filled generic child field
           if (c611Parts.length === 0) {
-            if (matchChild.age_6_11_99_sharing) c611Parts.push(`Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`);
-            if (matchChild.age_6_11_99_extra_bed) c611Parts.push(`Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`);
-            if (matchChild.age_6_11_99_own_room) c611Parts.push(`Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`);
+            if (matchChild.age_6_11_99_sharing)
+              c611Parts.push(
+                `Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`,
+              );
+            if (matchChild.age_6_11_99_extra_bed)
+              c611Parts.push(
+                `Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`,
+              );
+            if (matchChild.age_6_11_99_own_room)
+              c611Parts.push(
+                `Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`,
+              );
           }
 
           if (c611Parts.length > 0) {
@@ -1110,7 +1152,8 @@ function buildRateApplicableText(
           li.basis.toLowerCase() === combo.basis.toLowerCase();
         if (!matchesCombo) return false;
 
-        const hasGuideInLine = Number(li.guide || 0) > 0 && li.guideBasis?.trim();
+        const hasGuideInLine =
+          Number(li.guide || 0) > 0 && li.guideBasis?.trim();
         if (!hasGuideInLine) return false;
 
         let isGuideFocActiveOnLine = false;
@@ -1127,20 +1170,26 @@ function buildRateApplicableText(
         return !isGuideFocActiveOnLine;
       });
       if (hasPaidGuide && record.guide_rates?.[basisUpper] != null) {
-        parts.push(`Guide-${basisUpper} ${currency} ${record.guide_rates[basisUpper]}`);
+        parts.push(
+          `Guide-${basisUpper} ${currency} ${record.guide_rates[basisUpper]}`,
+        );
       }
 
       // ④ Supplements
       const matchSupps = (record.room_supplements ?? []).filter(
-        (s) => s.room_category.toLowerCase() === combo.roomCategory.toLowerCase(),
+        (s) =>
+          s.room_category.toLowerCase() === combo.roomCategory.toLowerCase(),
       );
       for (const s of matchSupps) {
         const hasSupp = voucher.lineItems.some(
           (li) =>
-            li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+            li.roomCategory.toLowerCase() ===
+              combo.roomCategory.toLowerCase() &&
             li.basis.toLowerCase() === combo.basis.toLowerCase() &&
             li.supplementary &&
-            li.supplementary.some((sp) => sp.toLowerCase() === s.supplement_name.toLowerCase()),
+            li.supplementary.some(
+              (sp) => sp.toLowerCase() === s.supplement_name.toLowerCase(),
+            ),
         );
         if (hasSupp) {
           const sName = s.supplement_name.toLowerCase().includes("supplement")
@@ -1158,12 +1207,18 @@ function buildRateApplicableText(
     // Now build date-wise blocks
     const dateBlocks: string[] = [];
     const dates = Array.from(
-      new Set(voucher.lineItems.map((li) => (li.requiredDate || "").trim()).filter(Boolean)),
+      new Set(
+        voucher.lineItems
+          .map((li) => (li.requiredDate || "").trim())
+          .filter(Boolean),
+      ),
     ).sort();
 
     for (const dStr of dates) {
       const dateLines: string[] = [];
-      const dayLineItems = voucher.lineItems.filter((li) => (li.requiredDate || "").trim() === dStr);
+      const dayLineItems = voucher.lineItems.filter(
+        (li) => (li.requiredDate || "").trim() === dStr,
+      );
 
       // FOC Rules
       if (record.foc_rules?.enabled) {
@@ -1177,7 +1232,8 @@ function buildRateApplicableText(
               : "";
             const appliesTo = (record.foc_rules.applies_to || "").toLowerCase();
 
-            const hasGuideAndBasis = Number(li.guide || 0) > 0 && li.guideBasis?.trim();
+            const hasGuideAndBasis =
+              Number(li.guide || 0) > 0 && li.guideBasis?.trim();
             const target = hasGuideAndBasis ? "Guide" : "Pax";
 
             if (appliesTo.includes(target.toLowerCase())) {
@@ -1188,7 +1244,9 @@ function buildRateApplicableText(
               if (customText?.trim()) {
                 dateLines.push(`${customText.trim()}  |`);
               } else {
-                dateLines.push(`FOC: ${qty} ${target} FOC${focsOn} when ${minPax}+ persons  |`);
+                dateLines.push(
+                  `FOC: ${qty} ${target} FOC${focsOn} when ${minPax}+ persons  |`,
+                );
               }
             }
           }
@@ -1208,16 +1266,25 @@ function buildRateApplicableText(
         );
         if (!matchesCategoryBooked) continue;
 
-        if ((!s.date_from || dStr >= s.date_from) && (!s.date_to || dStr <= s.date_to)) {
-          const appliesToStr = s.applies_to ? ` (${s.applies_to})` : " per room per night";
-          dateLines.push(`${s.name} ${currency} ${s.amount}${appliesToStr} (Added to above rates)  |`);
+        if (
+          (!s.date_from || dStr >= s.date_from) &&
+          (!s.date_to || dStr <= s.date_to)
+        ) {
+          const appliesToStr = s.applies_to
+            ? ` (${s.applies_to})`
+            : " per room per night";
+          dateLines.push(
+            `${s.name} ${currency} ${s.amount}${appliesToStr} (Added to above rates)  |`,
+          );
         }
       }
 
       // Compulsory Events
       for (const ev of record.compulsory_events ?? []) {
         if (!ev.event_name || !ev.mandatory || ev.event_date !== dStr) continue;
-        const basesOnDate = Array.from(new Set(dayLineItems.map((li) => (li.basis || "").toUpperCase())));
+        const basesOnDate = Array.from(
+          new Set(dayLineItems.map((li) => (li.basis || "").toUpperCase())),
+        );
         for (const basis of basesOnDate) {
           const evRate =
             basis === "BB"

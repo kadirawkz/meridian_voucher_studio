@@ -76,7 +76,9 @@ export async function createVoucherServer(): Promise<{
       const result = await signIn(request.body);
       response.json(result);
     } catch (error) {
-      response.status(401).send(error instanceof Error ? error.message : "Unauthorized");
+      response
+        .status(401)
+        .send(error instanceof Error ? error.message : "Unauthorized");
     }
   });
 
@@ -85,7 +87,9 @@ export async function createVoucherServer(): Promise<{
       const result = await signUp(request.body);
       response.json(result);
     } catch (error) {
-      response.status(400).send(error instanceof Error ? error.message : "Bad Request");
+      response
+        .status(400)
+        .send(error instanceof Error ? error.message : "Bad Request");
     }
   });
 
@@ -94,7 +98,9 @@ export async function createVoucherServer(): Promise<{
       const result = await resetPassword(request.body.email);
       response.json(result);
     } catch (error) {
-      response.status(400).send(error instanceof Error ? error.message : "Bad Request");
+      response
+        .status(400)
+        .send(error instanceof Error ? error.message : "Bad Request");
     }
   });
 
@@ -103,7 +109,9 @@ export async function createVoucherServer(): Promise<{
       const result = await signOut();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Internal Server Error");
     }
   });
 
@@ -112,7 +120,9 @@ export async function createVoucherServer(): Promise<{
       const result = await getAuthState();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Internal Server Error");
     }
   });
 
@@ -121,7 +131,9 @@ export async function createVoucherServer(): Promise<{
       const result = await getAccountProfile();
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Internal Server Error");
     }
   });
 
@@ -130,7 +142,9 @@ export async function createVoucherServer(): Promise<{
       const result = await updateProfile(request.body);
       response.json(result);
     } catch (error) {
-      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Internal Server Error");
     }
   });
 

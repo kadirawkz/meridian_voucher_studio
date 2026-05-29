@@ -41,13 +41,16 @@ const makePatch = (url: string, body?: any) => {
 
 // Check if running inside standard web browser context
 if (typeof window !== "undefined" && !window.meridian) {
-  console.log("[Web Polyfill] Initializing web-bridge polyfill for browser environment...");
+  console.log(
+    "[Web Polyfill] Initializing web-bridge polyfill for browser environment...",
+  );
 
   const polyfill: any = {
     // Auth endpoints
     signIn: (credentials: any) => makePost("/api/auth/sign-in", credentials),
     signUp: (credentials: any) => makePost("/api/auth/sign-up", credentials),
-    resetPassword: (email: string) => makePost("/api/auth/reset-password", { email }),
+    resetPassword: (email: string) =>
+      makePost("/api/auth/reset-password", { email }),
     signOut: () => makePost("/api/auth/sign-out"),
     getAuthState: () => makeGet("/api/auth/state"),
     updateProfile: (updates: any) => makePatch("/api/auth/profile", updates),
@@ -56,9 +59,20 @@ if (typeof window !== "undefined" && !window.meridian) {
 
     // Vouchers endpoints
     saveVoucher: (voucher: any) => makePost("/api/vouchers", voucher),
-    generateDocuments: (voucher: any) => makePost("/api/vouchers/generate", { voucher, format: "pdf" }),
-    generateDocx: (voucher: any, customOutputDir?: string) => makePost("/api/vouchers/generate", { voucher, format: "docx", customOutputDir }),
-    generatePdf: (voucher: any, customOutputDir?: string) => makePost("/api/vouchers/generate", { voucher, format: "pdf", customOutputDir }),
+    generateDocuments: (voucher: any) =>
+      makePost("/api/vouchers/generate", { voucher, format: "pdf" }),
+    generateDocx: (voucher: any, customOutputDir?: string) =>
+      makePost("/api/vouchers/generate", {
+        voucher,
+        format: "docx",
+        customOutputDir,
+      }),
+    generatePdf: (voucher: any, customOutputDir?: string) =>
+      makePost("/api/vouchers/generate", {
+        voucher,
+        format: "pdf",
+        customOutputDir,
+      }),
     listVoucherDocuments: () => makeGet("/api/voucher-documents"),
     listVouchers: (filters?: any) => {
       const params = new URLSearchParams();
@@ -69,18 +83,27 @@ if (typeof window !== "undefined" && !window.meridian) {
       return makeGet(`/api/vouchers?${params.toString()}`);
     },
     getVoucher: (voucherId: string) => makeGet(`/api/vouchers/${voucherId}`),
-    listVoucherRevisions: (voucherId: string) => makeGet(`/api/vouchers/${voucherId}/revisions`),
-    updateVoucherStatus: (voucherId: string, status: string) => makePatch(`/api/vouchers/${voucherId}/status`, { status }),
-    searchWorkspace: (query: string) => makeGet(`/api/search?q=${encodeURIComponent(query)}`),
+    listVoucherRevisions: (voucherId: string) =>
+      makeGet(`/api/vouchers/${voucherId}/revisions`),
+    updateVoucherStatus: (voucherId: string, status: string) =>
+      makePatch(`/api/vouchers/${voucherId}/status`, { status }),
+    searchWorkspace: (query: string) =>
+      makeGet(`/api/search?q=${encodeURIComponent(query)}`),
 
     // Rate Master
     saveHotelRates: (record: any) => makePost("/api/rate-master", record),
-    deleteHotelRate: (hotelRateId: string) => makeDelete(`/api/rate-master/${hotelRateId}`),
+    deleteHotelRate: (hotelRateId: string) =>
+      makeDelete(`/api/rate-master/${hotelRateId}`),
     listInactiveHotelRates: () => makeGet("/api/rate-master/inactive"),
-    restoreHotelRate: (hotelRateId: string) => makePatch(`/api/rate-master/${hotelRateId}/restore`),
-    listHotelRates: (hotelName?: string) => makeGet(`/api/rate-master${hotelName ? `?hotelName=${encodeURIComponent(hotelName)}` : ""}`),
+    restoreHotelRate: (hotelRateId: string) =>
+      makePatch(`/api/rate-master/${hotelRateId}/restore`),
+    listHotelRates: (hotelName?: string) =>
+      makeGet(
+        `/api/rate-master${hotelName ? `?hotelName=${encodeURIComponent(hotelName)}` : ""}`,
+      ),
     getAllHotelRates: () => makeGet("/api/rate-master/all"),
-    getHotelRates: (hotelRateId: string) => makeGet(`/api/rate-master/${hotelRateId}`),
+    getHotelRates: (hotelRateId: string) =>
+      makeGet(`/api/rate-master/${hotelRateId}`),
     listHotelsFromRates: () => makeGet("/api/rate-master/hotels"),
 
     // Reference Lists
@@ -90,22 +113,31 @@ if (typeof window !== "undefined" && !window.meridian) {
     listCustomers: () => makeGet("/api/reference/customers"),
     listTourTypes: () => makeGet("/api/reference/tour-types"),
     saveTourType: (ref: any) => makePost("/api/reference/tour-types", ref),
-    deleteTourType: (id: string) => makeDelete(`/api/reference/tour-types/${id}`),
+    deleteTourType: (id: string) =>
+      makeDelete(`/api/reference/tour-types/${id}`),
     listMealBasis: () => makeGet("/api/reference/meal-basis"),
     saveMealBasis: (ref: any) => makePost("/api/reference/meal-basis", ref),
-    deleteMealBasis: (id: string) => makeDelete(`/api/reference/meal-basis/${id}`),
+    deleteMealBasis: (id: string) =>
+      makeDelete(`/api/reference/meal-basis/${id}`),
     saveMarket: (ref: any) => makePost("/api/reference/markets", ref),
     deleteMarket: (id: string) => makeDelete(`/api/reference/markets/${id}`),
     saveCustomer: (ref: any) => makePost("/api/reference/customers", ref),
-    deleteCustomer: (id: string) => makeDelete(`/api/reference/customers/${id}`),
-    saveRoomCategory: (ref: any) => makePost("/api/reference/room-categories", ref),
-    deleteRoomCategory: (id: string) => makeDelete(`/api/reference/room-categories/${id}`),
+    deleteCustomer: (id: string) =>
+      makeDelete(`/api/reference/customers/${id}`),
+    saveRoomCategory: (ref: any) =>
+      makePost("/api/reference/room-categories", ref),
+    deleteRoomCategory: (id: string) =>
+      makeDelete(`/api/reference/room-categories/${id}`),
     listCurrencies: () => makeGet("/api/reference/currencies"),
     saveCurrency: (ref: any) => makePost("/api/reference/currencies", ref),
-    deleteCurrency: (id: string) => makeDelete(`/api/reference/currencies/${id}`),
-    listInactiveReferences: (table: string) => makeGet(`/api/reference/${table}/inactive`),
-    restoreReference: (table: string, id: string) => makePatch(`/api/reference/${table}/${id}/restore`),
-    autoFillVoucher: (voucher: any, contractId?: string) => makePost("/api/rate-master/auto-fill", { voucher, contractId }),
+    deleteCurrency: (id: string) =>
+      makeDelete(`/api/reference/currencies/${id}`),
+    listInactiveReferences: (table: string) =>
+      makeGet(`/api/reference/${table}/inactive`),
+    restoreReference: (table: string, id: string) =>
+      makePatch(`/api/reference/${table}/${id}/restore`),
+    autoFillVoucher: (voucher: any, contractId?: string) =>
+      makePost("/api/rate-master/auto-fill", { voucher, contractId }),
 
     // Templates DB
     listDatabaseTemplates: () => Promise.resolve([]),
@@ -114,9 +146,12 @@ if (typeof window !== "undefined" && !window.meridian) {
     deleteDatabaseTemplate: () => Promise.resolve(),
 
     // Electron specific window actions (No-ops in browser)
-    minimizeWindow: () => console.warn("Window action minimize is unsupported in web mode."),
-    maximizeWindow: () => console.warn("Window action maximize is unsupported in web mode."),
-    closeWindow: () => console.warn("Window action close is unsupported in web mode."),
+    minimizeWindow: () =>
+      console.warn("Window action minimize is unsupported in web mode."),
+    maximizeWindow: () =>
+      console.warn("Window action maximize is unsupported in web mode."),
+    closeWindow: () =>
+      console.warn("Window action close is unsupported in web mode."),
     navigateBack: () => window.history.back(),
     navigateForward: () => window.history.forward(),
 
@@ -125,7 +160,8 @@ if (typeof window !== "undefined" && !window.meridian) {
     getToursFolder: () => Promise.resolve(null),
     getToursFolderTree: () => Promise.resolve([]),
     revealInExplorer: () => Promise.resolve(),
-    migrateVouchersToTours: () => Promise.resolve({ moved: 0, failed: 0, errors: [] }),
+    migrateVouchersToTours: () =>
+      Promise.resolve({ moved: 0, failed: 0, errors: [] }),
     openDocument: () => Promise.resolve(),
     selectFolder: () => Promise.resolve(null),
     selectFile: () => Promise.resolve(null),

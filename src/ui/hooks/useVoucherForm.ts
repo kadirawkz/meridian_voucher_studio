@@ -259,7 +259,12 @@ export function useVoucherForm({
 
   // Voucher autofill listener
   useEffect(() => {
-    if (!hotelName || !ratePeriod || !window.meridian?.autoFillVoucher || manualRates) {
+    if (
+      !hotelName ||
+      !ratePeriod ||
+      !window.meridian?.autoFillVoucher ||
+      manualRates
+    ) {
       if (!manualRates) {
         form.setValue("rateApplicableText", "");
         form.setValue("matchedHotelRateId", "");
@@ -362,7 +367,10 @@ export function useVoucherForm({
 
   async function handleSave(values: VoucherFormValues) {
     if (!window.meridian) {
-      addNotice("Connection to local services lost; please restart the application.", "error");
+      addNotice(
+        "Connection to local services lost; please restart the application.",
+        "error",
+      );
       return;
     }
 
@@ -385,7 +393,10 @@ export function useVoucherForm({
     customOutputDir?: string,
   ) {
     if (!window.meridian) {
-      addNotice("Connection to local services lost; please restart the application.", "error");
+      addNotice(
+        "Connection to local services lost; please restart the application.",
+        "error",
+      );
       return;
     }
 
@@ -422,7 +433,10 @@ export function useVoucherForm({
     customOutputDir?: string,
   ) {
     if (!window.meridian) {
-      addNotice("Connection to local services lost; please restart the application.", "error");
+      addNotice(
+        "Connection to local services lost; please restart the application.",
+        "error",
+      );
       return;
     }
 

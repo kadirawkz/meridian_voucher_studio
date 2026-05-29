@@ -49,7 +49,9 @@ export function SupplementaryDropdown({
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         // Ensure we aren't clicking inside the portal dropdown itself
-        const portalDropdowns = document.querySelectorAll(".app-portal-supplementary");
+        const portalDropdowns = document.querySelectorAll(
+          ".app-portal-supplementary",
+        );
         let clickedInsidePortal = false;
         portalDropdowns.forEach((dropdown) => {
           if (dropdown.contains(event.target as Node)) {
@@ -85,52 +87,53 @@ export function SupplementaryDropdown({
         </button>
         <ChevronDown size={16} className="app-select-chevron" />
       </div>
-      {open && createPortal(
-        <div
-          className="app-portal-supplementary fixed w-56 bg-surface border border-line shadow-lg rounded-app z-[99999] max-h-56 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
-          style={{
-            top: `${coords.top}px`,
-            left: `${coords.left}px`,
-          }}
-        >
-          {options.length === 0 ? (
-            <div className="p-3 text-xs text-steel text-center select-none font-medium">
-              No supplements
-            </div>
-          ) : (
-            options.map((opt) => {
-              const isSelected = value.includes(opt.name);
-              return (
-                <div
-                  key={opt.name}
-                  onClick={() => {
-                    if (isSelected)
-                      onChange(value.filter((v) => v !== opt.name));
-                    else onChange([...value, opt.name]);
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-cloud cursor-pointer text-xs rounded transition-colors select-none text-ink font-medium"
-                >
+      {open &&
+        createPortal(
+          <div
+            className="app-portal-supplementary fixed w-56 bg-surface border border-line shadow-lg rounded-app z-[99999] max-h-56 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
+            style={{
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+            }}
+          >
+            {options.length === 0 ? (
+              <div className="p-3 text-xs text-steel text-center select-none font-medium">
+                No supplements
+              </div>
+            ) : (
+              options.map((opt) => {
+                const isSelected = value.includes(opt.name);
+                return (
                   <div
-                    className={`h-4 w-4 rounded border flex items-center justify-center transition-all shrink-0 ${
-                      isSelected
-                        ? "border-navy bg-navy text-white animate-in zoom-in-95 duration-100"
-                        : "border-line bg-surface text-transparent"
-                    }`}
+                    key={opt.name}
+                    onClick={() => {
+                      if (isSelected)
+                        onChange(value.filter((v) => v !== opt.name));
+                      else onChange([...value, opt.name]);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-cloud cursor-pointer text-xs rounded transition-colors select-none text-ink font-medium"
                   >
-                    {isSelected && (
-                      <Check size={11} strokeWidth={3} className="shrink-0" />
-                    )}
+                    <div
+                      className={`h-4 w-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                        isSelected
+                          ? "border-navy bg-navy text-white animate-in zoom-in-95 duration-100"
+                          : "border-line bg-surface text-transparent"
+                      }`}
+                    >
+                      {isSelected && (
+                        <Check size={11} strokeWidth={3} className="shrink-0" />
+                      )}
+                    </div>
+                    <span className="truncate" title={opt.label}>
+                      {opt.label}
+                    </span>
                   </div>
-                  <span className="truncate" title={opt.label}>
-                    {opt.label}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>,
-        document.body
-      )}
+                );
+              })
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
