@@ -396,7 +396,11 @@ function buildRoomSupplementTexts(
 
 function calculateFocPersonCount(
   li: VoucherLineItem,
-  focRules: any,
+  focRules: {
+    count_adults?: boolean;
+    count_child_2_5_99?: boolean;
+    count_child_6_11_99?: boolean;
+  } | null | undefined,
 ): number {
   const countAdults = focRules?.count_adults ?? true;
   const countChild25 = focRules?.count_child_2_5_99 ?? false;
