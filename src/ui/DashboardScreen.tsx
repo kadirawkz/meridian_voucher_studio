@@ -43,8 +43,8 @@ const STATUS_CONFIG: Record<
 > = {
   draft: {
     label: "Draft",
-    color: "bg-slate-100 text-slate-700 border border-slate-200",
-    dot: "bg-slate-400",
+    color: "bg-cloud text-steel border border-line",
+    dot: "bg-steel",
   },
   generated: {
     label: "Generated",
@@ -432,7 +432,7 @@ export function DashboardScreen({
                       {v.hotelName || "No Placement Hotel"}
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-xs text-steel font-medium">
-                      <span className="font-bold text-slate-700">
+                      <span className="font-bold text-steel">
                         {v.requisitionNo || v.tourNo || "No Ref"}
                       </span>
                       <span>·</span>
@@ -532,11 +532,11 @@ export function DashboardScreen({
 
             {/* Premium progress bar area */}
             <div className="px-5 py-5 border-b border-line/40 bg-cloud/5">
-              <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-2">
+              <div className="flex justify-between items-center text-xs font-bold text-steel mb-2">
                 <span>Coverage Ratio</span>
                 <span>{coveragePercentage}%</span>
               </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-cloud rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500"
                   style={{ width: `${coveragePercentage}%` }}
@@ -559,7 +559,7 @@ export function DashboardScreen({
                     className="flex w-full items-center gap-2 px-5 py-3 text-left transition-all hover:bg-cloud/30 group"
                   >
                     <Clock size={13} className="shrink-0 text-amber-500" />
-                    <span className="truncate text-xs text-slate-700 font-medium group-hover:text-navy transition-colors">
+                    <span className="truncate text-xs text-steel font-medium group-hover:text-navy transition-colors">
                       {h}
                     </span>
                     <Plus

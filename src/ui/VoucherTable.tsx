@@ -159,7 +159,7 @@ export function VoucherTable({
           <Plus size={16} /> Row
         </button>
       </div>
-      <div className="thin-scrollbar overflow-x-auto pb-48">
+      <div className="thin-scrollbar overflow-x-auto pb-4">
         <table className="w-full min-w-[1750px] table-fixed border-collapse text-sm">
           <colgroup>
             <col className="w-[150px]" />

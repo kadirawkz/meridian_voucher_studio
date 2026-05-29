@@ -17,6 +17,7 @@
     "dist": "npm run build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
     "dist:signed": "npm run build && electron-builder",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "start:api": "node dist-electron/main/standalone.js",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -65,12 +66,14 @@
     "appId": "com.meridian.voucherstudio",
     "productName": "Meridian Voucher Studio",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build-resources"
     },
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "package.json"
+      "package.json",
+      "build-resources/icon.png"
     ],
     "extraResources": [
       {

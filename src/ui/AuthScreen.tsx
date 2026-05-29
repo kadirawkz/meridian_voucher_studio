@@ -27,7 +27,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       !window.meridian.signUp
     ) {
       setStatus(
-        "Auth bridge unavailable. Run npm run build, then fully restart Electron.",
+        "Authentication service is temporarily unavailable. Please restart the application.",
       );
       return;
     }

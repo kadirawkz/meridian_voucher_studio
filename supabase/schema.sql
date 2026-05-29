@@ -1,541 +1,732 @@
 -- Meridian Voucher Studio — Strict 3NF Schema
 
+-- =============================================================================
 -- 1. EMPLOYEE PROFILES
-create table if not exists public.employee_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  employee_name text not null,
-  email text not null,
-  role text not null default 'employee' check (role in ('employee', 'manager', 'admin')),
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index if not exists employee_profiles_email_idx on public.employee_profiles (email);
-create index if not exists employee_profiles_role_idx on public.employee_profiles (role);
+-- =============================================================================
 
+CREATE TABLE IF NOT EXISTS public.employee_profiles (
+    id            UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    employee_name TEXT NOT NULL,
+    email         TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'employee' CHECK (role IN ('employee', 'manager', 'admin')),
+    is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS employee_profiles_email_idx ON public.employee_profiles (email);
+CREATE INDEX IF NOT EXISTS employee_profiles_role_idx ON public.employee_profiles (role);
+
+
+-- =============================================================================
 -- 2. REFERENCE TABLES
-create table if not exists public.hotels (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS public.hotels (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       TEXT NOT NULL UNIQUE,
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create table if not exists public.markets (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null default '',
-  is_active boolean not null default true
+CREATE TABLE IF NOT EXISTS public.markets (
+    id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code      TEXT NOT NULL UNIQUE,
+    name      TEXT NOT NULL DEFAULT '',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-create table if not exists public.room_categories (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  is_active boolean not null default true
+CREATE TABLE IF NOT EXISTS public.room_categories (
+    id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name      TEXT NOT NULL UNIQUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-create table if not exists public.customers (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.customers (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       TEXT NOT NULL UNIQUE,
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create table if not exists public.tour_types (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null default '',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.tour_types (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code       TEXT NOT NULL UNIQUE,
+    name       TEXT NOT NULL DEFAULT '',
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create table if not exists public.meal_basis (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null default '',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.meal_basis (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code       TEXT NOT NULL UNIQUE,
+    name       TEXT NOT NULL DEFAULT '',
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create table if not exists public.currencies (
-  id uuid primary key default gen_random_uuid(),
-  code text not null unique,
-  name text not null default '',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS public.currencies (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code       TEXT NOT NULL UNIQUE,
+    name       TEXT NOT NULL DEFAULT '',
+    is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 -- Ensure the is_active column exists on all reference tables (in case they already exist in the DB)
-alter table public.markets add column if not exists is_active boolean not null default true;
-alter table public.room_categories add column if not exists is_active boolean not null default true;
-alter table public.tour_types add column if not exists is_active boolean not null default true;
-alter table public.meal_basis add column if not exists is_active boolean not null default true;
-alter table public.currencies add column if not exists is_active boolean not null default true;
-alter table public.hotel_rates add column if not exists is_active boolean not null default true;
+ALTER TABLE public.markets ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.room_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.tour_types ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.meal_basis ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.currencies ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.hotel_rates ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
--- 3. HOTEL RATES (parent) — FK to hotels, markets
+
+-- =============================================================================
+-- 3. DROP LEGACY TABLES & PREVIOUS 3NF TABLES (For Fresh Migration Deployments)
+-- =============================================================================
+
 -- Drop old legacy tables
-drop table if exists public.rate_master_guide_rules cascade;
-drop table if exists public.rate_master_events cascade;
-drop table if exists public.rate_master_surcharges cascade;
-drop table if exists public.rate_master_supplements cascade;
-drop table if exists public.rate_master_rates cascade;
-drop table if exists public.rate_master_contracts cascade;
+DROP TABLE IF EXISTS public.rate_master_guide_rules CASCADE;
+DROP TABLE IF EXISTS public.rate_master_events CASCADE;
+DROP TABLE IF EXISTS public.rate_master_surcharges CASCADE;
+DROP TABLE IF EXISTS public.rate_master_supplements CASCADE;
+DROP TABLE IF EXISTS public.rate_master_rates CASCADE;
+DROP TABLE IF EXISTS public.rate_master_contracts CASCADE;
 
+-- COMMENTED OUT TO PREVENT DATA LOSS DURING RUNTIME SCHEMA EXECUTION
 -- Drop existing 3NF tables to ensure schema changes are applied
--- (CREATE TABLE IF NOT EXISTS would silently skip tables with old columns)
-drop table if exists public.voucher_revisions cascade;
-drop table if exists public.voucher_documents cascade;
-drop table if exists public.voucher_line_items cascade;
-drop table if exists public.vouchers cascade;
-drop table if exists public.hotel_rate_room_supplements cascade;
-drop table if exists public.hotel_rate_guide_prices cascade;
-drop table if exists public.hotel_rate_events cascade;
-drop table if exists public.hotel_rate_surcharges cascade;
-drop table if exists public.hotel_rate_child_prices cascade;
-drop table if exists public.hotel_rate_room_prices cascade;
-drop table if exists public.hotel_rates cascade;
+-- DROP TABLE IF EXISTS public.voucher_revisions CASCADE;
+-- DROP TABLE IF EXISTS public.voucher_documents CASCADE;
+-- DROP TABLE IF EXISTS public.voucher_line_items CASCADE;
+-- DROP TABLE IF EXISTS public.vouchers CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_room_supplements CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_guide_prices CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_events CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_surcharges CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_child_prices CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rate_room_prices CASCADE;
+-- DROP TABLE IF EXISTS public.hotel_rates CASCADE;
 
-create table if not exists public.hotel_rates (
-  id uuid primary key default gen_random_uuid(),
-  hotel_id uuid not null references public.hotels(id),
-  market_id uuid references public.markets(id),
-  currency text not null,
-  contract_name text not null check (contract_name !~* 'premium|budget|luxury'),
-  valid_from date not null,
-  valid_to date not null,
-  check (valid_to >= valid_from),
-  billing_instruction text not null default '',
-  foc_enabled boolean not null default false,
-  foc_applies_to text not null default 'Guide',
-  foc_minimum_persons integer not null default 0,
-  foc_quantity integer not null default 1,
-  foc_basis text not null default '',
-  foc_count_adults boolean not null default true,
-  foc_count_child_2_5_99 boolean not null default false,
-  foc_count_child_6_11_99 boolean not null default false,
-  foc_pax_custom_text text not null default '',
-  foc_guide_custom_text text not null default '',
-  is_active boolean not null default true,
-  created_by uuid not null references auth.users(id),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+
+-- =============================================================================
+-- 4. HOTEL RATES & CHILD RELATIONSHIPS
+-- =============================================================================
+
+-- Hotel Rates (Parent)
+CREATE TABLE IF NOT EXISTS public.hotel_rates (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_id            UUID NOT NULL REFERENCES public.hotels(id),
+    market_id           UUID REFERENCES public.markets(id),
+    currency            TEXT NOT NULL,
+    contract_name       TEXT NOT NULL CHECK (contract_name !~* 'premium|budget|luxury'),
+    valid_from          DATE NOT NULL,
+    valid_to            DATE NOT NULL,
+    CHECK (valid_to >= valid_from),
+    billing_instruction TEXT NOT NULL DEFAULT '',
+    foc_enabled         BOOLEAN NOT NULL DEFAULT FALSE,
+    foc_applies_to      TEXT NOT NULL DEFAULT 'Guide',
+    foc_minimum_persons INTEGER NOT NULL DEFAULT 0,
+    foc_quantity        INTEGER NOT NULL DEFAULT 1,
+    foc_basis           TEXT NOT NULL DEFAULT '',
+    foc_count_adults    BOOLEAN NOT NULL DEFAULT TRUE,
+    foc_count_child_2_5_99 BOOLEAN NOT NULL DEFAULT FALSE,
+    foc_count_child_6_11_99 BOOLEAN NOT NULL DEFAULT FALSE,
+    foc_pax_custom_text TEXT NOT NULL DEFAULT '',
+    foc_guide_custom_text TEXT NOT NULL DEFAULT '',
+    is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by          UUID NOT NULL REFERENCES auth.users(id),
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-create index if not exists hotel_rates_hotel_idx on public.hotel_rates (hotel_id);
-create index if not exists hotel_rates_market_idx on public.hotel_rates (market_id);
-create index if not exists hotel_rates_validity_idx on public.hotel_rates (valid_from, valid_to);
-create unique index if not exists hotel_rates_unique_record_idx
-  on public.hotel_rates (hotel_id, market_id, contract_name, valid_from, valid_to);
 
--- 3a. Room Prices — FK to room_categories
-create table if not exists public.hotel_rate_room_prices (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  valid_from date not null,
-  valid_to date not null,
-  check (valid_to >= valid_from),
-  room_category_id uuid not null references public.room_categories(id),
-  basis text not null,
-  sgl numeric, dbl numeric, twn numeric, tpl numeric
+CREATE INDEX IF NOT EXISTS hotel_rates_hotel_idx ON public.hotel_rates (hotel_id);
+CREATE INDEX IF NOT EXISTS hotel_rates_market_idx ON public.hotel_rates (market_id);
+CREATE INDEX IF NOT EXISTS hotel_rates_validity_idx ON public.hotel_rates (valid_from, valid_to);
+CREATE UNIQUE INDEX IF NOT EXISTS hotel_rates_unique_record_idx
+    ON public.hotel_rates (hotel_id, market_id, contract_name, valid_from, valid_to);
+
+-- Room Prices (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_room_prices (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id    UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    valid_from       DATE NOT NULL,
+    valid_to         DATE NOT NULL,
+    CHECK (valid_to >= valid_from),
+    room_category_id UUID NOT NULL REFERENCES public.room_categories(id),
+    basis            TEXT NOT NULL,
+    sgl              NUMERIC,
+    dbl              NUMERIC,
+    twn              NUMERIC,
+    tpl              NUMERIC
 );
-create index if not exists hotel_rate_room_prices_rate_idx on public.hotel_rate_room_prices (hotel_rate_id);
-create index if not exists hotel_rate_room_prices_cat_idx on public.hotel_rate_room_prices (room_category_id);
 
--- 3b. Child Prices — FK to room_categories
-create table if not exists public.hotel_rate_child_prices (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  valid_from date not null,
-  valid_to date not null,
-  check (valid_to >= valid_from),
-  room_category_id uuid not null references public.room_categories(id),
-  basis text not null,
-  age_2_5_99_sharing text, age_2_5_99_extra_bed text, age_2_5_99_own_room text,
-  age_6_11_99_sharing text, age_6_11_99_extra_bed text, age_6_11_99_own_room text
+CREATE INDEX IF NOT EXISTS hotel_rate_room_prices_rate_idx ON public.hotel_rate_room_prices (hotel_rate_id);
+CREATE INDEX IF NOT EXISTS hotel_rate_room_prices_cat_idx ON public.hotel_rate_room_prices (room_category_id);
+
+-- Child Prices (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_child_prices (
+    id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id          UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    valid_from             DATE NOT NULL,
+    valid_to               DATE NOT NULL,
+    CHECK (valid_to >= valid_from),
+    room_category_id       UUID NOT NULL REFERENCES public.room_categories(id),
+    basis                  TEXT NOT NULL,
+    age_2_5_99_sharing     TEXT,
+    age_2_5_99_extra_bed   TEXT,
+    age_2_5_99_own_room    TEXT,
+    age_6_11_99_sharing    TEXT,
+    age_6_11_99_extra_bed  TEXT,
+    age_6_11_99_own_room   TEXT
 );
-create index if not exists hotel_rate_child_prices_rate_idx on public.hotel_rate_child_prices (hotel_rate_id);
 
--- 3c. Seasonal Surcharges
-create table if not exists public.hotel_rate_surcharges (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  name text not null, amount numeric,
-  date_from date, date_to date, applies_to text
+CREATE INDEX IF NOT EXISTS hotel_rate_child_prices_rate_idx ON public.hotel_rate_child_prices (hotel_rate_id);
+
+-- Seasonal Surcharges (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_surcharges (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL,
+    amount        NUMERIC,
+    date_from     DATE,
+    date_to       DATE,
+    applies_to    TEXT NOT NULL DEFAULT 'All'
 );
-create index if not exists hotel_rate_surcharges_rate_idx on public.hotel_rate_surcharges (hotel_rate_id);
 
--- 3d. Compulsory Events
-create table if not exists public.hotel_rate_events (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  event_date date not null, event_name text not null,
-  bb_rate numeric, hb_rate numeric, fb_rate numeric,
-  per text not null default 'Person', mandatory boolean not null default true
+CREATE INDEX IF NOT EXISTS hotel_rate_surcharges_rate_idx ON public.hotel_rate_surcharges (hotel_rate_id);
+
+-- Compulsory Events (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_events (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    event_date    DATE NOT NULL,
+    event_name    TEXT NOT NULL,
+    bb_rate       NUMERIC,
+    hb_rate       NUMERIC,
+    fb_rate       NUMERIC,
+    per           TEXT NOT NULL DEFAULT 'Person',
+    mandatory     BOOLEAN NOT NULL DEFAULT TRUE
 );
-create index if not exists hotel_rate_events_rate_idx on public.hotel_rate_events (hotel_rate_id);
 
--- 3e. Guide Prices
-create table if not exists public.hotel_rate_guide_prices (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  basis text not null,
-  rate numeric
+CREATE INDEX IF NOT EXISTS hotel_rate_events_rate_idx ON public.hotel_rate_events (hotel_rate_id);
+
+-- Guide Prices (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_guide_prices (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    basis         TEXT NOT NULL,
+    rate          NUMERIC
 );
-create index if not exists hotel_rate_guide_prices_rate_idx on public.hotel_rate_guide_prices (hotel_rate_id);
 
--- 3f. Room Supplements — flat per-room-per-night uplifts for specific categories
-create table if not exists public.hotel_rate_room_supplements (
-  id uuid primary key default gen_random_uuid(),
-  hotel_rate_id uuid not null references public.hotel_rates(id) on delete cascade,
-  room_category_id uuid not null references public.room_categories(id),
-  supplement_name text not null default '',
-  supplement_amount numeric not null default 0,
-  per text not null default 'per room per night'
+CREATE INDEX IF NOT EXISTS hotel_rate_guide_prices_rate_idx ON public.hotel_rate_guide_prices (hotel_rate_id);
+
+-- Room Supplements (Child)
+CREATE TABLE IF NOT EXISTS public.hotel_rate_room_supplements (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hotel_rate_id     UUID NOT NULL REFERENCES public.hotel_rates(id) ON DELETE CASCADE,
+    room_category_id  UUID NOT NULL REFERENCES public.room_categories(id),
+    supplement_name   TEXT NOT NULL DEFAULT '',
+    supplement_amount NUMERIC NOT NULL DEFAULT 0,
+    per               TEXT NOT NULL DEFAULT 'per room per night'
 );
-create index if not exists hotel_rate_room_supplements_rate_idx on public.hotel_rate_room_supplements (hotel_rate_id);
 
--- 4. VOUCHERS — FK to hotels, markets, customers; no employee_name/email
-create table if not exists public.vouchers (
-  id uuid primary key default gen_random_uuid(),
-  voucher_type text not null check (voucher_type in ('reservation', 'amendment', 'pptp')),
-  tour_type text not null,
-  status text not null default 'draft' check (status in ('draft', 'generated', 'sent')),
-  created_by uuid not null references auth.users(id),
-  voucher_date date,
-  page_number text not null default '1',
-  voucher_title text not null default '',
-  requisition_no text, tour_no text, tour_name text,
-  hotel_id uuid references public.hotels(id),
-  market_id uuid references public.markets(id),
-  customer_id uuid references public.customers(id),
-  rate_period text not null default '',
-  confirmed_by text not null default '',
-  rate_applicable numeric not null default 0,
-  billing_instructions text not null default '',
-  remarks text not null default '',
-  matched_hotel_rate_id uuid references public.hotel_rates(id) on delete set null,
-  rate_applicable_text text not null default '',
-  guide_text text not null default '',
-  surcharge_text text not null default '',
-  event_supplement_text text not null default '',
-  manually_edited boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+CREATE INDEX IF NOT EXISTS hotel_rate_room_supplements_rate_idx ON public.hotel_rate_room_supplements (hotel_rate_id);
+
+
+-- =============================================================================
+-- 5. VOUCHERS & RELATED DOCUMENTS
+-- =============================================================================
+
+-- Vouchers
+CREATE TABLE IF NOT EXISTS public.vouchers (
+    id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    voucher_type           TEXT NOT NULL CHECK (voucher_type IN ('reservation', 'amendment', 'pptp')),
+    tour_type              TEXT NOT NULL,
+    status                 TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'generated', 'sent')),
+    created_by             UUID NOT NULL REFERENCES auth.users(id),
+    voucher_date           DATE,
+    page_number            TEXT NOT NULL DEFAULT '1',
+    voucher_title          TEXT NOT NULL DEFAULT '',
+    requisition_no         TEXT,
+    tour_no                TEXT,
+    tour_name              TEXT,
+    hotel_id               UUID REFERENCES public.hotels(id),
+    market_id              UUID REFERENCES public.markets(id),
+    customer_id            UUID REFERENCES public.customers(id),
+    rate_period            TEXT NOT NULL DEFAULT '',
+    confirmed_by           TEXT NOT NULL DEFAULT '',
+    rate_applicable        NUMERIC NOT NULL DEFAULT 0,
+    billing_instructions   TEXT NOT NULL DEFAULT '',
+    remarks                TEXT NOT NULL DEFAULT '',
+    matched_hotel_rate_id  UUID REFERENCES public.hotel_rates(id) ON DELETE SET NULL,
+    rate_applicable_text   TEXT NOT NULL DEFAULT '',
+    guide_text             TEXT NOT NULL DEFAULT '',
+    surcharge_text         TEXT NOT NULL DEFAULT '',
+    event_supplement_text  TEXT NOT NULL DEFAULT '',
+    manually_edited        BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-create index if not exists vouchers_created_at_idx on public.vouchers (created_at desc);
-create index if not exists vouchers_created_by_idx on public.vouchers (created_by);
-create index if not exists vouchers_voucher_date_idx on public.vouchers (voucher_date desc);
-create index if not exists vouchers_requisition_no_idx on public.vouchers (requisition_no);
-create index if not exists vouchers_tour_no_idx on public.vouchers (tour_no);
-create index if not exists vouchers_hotel_id_idx on public.vouchers (hotel_id);
-create index if not exists vouchers_customer_id_idx on public.vouchers (customer_id);
 
--- 4a. Voucher Line Items — FK to room_categories, CHECK counts
-create table if not exists public.voucher_line_items (
-  id uuid primary key default gen_random_uuid(),
-  voucher_id uuid not null references public.vouchers(id) on delete cascade,
-  line_order integer not null,
-  required_date date,
-  room_category_id uuid references public.room_categories(id),
-  basis text not null default '',
-  single_rooms integer not null default 0 check (single_rooms >= 0),
-  double_rooms integer not null default 0 check (double_rooms >= 0),
-  twin_rooms integer not null default 0 check (twin_rooms >= 0),
-  triple_rooms integer not null default 0 check (triple_rooms >= 0),
-  child_2_5_99 integer not null default 0 check (child_2_5_99 >= 0),
-  child_6_11_99 integer not null default 0 check (child_6_11_99 >= 0),
-  child_2_5_99_sharing integer not null default 0 check (child_2_5_99_sharing >= 0),
-  child_2_5_99_bed integer not null default 0 check (child_2_5_99_bed >= 0),
-  child_2_5_99_own_room integer not null default 0 check (child_2_5_99_own_room >= 0),
-  child_6_11_99_sharing integer not null default 0 check (child_6_11_99_sharing >= 0),
-  child_6_11_99_bed integer not null default 0 check (child_6_11_99_bed >= 0),
-  child_6_11_99_own_room integer not null default 0 check (child_6_11_99_own_room >= 0),
-  supplementary text[] not null default '{}'::text[],
-  guide_count integer not null default 0 check (guide_count >= 0),
-  guide_basis text not null default '',
-  arriving_for text not null default '',
-  unique (voucher_id, line_order)
+CREATE INDEX IF NOT EXISTS vouchers_created_at_idx ON public.vouchers (created_at DESC);
+CREATE INDEX IF NOT EXISTS vouchers_created_by_idx ON public.vouchers (created_by);
+CREATE INDEX IF NOT EXISTS vouchers_voucher_date_idx ON public.vouchers (voucher_date DESC);
+CREATE INDEX IF NOT EXISTS vouchers_requisition_no_idx ON public.vouchers (requisition_no);
+CREATE INDEX IF NOT EXISTS vouchers_tour_no_idx ON public.vouchers (tour_no);
+CREATE INDEX IF NOT EXISTS vouchers_hotel_id_idx ON public.vouchers (hotel_id);
+CREATE INDEX IF NOT EXISTS vouchers_customer_id_idx ON public.vouchers (customer_id);
+
+-- Voucher Line Items
+CREATE TABLE IF NOT EXISTS public.voucher_line_items (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    voucher_id              UUID NOT NULL REFERENCES public.vouchers(id) ON DELETE CASCADE,
+    line_order              INTEGER NOT NULL,
+    required_date           DATE,
+    room_category_id        UUID REFERENCES public.room_categories(id),
+    basis                   TEXT NOT NULL DEFAULT '',
+    single_rooms            INTEGER NOT NULL DEFAULT 0 CHECK (single_rooms >= 0),
+    double_rooms            INTEGER NOT NULL DEFAULT 0 CHECK (double_rooms >= 0),
+    twin_rooms              INTEGER NOT NULL DEFAULT 0 CHECK (twin_rooms >= 0),
+    triple_rooms            INTEGER NOT NULL DEFAULT 0 CHECK (triple_rooms >= 0),
+    child_2_5_99            INTEGER NOT NULL DEFAULT 0 CHECK (child_2_5_99 >= 0),
+    child_6_11_99           INTEGER NOT NULL DEFAULT 0 CHECK (child_6_11_99 >= 0),
+    child_2_5_99_sharing    INTEGER NOT NULL DEFAULT 0 CHECK (child_2_5_99_sharing >= 0),
+    child_2_5_99_bed        INTEGER NOT NULL DEFAULT 0 CHECK (child_2_5_99_bed >= 0),
+    child_2_5_99_own_room   INTEGER NOT NULL DEFAULT 0 CHECK (child_2_5_99_own_room >= 0),
+    child_6_11_99_sharing   INTEGER NOT NULL DEFAULT 0 CHECK (child_6_11_99_sharing >= 0),
+    child_6_11_99_bed       INTEGER NOT NULL DEFAULT 0 CHECK (child_6_11_99_bed >= 0),
+    child_6_11_99_own_room  INTEGER NOT NULL DEFAULT 0 CHECK (child_6_11_99_own_room >= 0),
+    supplementary           TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
+    guide_count             INTEGER NOT NULL DEFAULT 0 CHECK (guide_count >= 0),
+    guide_basis             TEXT NOT NULL DEFAULT '',
+    arriving_for            TEXT NOT NULL DEFAULT '',
+    UNIQUE (voucher_id, line_order)
 );
-create index if not exists voucher_line_items_voucher_idx on public.voucher_line_items (voucher_id);
 
--- 5. VOUCHER DOCUMENTS
-create table if not exists public.voucher_documents (
-  id uuid primary key default gen_random_uuid(),
-  voucher_id uuid not null references public.vouchers(id) on delete cascade,
-  created_by uuid not null references auth.users(id),
-  format text not null check (format in ('docx', 'pdf')),
-  docx_path text not null, pdf_path text,
-  created_at timestamptz not null default now()
+CREATE INDEX IF NOT EXISTS voucher_line_items_voucher_idx ON public.voucher_line_items (voucher_id);
+
+-- Voucher Documents
+CREATE TABLE IF NOT EXISTS public.voucher_documents (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    voucher_id  UUID NOT NULL REFERENCES public.vouchers(id) ON DELETE CASCADE,
+    created_by  UUID NOT NULL REFERENCES auth.users(id),
+    format      TEXT NOT NULL CHECK (format IN ('docx', 'pdf')),
+    docx_path   TEXT NOT NULL,
+    pdf_path    TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-create index if not exists voucher_documents_voucher_id_idx on public.voucher_documents (voucher_id);
-create index if not exists voucher_documents_created_at_idx on public.voucher_documents (created_at desc);
 
--- 6. VOUCHER REVISIONS (delta-based)
-create table if not exists public.voucher_revisions (
-  id uuid primary key default gen_random_uuid(),
-  voucher_id uuid not null references public.vouchers(id) on delete cascade,
-  version_number integer not null,
-  status text not null check (status in ('draft', 'generated', 'sent')),
-  changed_by uuid not null references auth.users(id),
-  changed_fields jsonb not null default '{}'::jsonb,
-  snapshot_summary text not null default '',
-  created_at timestamptz not null default now(),
-  unique (voucher_id, version_number)
+CREATE INDEX IF NOT EXISTS voucher_documents_voucher_id_idx ON public.voucher_documents (voucher_id);
+CREATE INDEX IF NOT EXISTS voucher_documents_created_at_idx ON public.voucher_documents (created_at DESC);
+
+-- Voucher Revisions
+CREATE TABLE IF NOT EXISTS public.voucher_revisions (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    voucher_id     UUID NOT NULL REFERENCES public.vouchers(id) ON DELETE CASCADE,
+    version_number INTEGER NOT NULL,
+    status         TEXT NOT NULL CHECK (status IN ('draft', 'generated', 'sent')),
+    changed_by     UUID NOT NULL REFERENCES auth.users(id),
+    changed_fields JSONB NOT NULL DEFAULT '{}'::JSONB,
+    snapshot_summary TEXT NOT NULL DEFAULT '',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (voucher_id, version_number)
 );
-create index if not exists voucher_revisions_voucher_id_idx on public.voucher_revisions (voucher_id);
 
--- FUNCTIONS
-create or replace function public.current_employee_is_active()
-returns boolean language sql security definer set search_path = public as $$
-  select exists (select 1 from public.employee_profiles where id = auth.uid() and is_active = true);
+CREATE INDEX IF NOT EXISTS voucher_revisions_voucher_id_idx ON public.voucher_revisions (voucher_id);
+
+
+-- =============================================================================
+-- 6. SECURITY FUNCTIONS & HELPER FUNCTIONS
+-- =============================================================================
+
+-- Drop the dependent event trigger first to avoid dependency blocks
+DROP EVENT TRIGGER IF EXISTS ensure_rls;
+
+CREATE SCHEMA IF NOT EXISTS internal;
+
+-- Utility to automatically enable Row Level Security (RLS) on all newly created tables
+CREATE OR REPLACE FUNCTION internal.rls_auto_enable()
+RETURNS event_trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    obj record;
+BEGIN
+    FOR obj IN SELECT * FROM pg_event_trigger_ddl_commands() WHERE classid = 'pg_class'::regclass LOOP
+        IF obj.object_type = 'table' THEN
+            EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY;', obj.object_identity);
+        END IF;
+    END LOOP;
+END;
 $$;
-revoke execute on function public.current_employee_is_active() from public;
-revoke execute on function public.current_employee_is_active() from anon;
-grant execute on function public.current_employee_is_active() to authenticated;
 
-create or replace function public.current_employee_role()
-returns text language sql security definer set search_path = public as $$
-  select role from public.employee_profiles where id = auth.uid() and is_active = true;
+-- Lock down execution privileges completely on the utility function
+REVOKE ALL ON FUNCTION internal.rls_auto_enable() FROM public, anon, authenticated;
+
+-- Drop old vulnerable function if it exists in the public schema
+DROP FUNCTION IF EXISTS public.rls_auto_enable() CASCADE;
+
+-- Re-create the event trigger using the secure internal function
+CREATE EVENT TRIGGER ensure_rls
+ON ddl_command_end
+WHEN tag IN ('CREATE TABLE')
+EXECUTE FUNCTION internal.rls_auto_enable();
+
+
+
+CREATE OR REPLACE FUNCTION internal.current_employee_is_active()
+RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER SET search_path = public AS $$
+    SELECT exists (SELECT 1 FROM public.employee_profiles WHERE id = auth.uid() AND is_active = TRUE);
 $$;
-revoke execute on function public.current_employee_role() from public;
-revoke execute on function public.current_employee_role() from anon;
-grant execute on function public.current_employee_role() to authenticated;
 
-create or replace function public.set_updated_at()
-returns trigger language plpgsql set search_path = public as $$
-begin new.updated_at = now(); return new; end; $$;
+REVOKE ALL ON FUNCTION internal.current_employee_is_active() FROM public, anon, authenticated;
+GRANT EXECUTE ON FUNCTION internal.current_employee_is_active() TO authenticated, service_role;
 
-drop trigger if exists vouchers_set_updated_at on public.vouchers;
-drop trigger if exists employee_profiles_set_updated_at on public.employee_profiles;
-drop trigger if exists hotel_rates_set_updated_at on public.hotel_rates;
-create trigger vouchers_set_updated_at before update on public.vouchers for each row execute function public.set_updated_at();
-create trigger employee_profiles_set_updated_at before update on public.employee_profiles for each row execute function public.set_updated_at();
-create trigger hotel_rates_set_updated_at before update on public.hotel_rates for each row execute function public.set_updated_at();
+CREATE OR REPLACE FUNCTION internal.current_employee_role()
+RETURNS TEXT LANGUAGE SQL SECURITY DEFINER SET search_path = public AS $$
+    SELECT role FROM public.employee_profiles WHERE id = auth.uid() AND is_active = TRUE;
+$$;
 
--- ROW LEVEL SECURITY
-alter table public.employee_profiles enable row level security;
-alter table public.vouchers enable row level security;
-alter table public.voucher_line_items enable row level security;
-alter table public.voucher_documents enable row level security;
-alter table public.voucher_revisions enable row level security;
-alter table public.hotel_rates enable row level security;
-alter table public.hotel_rate_room_prices enable row level security;
-alter table public.hotel_rate_child_prices enable row level security;
-alter table public.hotel_rate_surcharges enable row level security;
-alter table public.hotel_rate_events enable row level security;
-alter table public.hotel_rate_guide_prices enable row level security;
-alter table public.hotel_rate_room_supplements enable row level security;
-alter table public.hotels enable row level security;
-alter table public.markets enable row level security;
-alter table public.room_categories enable row level security;
-alter table public.customers enable row level security;
-alter table public.tour_types enable row level security;
-alter table public.meal_basis enable row level security;
-alter table public.currencies enable row level security;
+REVOKE ALL ON FUNCTION internal.current_employee_role() FROM public, anon, authenticated;
+GRANT EXECUTE ON FUNCTION internal.current_employee_role() TO authenticated, service_role;
 
--- Employee Profiles RLS
-drop policy if exists "Employees can read own profile" on public.employee_profiles;
-drop policy if exists "Employees can insert own profile" on public.employee_profiles;
-drop policy if exists "Employees can update own basic profile" on public.employee_profiles;
-drop policy if exists "Admins can manage profiles" on public.employee_profiles;
-create policy "Employees can read own profile" on public.employee_profiles for select to authenticated
-  using (id = auth.uid() or public.current_employee_role() in ('manager', 'admin'));
-create policy "Employees can insert own profile" on public.employee_profiles for insert to authenticated
-  with check (id = auth.uid());
-create policy "Employees can update own basic profile" on public.employee_profiles for update to authenticated
-  using (id = auth.uid()) with check (id = auth.uid() and role = 'employee' and is_active = true);
-create policy "Admins can manage profiles" on public.employee_profiles for all to authenticated
-  using (public.current_employee_role() = 'admin') with check (public.current_employee_role() = 'admin');
+DROP FUNCTION IF EXISTS public.current_employee_is_active() CASCADE;
+DROP FUNCTION IF EXISTS public.current_employee_role() CASCADE;
 
--- Reference Tables RLS (read for all, write for active employees)
-drop policy if exists "Anyone can read hotels" on public.hotels;
-drop policy if exists "Employees can manage hotels" on public.hotels;
-drop policy if exists "Anyone can read markets" on public.markets;
-drop policy if exists "Employees can manage markets" on public.markets;
-drop policy if exists "Anyone can read room categories" on public.room_categories;
-drop policy if exists "Employees can manage room categories" on public.room_categories;
-drop policy if exists "Anyone can read customers" on public.customers;
-drop policy if exists "Employees can manage customers" on public.customers;
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END; 
+$$;
 
-create policy "Anyone can read hotels" on public.hotels for select to authenticated using (true);
-create policy "Employees can manage hotels" on public.hotels for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
-create policy "Anyone can read markets" on public.markets for select to authenticated using (true);
-create policy "Employees can manage markets" on public.markets for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
-create policy "Anyone can read room categories" on public.room_categories for select to authenticated using (true);
-create policy "Employees can manage room categories" on public.room_categories for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
-create policy "Anyone can read customers" on public.customers for select to authenticated using (true);
-create policy "Employees can manage customers" on public.customers for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+-- Triggers for Updated At
+DROP TRIGGER IF EXISTS vouchers_set_updated_at ON public.vouchers;
+DROP TRIGGER IF EXISTS employee_profiles_set_updated_at ON public.employee_profiles;
+DROP TRIGGER IF EXISTS hotel_rates_set_updated_at ON public.hotel_rates;
 
-drop policy if exists "Anyone can read tour types" on public.tour_types;
-drop policy if exists "Employees can manage tour types" on public.tour_types;
-drop policy if exists "Anyone can read meal basis" on public.meal_basis;
-drop policy if exists "Employees can manage meal basis" on public.meal_basis;
-drop policy if exists "Anyone can read currencies" on public.currencies;
-drop policy if exists "Employees can manage currencies" on public.currencies;
+CREATE TRIGGER vouchers_set_updated_at 
+    BEFORE UPDATE ON public.vouchers 
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-create policy "Anyone can read tour types" on public.tour_types for select to authenticated using (true);
-create policy "Employees can manage tour types" on public.tour_types for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+CREATE TRIGGER employee_profiles_set_updated_at 
+    BEFORE UPDATE ON public.employee_profiles 
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-create policy "Anyone can read meal basis" on public.meal_basis for select to authenticated using (true);
-create policy "Employees can manage meal basis" on public.meal_basis for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+CREATE TRIGGER hotel_rates_set_updated_at 
+    BEFORE UPDATE ON public.hotel_rates 
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-create policy "Anyone can read currencies" on public.currencies for select to authenticated using (true);
-create policy "Employees can manage currencies" on public.currencies for all to authenticated
-  using (public.current_employee_is_active()) with check (public.current_employee_is_active());
+-- Trigger to prevent basic info updates in hotel_rates
+CREATE OR REPLACE FUNCTION public.prevent_hotel_rates_basic_info_update()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF OLD.hotel_id IS DISTINCT FROM NEW.hotel_id OR
+       OLD.market_id IS DISTINCT FROM NEW.market_id OR
+       OLD.currency IS DISTINCT FROM NEW.currency OR
+       OLD.contract_name IS DISTINCT FROM NEW.contract_name OR
+       OLD.valid_from IS DISTINCT FROM NEW.valid_from OR
+       OLD.valid_to IS DISTINCT FROM NEW.valid_to THEN
+        RAISE EXCEPTION 'Cannot modify basic contract information (Hotel, Market, Currency, Contract Name, Valid From, Valid To) once saved.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
 
--- Vouchers RLS
-drop policy if exists "Employees can read vouchers" on public.vouchers;
-drop policy if exists "Employees can insert vouchers" on public.vouchers;
-drop policy if exists "Employees can update vouchers" on public.vouchers;
-create policy "Employees can read vouchers" on public.vouchers for select to authenticated
-  using (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')));
-create policy "Employees can insert vouchers" on public.vouchers for insert to authenticated
-  with check (public.current_employee_is_active() and created_by = auth.uid());
-create policy "Employees can update vouchers" on public.vouchers for update to authenticated
-  using (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')))
-  with check (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')));
+DROP TRIGGER IF EXISTS hotel_rates_prevent_basic_info_update ON public.hotel_rates;
+CREATE TRIGGER hotel_rates_prevent_basic_info_update
+    BEFORE UPDATE ON public.hotel_rates
+    FOR EACH ROW EXECUTE FUNCTION public.prevent_hotel_rates_basic_info_update();
 
--- Voucher Line Items RLS (inherit from parent voucher)
-drop policy if exists "Employees can read voucher line items" on public.voucher_line_items;
-drop policy if exists "Employees can insert voucher line items" on public.voucher_line_items;
-drop policy if exists "Employees can update voucher line items" on public.voucher_line_items;
-drop policy if exists "Employees can delete voucher line items" on public.voucher_line_items;
-create policy "Employees can read voucher line items" on public.voucher_line_items for select to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.vouchers v where v.id = voucher_id and (v.created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin'))));
-create policy "Employees can insert voucher line items" on public.voucher_line_items for insert to authenticated
-  with check (public.current_employee_is_active() and exists (select 1 from public.vouchers v where v.id = voucher_id and (v.created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin'))));
-create policy "Employees can update voucher line items" on public.voucher_line_items for update to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.vouchers v where v.id = voucher_id and (v.created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin'))));
-create policy "Employees can delete voucher line items" on public.voucher_line_items for delete to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.vouchers v where v.id = voucher_id and (v.created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin'))));
 
--- Voucher Documents RLS
-drop policy if exists "Employees can read voucher documents" on public.voucher_documents;
-drop policy if exists "Employees can insert voucher documents" on public.voucher_documents;
-create policy "Employees can read voucher documents" on public.voucher_documents for select to authenticated
-  using (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')));
-create policy "Employees can insert voucher documents" on public.voucher_documents for insert to authenticated
-  with check (public.current_employee_is_active() and created_by = auth.uid());
+-- =============================================================================
+-- 7. ROW LEVEL SECURITY (RLS) & POLICIES
+-- =============================================================================
 
--- Voucher Revisions RLS
-drop policy if exists "Employees can read voucher revisions" on public.voucher_revisions;
-drop policy if exists "Employees can insert voucher revisions" on public.voucher_revisions;
-create policy "Employees can read voucher revisions" on public.voucher_revisions for select to authenticated
-  using (public.current_employee_is_active() and (changed_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')));
-create policy "Employees can insert voucher revisions" on public.voucher_revisions for insert to authenticated
-  with check (public.current_employee_is_active() and changed_by = auth.uid());
+ALTER TABLE public.employee_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vouchers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voucher_line_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voucher_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.voucher_revisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_room_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_child_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_surcharges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_guide_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotel_rate_room_supplements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hotels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.markets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.room_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tour_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.meal_basis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.currencies ENABLE ROW LEVEL SECURITY;
 
--- Hotel Rates RLS
-drop policy if exists "Employees can read hotel rates" on public.hotel_rates;
-drop policy if exists "Employees can insert hotel rates" on public.hotel_rates;
-drop policy if exists "Employees can update hotel rates" on public.hotel_rates;
-drop policy if exists "Employees can delete hotel rates" on public.hotel_rates;
-create policy "Employees can read hotel rates" on public.hotel_rates for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can insert hotel rates" on public.hotel_rates for insert to authenticated with check (public.current_employee_is_active() and created_by = auth.uid());
-create policy "Employees can update hotel rates" on public.hotel_rates for update to authenticated
-  using (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin'))) with check (public.current_employee_is_active());
-create policy "Employees can delete hotel rates" on public.hotel_rates for delete to authenticated
-  using (public.current_employee_is_active() and (created_by = auth.uid() or public.current_employee_role() in ('manager', 'admin')));
+-- Employee Profiles RLS Policies
+DROP POLICY IF EXISTS "Employees can read own profile" ON public.employee_profiles;
+DROP POLICY IF EXISTS "Employees can insert own profile" ON public.employee_profiles;
+DROP POLICY IF EXISTS "Employees can update own basic profile" ON public.employee_profiles;
+DROP POLICY IF EXISTS "Admins can manage profiles" ON public.employee_profiles;
 
--- Hotel Rate Child Tables RLS (inherit ownership from parent hotel_rates)
-drop policy if exists "Employees can read hotel rate room prices" on public.hotel_rate_room_prices;
-drop policy if exists "Employees can manage hotel rate room prices" on public.hotel_rate_room_prices;
-drop policy if exists "Employees can read hotel rate child prices" on public.hotel_rate_child_prices;
-drop policy if exists "Employees can manage hotel rate child prices" on public.hotel_rate_child_prices;
-drop policy if exists "Employees can read hotel rate surcharges" on public.hotel_rate_surcharges;
-drop policy if exists "Employees can manage hotel rate surcharges" on public.hotel_rate_surcharges;
-drop policy if exists "Employees can read hotel rate events" on public.hotel_rate_events;
-drop policy if exists "Employees can manage hotel rate events" on public.hotel_rate_events;
-drop policy if exists "Employees can read hotel rate guide prices" on public.hotel_rate_guide_prices;
-drop policy if exists "Employees can manage hotel rate guide prices" on public.hotel_rate_guide_prices;
+CREATE POLICY "Employees can read own profile" ON public.employee_profiles FOR SELECT TO authenticated
+    USING (id = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'));
 
-create policy "Employees can read hotel rate room prices" on public.hotel_rate_room_prices for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate room prices" on public.hotel_rate_room_prices for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
+CREATE POLICY "Employees can insert own profile" ON public.employee_profiles FOR INSERT TO authenticated
+    WITH CHECK (id = auth.uid());
 
-create policy "Employees can read hotel rate child prices" on public.hotel_rate_child_prices for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate child prices" on public.hotel_rate_child_prices for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
+CREATE POLICY "Employees can update own basic profile" ON public.employee_profiles FOR UPDATE TO authenticated
+    USING (id = auth.uid()) WITH CHECK (id = auth.uid() AND role = 'employee' AND is_active = TRUE);
 
-create policy "Employees can read hotel rate surcharges" on public.hotel_rate_surcharges for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate surcharges" on public.hotel_rate_surcharges for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
+CREATE POLICY "Admins can manage profiles" ON public.employee_profiles FOR ALL TO authenticated
+    USING (internal.current_employee_role() = 'admin') WITH CHECK (internal.current_employee_role() = 'admin');
 
-create policy "Employees can read hotel rate events" on public.hotel_rate_events for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate events" on public.hotel_rate_events for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
+-- Reference Tables RLS Policies (Read for all, write for active employees)
+DROP POLICY IF EXISTS "Anyone can read hotels" ON public.hotels;
+DROP POLICY IF EXISTS "Employees can manage hotels" ON public.hotels;
+DROP POLICY IF EXISTS "Anyone can read markets" ON public.markets;
+DROP POLICY IF EXISTS "Employees can manage markets" ON public.markets;
+DROP POLICY IF EXISTS "Anyone can read room categories" ON public.room_categories;
+DROP POLICY IF EXISTS "Employees can manage room categories" ON public.room_categories;
+DROP POLICY IF EXISTS "Anyone can read customers" ON public.customers;
+DROP POLICY IF EXISTS "Employees can manage customers" ON public.customers;
 
-create policy "Employees can read hotel rate guide prices" on public.hotel_rate_guide_prices for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate guide prices" on public.hotel_rate_guide_prices for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
+CREATE POLICY "Anyone can read hotels" ON public.hotels FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage hotels" ON public.hotels FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
 
-drop policy if exists "Employees can read hotel rate room supplements" on public.hotel_rate_room_supplements;
-drop policy if exists "Employees can manage hotel rate room supplements" on public.hotel_rate_room_supplements;
-create policy "Employees can read hotel rate room supplements" on public.hotel_rate_room_supplements for select to authenticated using (public.current_employee_is_active());
-create policy "Employees can manage hotel rate room supplements" on public.hotel_rate_room_supplements for all to authenticated
-  using (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))))
-  with check (public.current_employee_is_active() and exists (select 1 from public.hotel_rates hr where hr.id = hotel_rate_id and (hr.created_by = auth.uid() or public.current_employee_role() in ('manager','admin'))));
--- AUTO-CREATE EMPLOYEE PROFILE ON AUTH SIGN-UP
-create or replace function public.handle_new_auth_user()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  insert into public.employee_profiles (id, employee_name, email, role, is_active)
-  values (new.id, coalesce(new.raw_user_meta_data->>'employeeName', split_part(new.email, '@', 1)), new.email, 'employee', true)
-  on conflict (id) do update set email = excluded.email, employee_name = coalesce(public.employee_profiles.employee_name, excluded.employee_name);
-  return new;
-end; $$;
-revoke execute on function public.handle_new_auth_user() from public;
-revoke execute on function public.handle_new_auth_user() from anon;
-revoke execute on function public.handle_new_auth_user() from authenticated;
+CREATE POLICY "Anyone can read markets" ON public.markets FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage markets" ON public.markets FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_auth_user();
+CREATE POLICY "Anyone can read room categories" ON public.room_categories FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage room categories" ON public.room_categories FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
 
-insert into public.employee_profiles (id, employee_name, email, role, is_active)
-select u.id, coalesce(u.raw_user_meta_data->>'employeeName', split_part(u.email, '@', 1)), u.email, 'employee', true
-from auth.users u left join public.employee_profiles p on p.id = u.id where p.id is null;
+CREATE POLICY "Anyone can read customers" ON public.customers FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage customers" ON public.customers FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
 
--- 7. VOUCHER TEMPLATES (stored globally in database for company-wide consistency)
-create table if not exists public.voucher_templates (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  file_data text not null, -- Base64 encoded docx file
-  created_by uuid references auth.users(id),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+DROP POLICY IF EXISTS "Anyone can read tour types" ON public.tour_types;
+DROP POLICY IF EXISTS "Employees can manage tour types" ON public.tour_types;
+DROP POLICY IF EXISTS "Anyone can read meal basis" ON public.meal_basis;
+DROP POLICY IF EXISTS "Employees can manage meal basis" ON public.meal_basis;
+DROP POLICY IF EXISTS "Anyone can read currencies" ON public.currencies;
+DROP POLICY IF EXISTS "Employees can manage currencies" ON public.currencies;
+
+CREATE POLICY "Anyone can read tour types" ON public.tour_types FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage tour types" ON public.tour_types FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
+
+CREATE POLICY "Anyone can read meal basis" ON public.meal_basis FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage meal basis" ON public.meal_basis FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
+
+CREATE POLICY "Anyone can read currencies" ON public.currencies FOR SELECT TO authenticated USING (TRUE);
+CREATE POLICY "Employees can manage currencies" ON public.currencies FOR ALL TO authenticated
+    USING (internal.current_employee_is_active()) WITH CHECK (internal.current_employee_is_active());
+
+-- Vouchers RLS Policies
+DROP POLICY IF EXISTS "Employees can read vouchers" ON public.vouchers;
+DROP POLICY IF EXISTS "Employees can insert vouchers" ON public.vouchers;
+DROP POLICY IF EXISTS "Employees can update vouchers" ON public.vouchers;
+
+CREATE POLICY "Employees can read vouchers" ON public.vouchers FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')));
+
+CREATE POLICY "Employees can insert vouchers" ON public.vouchers FOR INSERT TO authenticated
+    WITH CHECK (internal.current_employee_is_active() AND created_by = auth.uid());
+
+CREATE POLICY "Employees can update vouchers" ON public.vouchers FOR UPDATE TO authenticated
+    USING (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')))
+    WITH CHECK (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')));
+
+-- Voucher Line Items RLS Policies (Inherit from parent voucher)
+DROP POLICY IF EXISTS "Employees can read voucher line items" ON public.voucher_line_items;
+DROP POLICY IF EXISTS "Employees can insert voucher line items" ON public.voucher_line_items;
+DROP POLICY IF EXISTS "Employees can update voucher line items" ON public.voucher_line_items;
+DROP POLICY IF EXISTS "Employees can delete voucher line items" ON public.voucher_line_items;
+
+CREATE POLICY "Employees can read voucher line items" ON public.voucher_line_items FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.vouchers v WHERE v.id = voucher_id AND (v.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can insert voucher line items" ON public.voucher_line_items FOR INSERT TO authenticated
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.vouchers v WHERE v.id = voucher_id AND (v.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can update voucher line items" ON public.voucher_line_items FOR UPDATE TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.vouchers v WHERE v.id = voucher_id AND (v.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can delete voucher line items" ON public.voucher_line_items FOR DELETE TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.vouchers v WHERE v.id = voucher_id AND (v.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+-- Voucher Documents RLS Policies
+DROP POLICY IF EXISTS "Employees can read voucher documents" ON public.voucher_documents;
+DROP POLICY IF EXISTS "Employees can insert voucher documents" ON public.voucher_documents;
+
+CREATE POLICY "Employees can read voucher documents" ON public.voucher_documents FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')));
+
+CREATE POLICY "Employees can insert voucher documents" ON public.voucher_documents FOR INSERT TO authenticated
+    WITH CHECK (internal.current_employee_is_active() AND created_by = auth.uid());
+
+-- Voucher Revisions RLS Policies
+DROP POLICY IF EXISTS "Employees can read voucher revisions" ON public.voucher_revisions;
+DROP POLICY IF EXISTS "Employees can insert voucher revisions" ON public.voucher_revisions;
+
+CREATE POLICY "Employees can read voucher revisions" ON public.voucher_revisions FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active() AND (changed_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')));
+
+CREATE POLICY "Employees can insert voucher revisions" ON public.voucher_revisions FOR INSERT TO authenticated
+    WITH CHECK (internal.current_employee_is_active() AND changed_by = auth.uid());
+
+-- Hotel Rates RLS Policies
+DROP POLICY IF EXISTS "Employees can read hotel rates" ON public.hotel_rates;
+DROP POLICY IF EXISTS "Employees can insert hotel rates" ON public.hotel_rates;
+DROP POLICY IF EXISTS "Employees can update hotel rates" ON public.hotel_rates;
+DROP POLICY IF EXISTS "Employees can delete hotel rates" ON public.hotel_rates;
+
+CREATE POLICY "Employees can read hotel rates" ON public.hotel_rates FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can insert hotel rates" ON public.hotel_rates FOR INSERT TO authenticated
+    WITH CHECK (internal.current_employee_is_active() AND created_by = auth.uid());
+
+CREATE POLICY "Employees can update hotel rates" ON public.hotel_rates FOR UPDATE TO authenticated
+    USING (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')))
+    WITH CHECK (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can delete hotel rates" ON public.hotel_rates FOR DELETE TO authenticated
+    USING (internal.current_employee_is_active() AND (created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin')));
+
+-- Hotel Rate Child Tables RLS (Inherit ownership from parent hotel_rates)
+DROP POLICY IF EXISTS "Employees can read hotel rate room prices" ON public.hotel_rate_room_prices;
+DROP POLICY IF EXISTS "Employees can manage hotel rate room prices" ON public.hotel_rate_room_prices;
+DROP POLICY IF EXISTS "Employees can read hotel rate child prices" ON public.hotel_rate_child_prices;
+DROP POLICY IF EXISTS "Employees can manage hotel rate child prices" ON public.hotel_rate_child_prices;
+DROP POLICY IF EXISTS "Employees can read hotel rate surcharges" ON public.hotel_rate_surcharges;
+DROP POLICY IF EXISTS "Employees can manage hotel rate surcharges" ON public.hotel_rate_surcharges;
+DROP POLICY IF EXISTS "Employees can read hotel rate events" ON public.hotel_rate_events;
+DROP POLICY IF EXISTS "Employees can manage hotel rate events" ON public.hotel_rate_events;
+DROP POLICY IF EXISTS "Employees can read hotel rate guide prices" ON public.hotel_rate_guide_prices;
+DROP POLICY IF EXISTS "Employees can manage hotel rate guide prices" ON public.hotel_rate_guide_prices;
+DROP POLICY IF EXISTS "Employees can read hotel rate room supplements" ON public.hotel_rate_room_supplements;
+DROP POLICY IF EXISTS "Employees can manage hotel rate room supplements" ON public.hotel_rate_room_supplements;
+
+CREATE POLICY "Employees can read hotel rate room prices" ON public.hotel_rate_room_prices FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate room prices" ON public.hotel_rate_room_prices FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can read hotel rate child prices" ON public.hotel_rate_child_prices FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate child prices" ON public.hotel_rate_child_prices FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can read hotel rate surcharges" ON public.hotel_rate_surcharges FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate surcharges" ON public.hotel_rate_surcharges FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can read hotel rate events" ON public.hotel_rate_events FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate events" ON public.hotel_rate_events FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can read hotel rate guide prices" ON public.hotel_rate_guide_prices FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate guide prices" ON public.hotel_rate_guide_prices FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+CREATE POLICY "Employees can read hotel rate room supplements" ON public.hotel_rate_room_supplements FOR SELECT TO authenticated
+    USING (internal.current_employee_is_active());
+
+CREATE POLICY "Employees can manage hotel rate room supplements" ON public.hotel_rate_room_supplements FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))))
+    WITH CHECK (internal.current_employee_is_active() AND EXISTS (SELECT 1 FROM public.hotel_rates hr WHERE hr.id = hotel_rate_id AND (hr.created_by = auth.uid() OR internal.current_employee_role() IN ('manager', 'admin'))));
+
+
+-- =============================================================================
+-- 8. AUTO-CREATE EMPLOYEE PROFILE ON AUTH SIGN-UP Trigger
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION internal.handle_new_auth_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+    INSERT INTO public.employee_profiles (id, employee_name, email, role, is_active)
+    VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'employeeName', split_part(NEW.email, '@', 1)), NEW.email, 'employee', TRUE)
+    ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, employee_name = COALESCE(public.employee_profiles.employee_name, EXCLUDED.employee_name);
+    RETURN NEW;
+END; 
+$$;
+
+REVOKE ALL ON FUNCTION internal.handle_new_auth_user() FROM public, anon, authenticated;
+
+-- Drop old vulnerable function if it exists in the public schema
+DROP FUNCTION IF EXISTS public.handle_new_auth_user() CASCADE;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created 
+    AFTER INSERT ON auth.users 
+    FOR EACH ROW EXECUTE FUNCTION internal.handle_new_auth_user();
+
+-- Backward compatibility sync for existing accounts
+INSERT INTO public.employee_profiles (id, employee_name, email, role, is_active)
+SELECT u.id, COALESCE(u.raw_user_meta_data->>'employeeName', split_part(u.email, '@', 1)), u.email, 'employee', TRUE
+FROM auth.users u 
+LEFT JOIN public.employee_profiles p ON p.id = u.id 
+WHERE p.id IS NULL;
+
+
+-- =============================================================================
+-- 9. VOUCHER TEMPLATES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS public.voucher_templates (
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       TEXT NOT NULL UNIQUE,
+    file_data  TEXT NOT NULL, -- Base64 encoded docx file
+    created_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Enable RLS
-alter table public.voucher_templates enable row level security;
+ALTER TABLE public.voucher_templates ENABLE ROW LEVEL SECURITY;
 
--- Policies
-drop policy if exists "Anyone can read voucher templates" on public.voucher_templates;
-drop policy if exists "Employees can manage voucher templates" on public.voucher_templates;
-drop policy if exists "Admins can manage voucher templates" on public.voucher_templates;
+DROP POLICY IF EXISTS "Anyone can read voucher templates" ON public.voucher_templates;
+DROP POLICY IF EXISTS "Employees can manage voucher templates" ON public.voucher_templates;
+DROP POLICY IF EXISTS "Admins can manage voucher templates" ON public.voucher_templates;
 
-create policy "Anyone can read voucher templates" on public.voucher_templates for select to authenticated using (true);
-create policy "Admins can manage voucher templates" on public.voucher_templates for all to authenticated
-  using (public.current_employee_is_active() and public.current_employee_role() in ('manager', 'admin'))
-  with check (public.current_employee_is_active() and public.current_employee_role() in ('manager', 'admin'));
+CREATE POLICY "Anyone can read voucher templates" ON public.voucher_templates FOR SELECT TO authenticated USING (TRUE);
 
--- 8. DATA API EXPLICIT GRANTS (Supabase May 30, 2026 Security Mandate)
--- Ensure API access roles have appropriate usage on the public schema and tables/sequences/functions.
-grant usage on schema public to postgres, anon, authenticated, service_role;
+CREATE POLICY "Admins can manage voucher templates" ON public.voucher_templates FOR ALL TO authenticated
+    USING (internal.current_employee_is_active() AND internal.current_employee_role() IN ('manager', 'admin'))
+    WITH CHECK (internal.current_employee_is_active() AND internal.current_employee_role() IN ('manager', 'admin'));
 
-grant all privileges on all tables in schema public to postgres, anon, authenticated, service_role;
-grant all privileges on all sequences in schema public to postgres, anon, authenticated, service_role;
-grant all privileges on all functions in schema public to postgres, anon, authenticated, service_role;
 
-alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to postgres, anon, authenticated, service_role;
+-- =============================================================================
+-- 10. DATA API EXPLICIT GRANTS (Supabase Security Mandates)
+-- =============================================================================
+
+GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, authenticated, service_role;

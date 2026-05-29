@@ -302,6 +302,16 @@ function buildSurchargeTexts(
     .filter(Boolean);
 
   for (const surcharge of record.seasonal_surcharges || []) {
+    const appTo = (surcharge.applies_to || "").trim().toLowerCase();
+    const hasCategoryMatch = voucher.lineItems.some(
+      (li) =>
+        !appTo ||
+        appTo === "room" ||
+        appTo === "all" ||
+        (li.roomCategory || "").trim().toLowerCase() === appTo,
+    );
+    if (!hasCategoryMatch) continue;
+
     const isActive = lineDates.some(
       (d) => d >= (surcharge.date_from || "") && d <= (surcharge.date_to || ""),
     );
@@ -384,6 +394,380 @@ function buildRoomSupplementTexts(
 /*  Orchestrator                                                       */
 /* ------------------------------------------------------------------ */
 
+function calculateFocPersonCount(
+  li: VoucherLineItem,
+  focRules: any,
+): number {
+  const countAdults = focRules?.count_adults ?? true;
+  const countChild25 = focRules?.count_child_2_5_99 ?? false;
+  const countChild611 = focRules?.count_child_6_11_99 ?? false;
+
+  let count = 0;
+  if (countAdults) {
+    count +=
+      Number(li.singleRooms || 0) +
+      Number(li.doubleRooms || 0) * 2 +
+      Number(li.twinRooms || 0) * 2 +
+      Number(li.tripleRooms || 0) * 3;
+  }
+  if (countChild25) {
+    count +=
+      Number(li.child2_5 || 0) +
+      Number(li.child2_5Sharing || 0) +
+      Number(li.child2_5Bed || 0) +
+      Number(li.child2_5OwnRoom || 0);
+  }
+  if (countChild611) {
+    count +=
+      Number(li.child6_11 || 0) +
+      Number(li.child6_11Sharing || 0) +
+      Number(li.child6_11Bed || 0) +
+      Number(li.child6_11OwnRoom || 0);
+  }
+  return count;
+}
+
+function buildGroupedRateApplicableText(
+  voucher: VoucherPayload,
+  record: HotelRateRecord,
+): string {
+  const currency = record.currency || "USD";
+
+  function formatDate(dStr: string) {
+    if (!dStr) return "";
+    const parts = dStr.split("-");
+    if (parts.length === 3) {
+      const y = parts[0];
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      return `${m}/${d}/${y}`;
+    }
+    return dStr;
+  }
+
+  const formatVal = (val: string | null | undefined) => {
+    if (!val) return "";
+    const v = val.trim().toUpperCase();
+    if (v === "0" || v === "FOC" || v === "FREE") return "FOC";
+    if (v.includes("%")) return v;
+    return `${currency} ${val}`;
+  };
+
+  const combos: { roomCategory: string; basis: string }[] = [];
+  for (const li of voucher.lineItems) {
+    const cat = (li.roomCategory || "").trim();
+    const basis = (li.basis || "").trim();
+    if (!cat) continue;
+    if (
+      !combos.some(
+        (c) =>
+          c.roomCategory.toLowerCase() === cat.toLowerCase() &&
+          c.basis.toLowerCase() === basis.toLowerCase(),
+      )
+    ) {
+      combos.push({ roomCategory: cat, basis });
+    }
+  }
+
+  const catBlocks: string[] = [];
+  for (const combo of combos) {
+    const catUpper = combo.roomCategory.toUpperCase();
+    const basisUpper = combo.basis.toUpperCase();
+
+    // Find room rates matching category and basis
+    const match = (record.room_rates ?? []).find(
+      (r) =>
+        r.room_category.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        r.basis.toLowerCase() === combo.basis.toLowerCase(),
+    );
+
+    const parts: string[] = [];
+
+    // ① Rooms
+    const roomParts: string[] = [];
+    const hasSgl = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.singleRooms || 0) > 0,
+    );
+    const hasDbl = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.doubleRooms || 0) > 0,
+    );
+    const hasTwn = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.twinRooms || 0) > 0,
+    );
+    const hasTpl = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.tripleRooms || 0) > 0,
+    );
+
+    if (match) {
+      if (hasSgl && match.sgl != null) roomParts.push(`Single-${basisUpper} ${currency} ${match.sgl}`);
+      if (hasDbl && match.dbl != null) roomParts.push(`Double-${basisUpper} ${currency} ${match.dbl}`);
+      if (hasTwn && match.twn != null) roomParts.push(`Twin-${basisUpper} ${currency} ${match.twn}`);
+      if (hasTpl && match.tpl != null) roomParts.push(`Triple-${basisUpper} ${currency} ${match.tpl}`);
+    }
+    if (roomParts.length > 0) {
+      parts.push(roomParts.join(" / "));
+    }
+
+    // ② Child Rates
+    const hasC25Sharing = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child2_5Sharing || 0) > 0,
+    );
+    const hasC25Bed = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child2_5Bed || 0) > 0,
+    );
+    const hasC25OwnRoom = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child2_5OwnRoom || 0) > 0,
+    );
+    const hasC25 = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        (Number(li.child2_5 || 0) > 0 ||
+          Number(li.child2_5Sharing || 0) > 0 ||
+          Number(li.child2_5Bed || 0) > 0 ||
+          Number(li.child2_5OwnRoom || 0) > 0),
+    );
+
+    const hasC611Sharing = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child6_11Sharing || 0) > 0,
+    );
+    const hasC611Bed = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child6_11Bed || 0) > 0,
+    );
+    const hasC611OwnRoom = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        Number(li.child6_11OwnRoom || 0) > 0,
+    );
+    const hasC611 = voucher.lineItems.some(
+      (li) =>
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+        (Number(li.child6_11 || 0) > 0 ||
+          Number(li.child6_11Sharing || 0) > 0 ||
+          Number(li.child6_11Bed || 0) > 0 ||
+          Number(li.child6_11OwnRoom || 0) > 0),
+    );
+
+    const matchChild = (record.child_rates ?? []).find(
+      (r) =>
+        r.room_category.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        r.basis.toLowerCase() === combo.basis.toLowerCase(),
+    );
+    if (matchChild) {
+      // Child 2-5.99
+      if (hasC25) {
+        const c25Parts: string[] = [];
+        if (hasC25Sharing && matchChild.age_2_5_99_sharing) c25Parts.push(`Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`);
+        if (hasC25Bed && matchChild.age_2_5_99_extra_bed) c25Parts.push(`Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`);
+        if (hasC25OwnRoom && matchChild.age_2_5_99_own_room) c25Parts.push(`Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`);
+
+        // Fallback to showing all if they only filled generic child field
+        if (c25Parts.length === 0) {
+          if (matchChild.age_2_5_99_sharing) c25Parts.push(`Sharing ${formatVal(matchChild.age_2_5_99_sharing)}`);
+          if (matchChild.age_2_5_99_extra_bed) c25Parts.push(`Bed ${formatVal(matchChild.age_2_5_99_extra_bed)}`);
+          if (matchChild.age_2_5_99_own_room) c25Parts.push(`Own Room ${formatVal(matchChild.age_2_5_99_own_room)}`);
+        }
+
+        if (c25Parts.length > 0) {
+          parts.push(`Child (2-5.99 Y) ${c25Parts.join(", ")}`);
+        }
+      }
+
+      // Child 6-11.99
+      if (hasC611) {
+        const c611Parts: string[] = [];
+        if (hasC611Sharing && matchChild.age_6_11_99_sharing) c611Parts.push(`Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`);
+        if (hasC611Bed && matchChild.age_6_11_99_extra_bed) c611Parts.push(`Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`);
+        if (hasC611OwnRoom && matchChild.age_6_11_99_own_room) c611Parts.push(`Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`);
+
+        // Fallback to showing all if they only filled generic child field
+        if (c611Parts.length === 0) {
+          if (matchChild.age_6_11_99_sharing) c611Parts.push(`Sharing ${formatVal(matchChild.age_6_11_99_sharing)}`);
+          if (matchChild.age_6_11_99_extra_bed) c611Parts.push(`Bed ${formatVal(matchChild.age_6_11_99_extra_bed)}`);
+          if (matchChild.age_6_11_99_own_room) c611Parts.push(`Own Room ${formatVal(matchChild.age_6_11_99_own_room)}`);
+        }
+
+        if (c611Parts.length > 0) {
+          parts.push(`Child (6-11.99 Y) ${c611Parts.join(", ")}`);
+        }
+      }
+    }
+
+    // ③ Paid Guide Rate
+    const hasPaidGuide = voucher.lineItems.some((li) => {
+      const matchesCombo =
+        li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+        li.basis.toLowerCase() === combo.basis.toLowerCase();
+      if (!matchesCombo) return false;
+
+      const hasGuideInLine = Number(li.guide || 0) > 0 && li.guideBasis?.trim();
+      if (!hasGuideInLine) return false;
+
+      let isGuideFocActiveOnLine = false;
+      if (record.foc_rules?.enabled) {
+        const dayPax = calculateFocPersonCount(li, record.foc_rules);
+        const minPax = record.foc_rules.minimum_persons ?? 0;
+        if (minPax > 0 && dayPax >= minPax) {
+          const appliesTo = (record.foc_rules.applies_to || "").toLowerCase();
+          if (appliesTo.includes("guide")) {
+            isGuideFocActiveOnLine = true;
+          }
+        }
+      }
+      return !isGuideFocActiveOnLine;
+    });
+    if (hasPaidGuide && record.guide_rates?.[basisUpper] != null) {
+      parts.push(`Guide-${basisUpper} ${currency} ${record.guide_rates[basisUpper]}`);
+    }
+
+    // ④ Supplements
+    const matchSupps = (record.room_supplements ?? []).filter(
+      (s) => s.room_category.toLowerCase() === combo.roomCategory.toLowerCase(),
+    );
+    for (const s of matchSupps) {
+      const hasSupp = voucher.lineItems.some(
+        (li) =>
+          li.roomCategory.toLowerCase() === combo.roomCategory.toLowerCase() &&
+          li.basis.toLowerCase() === combo.basis.toLowerCase() &&
+          li.supplementary &&
+          li.supplementary.some((sp) => sp.toLowerCase() === s.supplement_name.toLowerCase()),
+      );
+      if (hasSupp) {
+        const sName = s.supplement_name.toLowerCase().includes("supplement")
+          ? s.supplement_name
+          : `${s.supplement_name} supplement`;
+        parts.push(`${sName} ${currency} ${s.supplement_amount} ${s.per}`);
+      }
+    }
+
+    if (parts.length > 0) {
+      catBlocks.push(`${catUpper} (${basisUpper}): ${parts.join(" / ")}  |`);
+    }
+  }
+
+  // Now build date-wise blocks
+  const dateBlocks: string[] = [];
+  const dates = Array.from(
+    new Set(voucher.lineItems.map((li) => (li.requiredDate || "").trim()).filter(Boolean)),
+  ).sort();
+
+  for (const dStr of dates) {
+    const dateLines: string[] = [];
+    const dayLineItems = voucher.lineItems.filter((li) => (li.requiredDate || "").trim() === dStr);
+
+    // FOC Rules
+    if (record.foc_rules?.enabled) {
+      for (const li of dayLineItems) {
+        const dayPax = calculateFocPersonCount(li, record.foc_rules);
+        const minPax = record.foc_rules.minimum_persons ?? 0;
+        if (minPax > 0 && dayPax >= minPax) {
+          const qty = record.foc_rules.foc_quantity ?? 1;
+          const focsOn = record.foc_rules.basis
+            ? ` on ${record.foc_rules.basis.split(",").join("/")}`
+            : "";
+          const appliesTo = (record.foc_rules.applies_to || "").toLowerCase();
+
+          const hasGuideAndBasis = Number(li.guide || 0) > 0 && li.guideBasis?.trim();
+          const target = hasGuideAndBasis ? "Guide" : "Pax";
+
+          if (appliesTo.includes(target.toLowerCase())) {
+            const customText =
+              target === "Guide"
+                ? record.foc_rules.guide_custom_text
+                : record.foc_rules.pax_custom_text;
+            if (customText?.trim()) {
+              dateLines.push(`${customText.trim()}  |`);
+            } else {
+              dateLines.push(`FOC: ${qty} ${target} FOC${focsOn} when ${minPax}+ persons  |`);
+            }
+          }
+        }
+      }
+    }
+
+    // Seasonal Surcharges
+    for (const s of record.seasonal_surcharges ?? []) {
+      if (!s.name || s.amount == null) continue;
+      const appTo = (s.applies_to || "").trim().toLowerCase();
+      const matchesCategoryBooked = dayLineItems.some(
+        (li) =>
+          !appTo ||
+          appTo === "room" ||
+          appTo === "all" ||
+          (li.roomCategory || "").trim().toLowerCase() === appTo,
+      );
+      if (!matchesCategoryBooked) continue;
+
+      if ((!s.date_from || dStr >= s.date_from) && (!s.date_to || dStr <= s.date_to)) {
+        const appliesToStr = s.applies_to ? ` (${s.applies_to})` : " per room per night";
+        dateLines.push(`${s.name} ${currency} ${s.amount}${appliesToStr} (Added to above rates)  |`);
+      }
+    }
+
+    // Compulsory Events
+    for (const ev of record.compulsory_events ?? []) {
+      if (!ev.event_name || !ev.mandatory || ev.event_date !== dStr) continue;
+      const basesOnDate = Array.from(new Set(dayLineItems.map((li) => (li.basis || "").toUpperCase())));
+      for (const basis of basesOnDate) {
+        const evRate =
+          basis === "BB"
+            ? ev.bb_rate
+            : basis === "HB"
+              ? ev.hb_rate
+              : (ev.fb_rate ?? ev.hb_rate ?? ev.bb_rate);
+        if (evRate != null) {
+          dateLines.push(
+            `${ev.event_name} (${basis}) ${currency} ${evRate} per ${(ev.per || "person").toLowerCase()} (Added to above rates)  |`,
+          );
+        }
+      }
+    }
+
+    if (dateLines.length > 0) {
+      const uniqueDateLines = Array.from(new Set(dateLines));
+      dateBlocks.push(`${formatDate(dStr)}:\n${uniqueDateLines.join("\n")}`);
+    }
+  }
+
+  const finalBlocks: string[] = [];
+  if (catBlocks.length > 0) {
+    finalBlocks.push(catBlocks.join("\n\n"));
+  }
+  if (dateBlocks.length > 0) {
+    finalBlocks.push(dateBlocks.join("\n\n"));
+  }
+  return finalBlocks.join("\n\n");
+}
+
 export function autoFillFromContract(
   voucher: VoucherPayload,
   records: HotelRateRecord[],
@@ -406,37 +790,43 @@ export function autoFillFromContract(
   const record = matchResult.record;
   const warnings: string[] = [];
 
-  // Rate text per line item (deduplicated)
-  const rateTexts: string[] = [];
-  for (const li of voucher.lineItems) {
-    const text = buildRateApplicableText(li, record);
-    if (!text && li.roomCategory) {
-      warnings.push(
-        `No matching rate for ${li.roomCategory} / ${li.basis || "unknown basis"} on ${li.requiredDate || "unknown date"}.`,
-      );
-    } else if (text && !rateTexts.includes(text)) {
-      rateTexts.push(text);
-    }
-  }
-
   const surchargeTexts = buildSurchargeTexts(voucher, record);
   const eventTexts = buildEventTexts(voucher, record);
   const roomSupplementTexts = buildRoomSupplementTexts(voucher, record);
   const guideParts = buildGuideText(voucher, record);
 
-  // Combine all into a master rate text for the voucher field
-  const finalRateParts = [...rateTexts];
-  if (roomSupplementTexts.length > 0)
-    finalRateParts.push(...roomSupplementTexts);
-  if (guideParts.length > 0) finalRateParts.push(...guideParts);
-  if (surchargeTexts.length > 0) finalRateParts.push(...surchargeTexts);
-  if (eventTexts.length > 0) finalRateParts.push(...eventTexts);
+  let finalRateText = "";
+
+  if (voucher.rateStructure === "grouped") {
+    finalRateText = buildGroupedRateApplicableText(voucher, record);
+  } else {
+    // Rate text per line item (deduplicated)
+    const rateTexts: string[] = [];
+    for (const li of voucher.lineItems) {
+      const text = buildRateApplicableText(li, record);
+      if (!text && li.roomCategory) {
+        warnings.push(
+          `No matching rate for ${li.roomCategory} / ${li.basis || "unknown basis"} on ${li.requiredDate || "unknown date"}.`,
+        );
+      } else if (text && !rateTexts.includes(text)) {
+        rateTexts.push(text);
+      }
+    }
+
+    const finalRateParts = [...rateTexts];
+    if (roomSupplementTexts.length > 0)
+      finalRateParts.push(...roomSupplementTexts);
+    if (guideParts.length > 0) finalRateParts.push(...guideParts);
+    if (surchargeTexts.length > 0) finalRateParts.push(...surchargeTexts);
+    if (eventTexts.length > 0) finalRateParts.push(...eventTexts);
+    finalRateText = finalRateParts.join(" / ");
+  }
 
   return {
     status: "matched",
     warnings,
     matchedHotelRateId: record.id,
-    rateApplicableText: finalRateParts.join(" / "),
+    rateApplicableText: finalRateText,
     guideText: guideParts.join(" / "),
     surchargeText: surchargeTexts.join(" / "),
     eventSupplementText: eventTexts.join(" / "),

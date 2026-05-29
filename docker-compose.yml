@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: meridian-api
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - VOUCHER_API_PORT=5000
+      - VOUCHER_API_HOST=0.0.0.0
+      - MERIDIAN_EMPLOYEE_EMAIL=${MERIDIAN_EMPLOYEE_EMAIL}
+    volumes:
+      - ./data:/usr/src/app/data
+      - ./documents:/usr/src/app/documents
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: meridian-web
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: always

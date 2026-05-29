@@ -1,6 +1,35 @@
 import path from "node:path";
 import fs from "node:fs";
-import { app } from "electron";
+import os from "node:os";
+
+// Safe import of Electron to support standalone server mode
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let app: any;
+try {
+  const electron = await import("electron");
+  app = electron.app;
+} catch {
+  app = {
+    isPackaged: false,
+    getPath: (name: string) => {
+      if (name === "userData") {
+        const userDataPath = path.join(process.cwd(), "data");
+        if (!fs.existsSync(userDataPath)) {
+          fs.mkdirSync(userDataPath, { recursive: true });
+        }
+        return userDataPath;
+      }
+      if (name === "documents") {
+        const docsPath = path.join(process.cwd(), "documents");
+        if (!fs.existsSync(docsPath)) {
+          fs.mkdirSync(docsPath, { recursive: true });
+        }
+        return docsPath;
+      }
+      return os.tmpdir();
+    },
+  };
+}
 
 export function getTemplatePath(): string {
   if (app.isPackaged) {

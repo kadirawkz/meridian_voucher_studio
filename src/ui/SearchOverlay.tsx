@@ -161,7 +161,7 @@ export function SearchOverlay({
                             openVoucherFromSearch(voucher);
                             setSearchQuery("");
                           }}
-                          className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-slate-700 border border-transparent hover:border-blue-100/50 transition-all"
+                          className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-steel border border-transparent hover:border-blue-100/50 transition-all"
                         >
                           <div className="flex items-center gap-2 overflow-hidden mr-4">
                             <Layers
@@ -232,7 +232,7 @@ export function SearchOverlay({
                             void window.meridian.openDocument(doc.docxPath);
                             setSearchQuery("");
                           }}
-                          className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-slate-700 border border-transparent hover:border-blue-100/50 transition-all"
+                          className="flex items-center justify-between py-2 px-2.5 hover:bg-blue-50/50 rounded-app cursor-pointer group text-steel border border-transparent hover:border-blue-100/50 transition-all"
                         >
                           <div className="flex items-center gap-2 overflow-hidden mr-4">
                             <FileText

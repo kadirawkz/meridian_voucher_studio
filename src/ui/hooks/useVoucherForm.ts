@@ -111,6 +111,7 @@ export function useVoucherForm({
   const customerName = form.watch("customerName");
   const tourType = form.watch("tourType");
   const voucherType = form.watch("voucherType");
+  const rateStructure = form.watch("rateStructure");
 
   const dailyRooms = useMemo(() => {
     const grouped = new Map<string, { rooms: number; children: number }>();
@@ -150,9 +151,12 @@ export function useVoucherForm({
   }, [lineItems]);
 
   const uniqueContractNames = useMemo(() => {
-    const names = new Set(hotelContracts.map((c) => c.contract_name));
+    const filtered = market
+      ? hotelContracts.filter((c) => c.market === market)
+      : hotelContracts;
+    const names = new Set(filtered.map((c) => c.contract_name));
     return Array.from(names).sort();
-  }, [hotelContracts]);
+  }, [hotelContracts, market]);
 
   // Load contracts when hotelName or ratesTrigger changes
   useEffect(() => {
@@ -179,10 +183,11 @@ export function useVoucherForm({
     }
   }, [hotelName, ratePeriod, hotelContracts]);
 
-  // Reset selected rate ID on hotel/market change
+  // Reset selected rate ID and ratePeriod form value on hotel/market change
   useEffect(() => {
     setSelectedHotelRateId("");
-  }, [hotelName, market]);
+    form.setValue("ratePeriod", "");
+  }, [hotelName, market, form]);
 
   // Load reference selections options
   useEffect(() => {
@@ -254,7 +259,13 @@ export function useVoucherForm({
 
   // Voucher autofill listener
   useEffect(() => {
-    if (!hotelName || !window.meridian?.autoFillVoucher || manualRates) return;
+    if (!hotelName || !ratePeriod || !window.meridian?.autoFillVoucher || manualRates) {
+      if (!manualRates) {
+        form.setValue("rateApplicableText", "");
+        form.setValue("matchedHotelRateId", "");
+      }
+      return;
+    }
 
     const timer = window.setTimeout(async () => {
       try {
@@ -293,6 +304,7 @@ export function useVoucherForm({
     selectedHotelRateId,
     manualRates,
     ratesTrigger,
+    rateStructure,
   ]);
 
   // Auto set tour name
@@ -350,7 +362,7 @@ export function useVoucherForm({
 
   async function handleSave(values: VoucherFormValues) {
     if (!window.meridian) {
-      addNotice("Desktop bridge unavailable; restart the application", "error");
+      addNotice("Connection to local services lost; please restart the application.", "error");
       return;
     }
 
@@ -373,7 +385,7 @@ export function useVoucherForm({
     customOutputDir?: string,
   ) {
     if (!window.meridian) {
-      addNotice("Desktop bridge unavailable; restart the application", "error");
+      addNotice("Connection to local services lost; please restart the application.", "error");
       return;
     }
 
@@ -410,7 +422,7 @@ export function useVoucherForm({
     customOutputDir?: string,
   ) {
     if (!window.meridian) {
-      addNotice("Desktop bridge unavailable; restart the application", "error");
+      addNotice("Connection to local services lost; please restart the application.", "error");
       return;
     }
 

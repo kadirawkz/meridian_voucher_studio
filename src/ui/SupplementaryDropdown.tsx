@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface SupplementaryDropdownProps {
   value: string[];
@@ -14,11 +15,51 @@ export function SupplementaryDropdown({
 }: SupplementaryDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  const updateCoords = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+  };
+
+  const handleToggle = () => {
+    if (!open) {
+      updateCoords();
+    }
+    setOpen(!open);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    window.addEventListener("scroll", updateCoords, true);
+    window.addEventListener("resize", updateCoords);
+    return () => {
+      window.removeEventListener("scroll", updateCoords, true);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
+        // Ensure we aren't clicking inside the portal dropdown itself
+        const portalDropdowns = document.querySelectorAll(".app-portal-supplementary");
+        let clickedInsidePortal = false;
+        portalDropdowns.forEach((dropdown) => {
+          if (dropdown.contains(event.target as Node)) {
+            clickedInsidePortal = true;
+          }
+        });
+
+        if (!clickedInsidePortal) {
+          setOpen(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -36,7 +77,7 @@ export function SupplementaryDropdown({
       >
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={handleToggle}
           className="app-select app-select-with-chevron w-full app-select-compact app-table-control text-left truncate pr-8 cursor-pointer select-none bg-surface"
           title={value.join(", ")}
         >
@@ -44,8 +85,14 @@ export function SupplementaryDropdown({
         </button>
         <ChevronDown size={16} className="app-select-chevron" />
       </div>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-line shadow-lg rounded-app z-[100] max-h-56 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150">
+      {open && createPortal(
+        <div
+          className="app-portal-supplementary fixed w-56 bg-surface border border-line shadow-lg rounded-app z-[99999] max-h-56 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
+          style={{
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+          }}
+        >
           {options.length === 0 ? (
             <div className="p-3 text-xs text-steel text-center select-none font-medium">
               No supplements
@@ -81,7 +128,8 @@ export function SupplementaryDropdown({
               );
             })
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

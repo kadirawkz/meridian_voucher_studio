@@ -86,7 +86,7 @@ export function useAppBridge() {
   >("thumbnail");
   const [previewPos, setPreviewPos] = useState(() => ({
     x: 8,
-    y: Math.max(8, window.innerHeight / 2 - 224),
+    y: Math.max(8, window.innerHeight / 2 - 100),
   }));
   const [isDraggingPreview, setIsDraggingPreview] = useState(false);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, startX: 0, startY: 0 });

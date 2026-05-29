@@ -1,6 +1,15 @@
-import { BrowserWindow } from "electron";
 import fs from "node:fs/promises";
 import type { VoucherPayload } from "../../shared/types.js";
+
+// Safe import of Electron to support standalone server mode
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BrowserWindow: any;
+try {
+  const electron = await import("electron");
+  BrowserWindow = electron.BrowserWindow;
+} catch {
+  // Headless container mode: operations utilizing GUI features will fail gracefully
+}
 
 function escapeHtml(value: string | number | undefined | null): string {
   if (value == null) return "";
@@ -510,7 +519,7 @@ function generateVoucherHtml(voucher: VoucherPayload): string {
     <div class="operator-info">
       <div class="operator-label">Issued By</div>
       <div class="operator-name">${escapeHtml(voucher.employeeName)}</div>
-      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Email: ${escapeHtml(voucher.employeeEmail)}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Email: <a href="mailto:${escapeHtml(voucher.employeeEmail)}" style="color: #64748b; text-decoration: underline;">${escapeHtml(voucher.employeeEmail)}</a></div>
     </div>
     <div class="system-stamp">
       <div>Generated via Meridian Voucher Studio</div>

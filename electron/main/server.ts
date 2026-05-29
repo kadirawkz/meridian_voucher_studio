@@ -8,6 +8,15 @@ import type {
 } from "../shared/types.js";
 import { generateDocuments } from "./lib/documentGenerator.js";
 import {
+  signIn,
+  signUp,
+  signOut,
+  resetPassword,
+  getAuthState,
+  getAccountProfile,
+  updateProfile,
+} from "./lib/auth.js";
+import {
   getVoucher,
   listVoucherDocuments,
   listVoucherRevisions,
@@ -60,6 +69,69 @@ export async function createVoucherServer(): Promise<{
 
   app.get("/health", (_request, response) => {
     response.json({ ok: true });
+  });
+
+  app.post("/api/auth/sign-in", async (request, response) => {
+    try {
+      const result = await signIn(request.body);
+      response.json(result);
+    } catch (error) {
+      response.status(401).send(error instanceof Error ? error.message : "Unauthorized");
+    }
+  });
+
+  app.post("/api/auth/sign-up", async (request, response) => {
+    try {
+      const result = await signUp(request.body);
+      response.json(result);
+    } catch (error) {
+      response.status(400).send(error instanceof Error ? error.message : "Bad Request");
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (request, response) => {
+    try {
+      const result = await resetPassword(request.body.email);
+      response.json(result);
+    } catch (error) {
+      response.status(400).send(error instanceof Error ? error.message : "Bad Request");
+    }
+  });
+
+  app.post("/api/auth/sign-out", async (_request, response) => {
+    try {
+      const result = await signOut();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+    }
+  });
+
+  app.get("/api/auth/state", async (_request, response) => {
+    try {
+      const result = await getAuthState();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+    }
+  });
+
+  app.get("/api/auth/profile", async (_request, response) => {
+    try {
+      const result = await getAccountProfile();
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+    }
+  });
+
+  app.patch("/api/auth/profile", async (request, response) => {
+    try {
+      const result = await updateProfile(request.body);
+      response.json(result);
+    } catch (error) {
+      response.status(500).send(error instanceof Error ? error.message : "Internal Server Error");
+    }
   });
 
   app.post("/api/vouchers", async (request, response) => {
@@ -655,12 +727,13 @@ export async function createVoucherServer(): Promise<{
   });
 
   const configuredPort = Number(process.env.VOUCHER_API_PORT || 0);
+  const configuredHost = process.env.VOUCHER_API_HOST || "127.0.0.1";
 
   return new Promise((resolve) => {
-    const server = app.listen(configuredPort, "127.0.0.1", () => {
+    const server = app.listen(configuredPort, configuredHost, () => {
       const address = server.address() as AddressInfo;
       resolve({
-        url: `http://127.0.0.1:${address.port}`,
+        url: `http://${configuredHost === "0.0.0.0" ? "127.0.0.1" : configuredHost}:${address.port}`,
         close: () =>
           new Promise((closeResolve, closeReject) => {
             server.close((error) =>

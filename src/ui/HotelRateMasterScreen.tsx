@@ -107,7 +107,7 @@ type FocRules = {
 };
 
 function createFocRuleText(rule: FocRules, target: "Pax" | "Guide"): string {
-  if (!rule.enabled) return "FOC not applied";
+  if (!rule.enabled) return "";
   const personText = rule.minimumPersons
     ? `when ${rule.minimumPersons}+ persons`
     : "when person count rule is met";
@@ -179,6 +179,7 @@ type Props = {
   initialEditId?: string;
   addNotice?: (message: string, type?: "info" | "success" | "error") => void;
   onRatesChanged?: () => void;
+  onClear?: () => void;
 };
 
 export function HotelRateMasterScreen({
@@ -187,6 +188,7 @@ export function HotelRateMasterScreen({
   initialEditId,
   addNotice,
   onRatesChanged,
+  onClear,
 }: Props = {}) {
   const [contract, setContract] = useState<ContractDetails>({
     hotelName: "",
@@ -248,10 +250,14 @@ export function HotelRateMasterScreen({
   const [skippedSections, setSkippedSections] = useState<string[]>([]);
   const [activeSection, setActiveSection] =
     useState<string>("Basic Information");
+  const [lastSavedState, setLastSavedState] = useState<string>("");
 
   useEffect(() => {
     if (initialEditId) {
+      setSelectedHotelRateId(initialEditId);
       void loadSelectedRateRecord(initialEditId);
+    } else {
+      setSelectedHotelRateId("");
     }
   }, [initialEditId]);
 
@@ -266,6 +272,34 @@ export function HotelRateMasterScreen({
 
   const [lastPaxGen, setLastPaxGen] = useState("");
   const [lastGuideGen, setLastGuideGen] = useState("");
+
+  const hasChanges = useMemo(() => {
+    const current = JSON.stringify({
+      contract,
+      rates,
+      childRates,
+      roomSupplements,
+      guideRates,
+      seasonalSurcharges,
+      events,
+      focRules,
+      billingText,
+      skippedSections,
+    });
+    return current !== lastSavedState;
+  }, [
+    contract,
+    rates,
+    childRates,
+    roomSupplements,
+    guideRates,
+    seasonalSurcharges,
+    events,
+    focRules,
+    billingText,
+    skippedSections,
+    lastSavedState,
+  ]);
 
   useEffect(() => {
     const nextPaxGen = createFocRuleText(focRules, "Pax");
@@ -377,6 +411,27 @@ export function HotelRateMasterScreen({
   }, []);
 
   useEffect(() => {
+    // Set initial lastSavedState
+    setLastSavedState(
+      JSON.stringify({
+        contract: { hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" },
+        rates: [],
+        childRates: [],
+        roomSupplements: [],
+        guideRates: [],
+        seasonalSurcharges: [],
+        events: [],
+        focRules: {
+          enabled: false, appliesTo: "Guide", minimumPersons: "15", focQuantity: "1", basis: "",
+          countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: ""
+        },
+        billingText: "",
+        skippedSections: [],
+      })
+    );
+  }, []);
+
+  useEffect(() => {
     setHotelSelectValue(selectedHotelName);
   }, [selectedHotelName]);
 
@@ -384,105 +439,101 @@ export function HotelRateMasterScreen({
     if (!window.meridian?.getHotelRates) return;
     const record = await window.meridian.getHotelRates(hotelRateId);
 
+    setSelectedHotelRateId(hotelRateId);
     const hName = record.hotel_name ?? "";
     setSelectedHotelName(hName);
     setHotelSelectValue(hName);
 
-    setContract({
+    const loadedContract = {
       hotelName: hName,
       market: record.market ?? "",
       currency: record.currency ?? "",
       contractName: record.contract_name ?? "",
       validFrom: record.valid_from ?? "",
       validTo: record.valid_to ?? "",
-    });
+    };
+    setContract(loadedContract);
 
-    setRates(
-      (record.room_rates ?? []).map((r) => ({
-        from: r.from || "",
-        to: r.to || "",
-        roomCategory: r.room_category || "",
-        basis: r.basis || "",
-        sgl: r.sgl == null ? "" : String(r.sgl),
-        dbl: r.dbl == null ? "" : String(r.dbl),
-        twn: r.twn == null ? "" : String(r.twn),
-        tpl: r.tpl == null ? "" : String(r.tpl),
-      })),
-    );
+    const loadedRates = (record.room_rates ?? []).map((r) => ({
+      from: r.from || "",
+      to: r.to || "",
+      roomCategory: r.room_category || "",
+      basis: r.basis || "",
+      sgl: r.sgl == null ? "" : String(r.sgl),
+      dbl: r.dbl == null ? "" : String(r.dbl),
+      twn: r.twn == null ? "" : String(r.twn),
+      tpl: r.tpl == null ? "" : String(r.tpl),
+    }));
+    setRates(loadedRates);
 
-    setChildRates(
-      (record.child_rates ?? []).map((r) => ({
-        from: r.from || "",
-        to: r.to || "",
-        roomCategory: r.room_category || "",
-        basis: r.basis || "",
-        age_2_5_sharing:
-          r.age_2_5_99_sharing == null ? "" : String(r.age_2_5_99_sharing),
-        age_2_5_extra_bed:
-          r.age_2_5_99_extra_bed == null ? "" : String(r.age_2_5_99_extra_bed),
-        age_2_5_own_room:
-          r.age_2_5_99_own_room == null ? "" : String(r.age_2_5_99_own_room),
-        age_6_11_sharing:
-          r.age_6_11_99_sharing == null ? "" : String(r.age_6_11_99_sharing),
-        age_6_11_extra_bed:
-          r.age_6_11_99_extra_bed == null
+    const loadedChildRates = (record.child_rates ?? []).map((r) => ({
+      from: r.from || "",
+      to: r.to || "",
+      roomCategory: r.room_category || "",
+      basis: r.basis || "",
+      age_2_5_sharing:
+        r.age_2_5_99_sharing == null ? "" : String(r.age_2_5_99_sharing),
+      age_2_5_extra_bed:
+        r.age_2_5_99_extra_bed == null ? "" : String(r.age_2_5_99_extra_bed),
+      age_2_5_own_room:
+        r.age_2_5_99_own_room == null ? "" : String(r.age_2_5_99_own_room),
+      age_6_11_sharing:
+        r.age_6_11_99_sharing == null ? "" : String(r.age_6_11_99_sharing),
+      age_6_11_extra_bed:
+        r.age_6_11_99_extra_bed == null
+          ? ""
+          : String(r.age_6_11_99_extra_bed),
+      age_6_11_own_room:
+        r.age_6_11_99_own_room == null ? "" : String(r.age_6_11_99_own_room),
+    }));
+    setChildRates(loadedChildRates);
+
+    const loadedSupplements = (record.room_supplements ?? []).map((s) => ({
+      roomCategory: s.room_category || "",
+      supplementName: s.supplement_name || "",
+      supplementAmount:
+        s.supplement_amount == null ? "" : String(s.supplement_amount),
+      per: s.per || "per room per night",
+    }));
+    setRoomSupplements(loadedSupplements);
+
+    const loadedGuide = Object.entries(record.guide_rates ?? {}).map(([basis, amount]) => ({
+      basis,
+      amount: amount == null ? "" : String(amount),
+    }));
+    setGuideRates(loadedGuide);
+
+    const loadedSurcharges = (record.seasonal_surcharges ?? []).map((s) => ({
+      name: s.name ?? "",
+      amount: s.amount == null ? "" : String(s.amount),
+      from: String(s.date_from ?? ""),
+      to: String(s.date_to ?? ""),
+      appliesTo: String(s.applies_to ?? ""),
+    }));
+    setSeasonalSurcharges(loadedSurcharges);
+
+    const loadedEvents = (record.compulsory_events ?? []).map((e) => ({
+      date: e.event_date ?? "",
+      event: e.event_name ?? "",
+      bb: e.bb_rate == null ? "" : String(e.bb_rate),
+      hb:
+        e.hb_rate == null
+          ? (e as Record<string, unknown>).hbfb_rate == null
             ? ""
-            : String(r.age_6_11_99_extra_bed),
-        age_6_11_own_room:
-          r.age_6_11_99_own_room == null ? "" : String(r.age_6_11_99_own_room),
-      })),
-    );
+            : String((e as Record<string, unknown>).hbfb_rate)
+          : String(e.hb_rate),
+      fb:
+        e.fb_rate == null
+          ? (e as Record<string, unknown>).hbfb_rate == null
+            ? ""
+            : String((e as Record<string, unknown>).hbfb_rate)
+          : String(e.fb_rate),
+      per: String(e.per ?? "Person"),
+      mandatory: Boolean(e.mandatory ?? true),
+    }));
+    setEvents(loadedEvents);
 
-    setRoomSupplements(
-      (record.room_supplements ?? []).map((s) => ({
-        roomCategory: s.room_category || "",
-        supplementName: s.supplement_name || "",
-        supplementAmount:
-          s.supplement_amount == null ? "" : String(s.supplement_amount),
-        per: s.per || "per room per night",
-      })),
-    );
-
-    setGuideRates(
-      Object.entries(record.guide_rates ?? {}).map(([basis, amount]) => ({
-        basis,
-        amount: amount == null ? "" : String(amount),
-      })),
-    );
-
-    setSeasonalSurcharges(
-      (record.seasonal_surcharges ?? []).map((s) => ({
-        name: s.name ?? "",
-        amount: s.amount == null ? "" : String(s.amount),
-        from: String(s.date_from ?? ""),
-        to: String(s.date_to ?? ""),
-        appliesTo: String(s.applies_to ?? ""),
-      })),
-    );
-
-    setEvents(
-      (record.compulsory_events ?? []).map((e) => ({
-        date: e.event_date ?? "",
-        event: e.event_name ?? "",
-        bb: e.bb_rate == null ? "" : String(e.bb_rate),
-        hb:
-          e.hb_rate == null
-            ? (e as Record<string, unknown>).hbfb_rate == null
-              ? ""
-              : String((e as Record<string, unknown>).hbfb_rate)
-            : String(e.hb_rate),
-        fb:
-          e.fb_rate == null
-            ? (e as Record<string, unknown>).hbfb_rate == null
-              ? ""
-              : String((e as Record<string, unknown>).hbfb_rate)
-            : String(e.fb_rate),
-        per: String(e.per ?? "Person"),
-        mandatory: Boolean(e.mandatory ?? true),
-      })),
-    );
-
-    setFocRules({
+    const loadedFocRules = {
       enabled: Boolean(record.foc_rules?.enabled ?? false),
       appliesTo: String(record.foc_rules?.applies_to ?? "Guide"),
       minimumPersons:
@@ -499,10 +550,29 @@ export function HotelRateMasterScreen({
       countChild6_11: Boolean(record.foc_rules?.count_child_6_11_99 ?? false),
       paxCustomText: record.foc_rules?.pax_custom_text ?? "",
       guideCustomText: record.foc_rules?.guide_custom_text ?? "",
-    });
+    };
+    setFocRules(loadedFocRules);
 
-    setSkippedSections(record.skipped_sections || []);
-    setBillingText(record.billing_instruction ?? "");
+    const loadedSkipped = record.skipped_sections || [];
+    setSkippedSections(loadedSkipped);
+
+    const loadedBilling = record.billing_instruction ?? "";
+    setBillingText(loadedBilling);
+
+    setLastSavedState(
+      JSON.stringify({
+        contract: loadedContract,
+        rates: loadedRates,
+        childRates: loadedChildRates,
+        roomSupplements: loadedSupplements,
+        guideRates: loadedGuide,
+        seasonalSurcharges: loadedSurcharges,
+        events: loadedEvents,
+        focRules: loadedFocRules,
+        billingText: loadedBilling,
+        skippedSections: loadedSkipped,
+      })
+    );
   }
 
   /* ---------- updaters ---------- */
@@ -634,7 +704,7 @@ export function HotelRateMasterScreen({
   const addSeasonalSurcharge = () =>
     setSeasonalSurcharges([
       ...seasonalSurcharges,
-      { name: "", amount: "", from: "", to: "", appliesTo: "" },
+      { name: "", amount: "", from: "", to: "", appliesTo: "All" },
     ]);
 
   const updateSeasonalSurcharge = (
@@ -683,6 +753,27 @@ export function HotelRateMasterScreen({
     setSkippedSections([]);
     setBillingText("");
     setSaveNotice("Cleared");
+    setLastSavedState(
+      JSON.stringify({
+        contract: { hotelName: "", market: "", currency: "", contractName: "", validFrom: "", validTo: "" },
+        rates: [],
+        childRates: [],
+        roomSupplements: [],
+        guideRates: [],
+        seasonalSurcharges: [],
+        events: [],
+        focRules: {
+          enabled: false, appliesTo: "Guide", minimumPersons: "", focQuantity: "1", basis: "",
+          countAdults: true, countChild2_5: false, countChild6_11: false, paxCustomText: "", guideCustomText: ""
+        },
+        billingText: "",
+        skippedSections: [],
+      })
+    );
+    setTimeout(() => {
+      setSaveNotice((prev) => (prev === "Cleared" ? "" : prev));
+    }, 2000);
+    if (onClear) onClear();
     if (addNotice) addNotice("Rate master form cleared", "info");
   }
 
@@ -809,7 +900,7 @@ export function HotelRateMasterScreen({
     skippedSections,
   ]);
 
-  const canSave = sectionStates.every((s) => s.status !== "Empty");
+  const canSave = sectionStates.every((s) => s.status !== "Empty") && hasChanges;
 
   /* ---------- save to backend ---------- */
 
@@ -884,7 +975,7 @@ export function HotelRateMasterScreen({
           amount: s.amount ? Number(s.amount) : null,
           date_from: s.from || null,
           date_to: s.to || null,
-          applies_to: s.appliesTo || null,
+          applies_to: s.appliesTo || "All",
         })),
         compulsory_events: events.map((e) => ({
           event_date: e.date,
@@ -932,6 +1023,20 @@ export function HotelRateMasterScreen({
       setHotelMode("select");
 
       setSelectedHotelRateId(result.id);
+      setLastSavedState(
+        JSON.stringify({
+          contract,
+          rates,
+          childRates,
+          roomSupplements,
+          guideRates,
+          seasonalSurcharges,
+          events,
+          focRules,
+          billingText,
+          skippedSections,
+        })
+      );
       setSaveNotice("");
       if (addNotice)
         addNotice(
@@ -1010,17 +1115,19 @@ export function HotelRateMasterScreen({
                   <div className="grid grid-cols-2 w-full mt-2 rounded-app border border-line bg-cloud p-0.5 shrink-0">
                     <button
                       type="button"
+                      disabled={!!selectedHotelRateId}
                       onClick={() => setHotelMode("select")}
                       className={`rounded py-1 text-center text-[10px] font-bold transition ${
                         hotelMode === "select"
                           ? "bg-surface text-navy shadow-sm"
                           : "text-steel hover:text-ink"
-                      }`}
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       Select
                     </button>
                     <button
                       type="button"
+                      disabled={!!selectedHotelRateId}
                       onClick={() => {
                         setHotelMode("create");
                         setHotelSelectValue("");
@@ -1032,7 +1139,7 @@ export function HotelRateMasterScreen({
                         hotelMode === "create"
                           ? "bg-surface text-navy shadow-sm"
                           : "text-steel hover:text-ink"
-                      }`}
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <Plus size={10} /> Create
                     </button>
@@ -1043,27 +1150,22 @@ export function HotelRateMasterScreen({
                   <Select
                     className="w-full text-xs font-semibold text-ink"
                     aria-label="Select hotel"
+                    disabled={!!selectedHotelRateId}
                     value={hotelSelectValue}
                     onChange={(e) => {
                       const value = e.target.value;
                       setHotelSelectValue(value);
                       setSelectedHotelName(value);
                       setSelectedHotelRateId("");
-                      setContract({
+                      const initialContract = {
                         hotelName: value,
                         market: "",
                         currency: "",
                         contractName: "",
                         validFrom: "",
                         validTo: "",
-                      });
-                      setRates([]);
-                      setChildRates([]);
-                      setRoomSupplements([]);
-                      setGuideRates([]);
-                      setSeasonalSurcharges([]);
-                      setEvents([]);
-                      setFocRules({
+                      };
+                      const initialFoc = {
                         enabled: false,
                         appliesTo: "Guide",
                         minimumPersons: "15",
@@ -1074,9 +1176,31 @@ export function HotelRateMasterScreen({
                         countChild6_11: false,
                         paxCustomText: "",
                         guideCustomText: "",
-                      });
+                      };
+                      setContract(initialContract);
+                      setRates([]);
+                      setChildRates([]);
+                      setRoomSupplements([]);
+                      setGuideRates([]);
+                      setSeasonalSurcharges([]);
+                      setEvents([]);
+                      setFocRules(initialFoc);
                       setSkippedSections([]);
                       setBillingText("");
+                      setLastSavedState(
+                        JSON.stringify({
+                          contract: initialContract,
+                          rates: [],
+                          childRates: [],
+                          roomSupplements: [],
+                          guideRates: [],
+                          seasonalSurcharges: [],
+                          events: [],
+                          focRules: initialFoc,
+                          billingText: "",
+                          skippedSections: [],
+                        })
+                      );
                     }}
                   >
                     <option value="">Select a Hotel</option>
@@ -1091,6 +1215,7 @@ export function HotelRateMasterScreen({
                     className={`${controlClass} text-xs font-semibold`}
                     aria-label="New hotel name"
                     placeholder="Grand Hotel – Colombo"
+                    disabled={!!selectedHotelRateId}
                     value={contract.hotelName}
                     autoFocus
                     onChange={(e) =>
@@ -1282,6 +1407,7 @@ export function HotelRateMasterScreen({
                     <Select
                       className="w-full"
                       title="Market"
+                      disabled={!!selectedHotelRateId}
                       value={contract.market}
                       onChange={(e) => updateContract("market", e.target.value)}
                     >
@@ -1297,6 +1423,7 @@ export function HotelRateMasterScreen({
                     <Select
                       className="w-full"
                       title="Currency"
+                      disabled={!!selectedHotelRateId}
                       value={contract.currency}
                       onChange={(e) =>
                         updateContract("currency", e.target.value)
@@ -1314,6 +1441,7 @@ export function HotelRateMasterScreen({
                     <input
                       className={controlClass}
                       title="Contract Name"
+                      disabled={!!selectedHotelRateId}
                       value={contract.contractName}
                       onChange={(e) =>
                         updateContract("contractName", e.target.value)
@@ -1327,6 +1455,7 @@ export function HotelRateMasterScreen({
                       className={controlClass}
                       aria-label="Valid from"
                       title="Valid from"
+                      disabled={!!selectedHotelRateId}
                       value={contract.validFrom}
                       onChange={(e) =>
                         updateContract("validFrom", e.target.value)
@@ -1339,6 +1468,7 @@ export function HotelRateMasterScreen({
                       className={controlClass}
                       aria-label="Valid to"
                       title="Valid to"
+                      disabled={!!selectedHotelRateId}
                       value={contract.validTo}
                       onChange={(e) =>
                         updateContract("validTo", e.target.value)

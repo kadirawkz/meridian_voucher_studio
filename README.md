@@ -25,7 +25,7 @@
 - **🏷️ Premium Supplement Overrides**
   Bespoke multi-select interfaces with checkbox indicators for boarding rules (e.g. `HB`, `FB`). Supplements are parsed as compact tokens (e.g. `HB|FB`) and formatted cleanly without layout overflow.
 - **⚡ Real-Time Rate Validation Engine**
-  An automated lookups engine scanning active hotel contracts inside a **Supabase** cloud datastore, instantly matching reservation dates, rooms, markets, and guest configurations to suggest current contractual rates.
+  An automated lookups engine scanning active hotel contracts inside a **Supabase** cloud datastore, instantly matching reservation dates, rooms, markets, and guest configurations to suggest current contractual rates. Includes customizable **Rate Applicable Text Layouts**—choose between a flat Legacy structure and an optimized Grouped structure that eliminates redundant entries by grouping pricing parameters by room category, keeping date-wise exceptions (FOC rules, surcharges, events) separated.
 - **📂 Resilient Folder Integrity & Relocation Explorer**
   An active path monitoring service. If the local export folder is disconnected, the interface renders a smooth recovery wizard in the side drawer for fast, one-click storage relocation.
 - **📄 Premium Document Compilation**
@@ -34,6 +34,8 @@
   Utilizes Electron-native offscreen printing to instantly compile high-fidelity, customer-facing PDF copies of vouchers locally with zero third-party software requirements.
 - **⚙️ Core Settings & Workspace Manager**
   Securely persists application-wide preferences (export paths, default operator profiles) in a local reactive state store.
+- **🐳 Containerized Browser Deployment (Docker & Web Bridge Polyfill)**
+  Enables running the application completely containerized in standard browser environments. A custom web-bridge polyfill translates native Electron IPC calls into REST API requests against a standalone Express API backend, served concurrently via Nginx.
 
 ---
 
@@ -45,7 +47,8 @@
 ├── electron/
 │   ├── main/                 # Electron main process & OS bindings
 │   │   ├── lib/              # Core modules (document compilers, PDF engines)
-│   │   └── config.ts         # Path and file resolution configurations
+│   │   ├── config.ts         # Path and file resolution configurations
+│   │   └── standalone.ts     # Standalone Express API backend (Docker / Web mode)
 │   ├── preload/              # Secure IPC bridge (sandboxed contextIsolation)
 │   └── shared/               # TypeScript models & shared API contracts
 ├── src/                      # UI Rendering Layer
@@ -54,11 +57,16 @@
 │   │   ├── App.tsx           # Main application frame & navigation router
 │   │   ├── AppPanels.tsx     # Workspace layout configurations
 │   │   ├── DashboardScreen.ts# Logs explorer, audit trials, and filters
-│   │   └── HotelRateMasterScreen.ts # Hotel contracts & boarding rules engine
+│   │   ├── HotelRateMasterScreen.ts # Hotel contracts & boarding rules engine
+│   │   └── webBridgePolyfill.ts # Web bridge polyfill for browser/Docker mode
 │   └── styles.css            # Base Tailwind CSS styles
 ├── templates/                # Standard master template configurations (.docx)
 ├── supabase/                 # Database migrations & seeds
 ├── scripts/                  # Development utility tools & local scripts
+├── data/                     # Local persistent storage (e.g. auth sessions, ignored)
+├── Dockerfile.api            # Docker container for the standalone API server
+├── Dockerfile.web            # Docker container for the Vite web build & Nginx
+├── docker-compose.yml        # Docker Compose configuration for multi-container orchestration
 └── package.json              # App manifest & compile configurations
 ```
 
@@ -71,6 +79,7 @@ Follow these steps to configure your local development workspace.
 ### 📋 Prerequisites
 
 1.  **Node.js**: Recommended `v18.x` or `v20.x` LTS.
+2.  **Docker**: Optional (required for containerized web deployment).
 
 ### 🔧 Installation & Setup
 
@@ -103,10 +112,16 @@ Follow these steps to configure your local development workspace.
     npm run sync:public-config
     ```
 
-4.  **Launch Local Server**:
+4.  **Launch Local Server (Electron)**:
     Boot the Vite dev environment, TypeScript compiler, and Electron container concurrently:
     ```bash
     npm run dev
+    ```
+
+5.  **Launch via Docker (Web / Browser Mode)**:
+    For instructions on running containerized web and API services, refer to the [DOCKER.md](file:///d:/repos/meridian_voucher_studio/DOCKER.md) guide:
+    ```bash
+    docker compose up --build -d
     ```
 
 ---

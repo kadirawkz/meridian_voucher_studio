@@ -6,8 +6,25 @@ import {
 import type { WebSocketLikeConstructor } from "@supabase/realtime-js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { app } from "electron";
+import os from "node:os";
 import WebSocket from "ws";
+
+// Safe import of Electron to support standalone server mode
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let app: any;
+try {
+  const electron = await import("electron");
+  app = electron.app;
+} catch {
+  app = {
+    getPath: (name: string) => {
+      if (name === "userData") {
+        return path.join(process.cwd(), "data");
+      }
+      return os.tmpdir();
+    },
+  };
+}
 import type {
   AccountProfile,
   AuthCredentials,

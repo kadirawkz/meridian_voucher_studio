@@ -423,7 +423,7 @@ export function SavedVouchersScreen({
                 <tbody className="divide-y divide-line/60 bg-surface">
                   {voucherRegister.map((voucher) => {
                     // Type styling colors
-                    let typeClass = "bg-slate-100 text-slate-700";
+                    let typeClass = "bg-cloud text-steel border border-line";
                     if (voucher.voucherType === "reservation") {
                       typeClass =
                         "bg-blue-50 text-blue-700 border border-blue-100";
@@ -438,7 +438,7 @@ export function SavedVouchersScreen({
                     // Status style badges
                     let statusDot = "bg-slate-400";
                     let statusBg =
-                      "bg-slate-50 text-slate-600 border border-slate-200";
+                      "bg-cloud text-steel border border-line";
                     if (voucher.status === "draft") {
                       statusDot = "bg-amber-400";
                       statusBg =
@@ -496,7 +496,7 @@ export function SavedVouchersScreen({
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-medium text-slate-700">
+                            <span className="font-medium text-steel">
                               {voucher.customerName || "Walk-In Customer"}
                             </span>
                           </div>

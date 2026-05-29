@@ -1,7 +1,23 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { dialog, shell, BrowserWindow } from "electron";
+import type { BrowserWindow as BrowserWindowType } from "electron";
+
+// Safe import of Electron to support standalone server mode
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let dialog: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let shell: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BrowserWindow: any;
+try {
+  const electron = await import("electron");
+  dialog = electron.dialog;
+  shell = electron.shell;
+  BrowserWindow = electron.BrowserWindow;
+} catch {
+  // Headless container mode: operations utilizing GUI features will fail gracefully
+}
 import {
   getToursFolderRoot,
   setToursFolderRoot,
@@ -15,7 +31,7 @@ const VOUCHER_EXTENSIONS = new Set([".docx", ".pdf"]);
  * Open a native folder-picker dialog and persist the chosen path.
  */
 export async function selectToursFolder(
-  parentWindow: BrowserWindow | null,
+  parentWindow: BrowserWindowType | null,
 ): Promise<{ path: string } | null> {
   const result = await dialog.showOpenDialog(
     parentWindow ?? BrowserWindow.getFocusedWindow()!,

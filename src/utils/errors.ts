@@ -47,10 +47,6 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
     return "Please log in first.";
   }
 
-  // If in development mode, allow showing raw error messages for debugging convenience
-  if (!import.meta.env.PROD) {
-    return message;
-  }
 
   // In production, check if the error is likely a system/database/connection error
   const isSystemError =

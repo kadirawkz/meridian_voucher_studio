@@ -183,7 +183,9 @@ export function MenuBar({
           shortcut: "Ctrl+R",
           action: () => window.location.reload(),
         },
-        { label: "Toggle DevTools", shortcut: "F12" },
+        ...(import.meta.env.DEV
+          ? [{ label: "Toggle DevTools", shortcut: "F12" }]
+          : []),
         { type: "separator" },
         {
           label: "Dashboard",
@@ -429,7 +431,9 @@ export function MenuBar({
                     {filteredNotices.map((n) => {
                       const isDocumentGen =
                         n.message.toLowerCase().includes("generated") ||
-                        n.message.toLowerCase().includes("saved");
+                        (n.message.toLowerCase().includes("saved") &&
+                          (n.message.toLowerCase().includes("voucher") ||
+                            n.message.toLowerCase().includes("draft")));
 
                       return (
                         <div
@@ -454,7 +458,7 @@ export function MenuBar({
                             )}
                           </div>
                           <div className="flex-1 min-w-0 space-y-1.5">
-                            <p className="text-xs font-semibold text-slate-800 leading-relaxed break-words">
+                            <p className="text-xs font-semibold text-ink leading-relaxed break-words">
                               {n.message}
                             </p>
 

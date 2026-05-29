@@ -101,6 +101,7 @@ export interface VoucherPayload {
   guideText?: string;
   surchargeText?: string;
   eventSupplementText?: string;
+  rateStructure?: "detailed" | "grouped";
   manuallyEdited?: boolean;
 }
 

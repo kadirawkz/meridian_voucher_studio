@@ -134,7 +134,7 @@ export function RevisionHistoryPanel({
                     {tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] font-bold bg-white text-steel border border-line px-1.5 py-0.5 rounded shadow-2xs hover:border-steel/80 transition-colors"
+                        className="text-[10px] font-bold bg-surface text-steel border border-line px-1.5 py-0.5 rounded shadow-2xs hover:border-steel/80 transition-colors"
                       >
                         {tag}
                       </span>

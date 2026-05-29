@@ -48,7 +48,7 @@ export function useToursExplorer({
   async function handleSelectToursFolder() {
     if (!window.meridian?.selectToursFolder) {
       addNotice(
-        "Tours folder selection unavailable; restart the application",
+        "Tours folder selection is temporarily unavailable; please restart the application.",
         "error",
       );
       return;

@@ -160,6 +160,49 @@ export function VoucherEntryScreen({
   const voucherType = form.watch("voucherType") || "reservation";
   const [shakeTrigger, setShakeTrigger] = React.useState(0);
 
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const prevRateTextRef = React.useRef<string>("");
+  const watchRateApplicableTextValue = form.watch("rateApplicableText");
+  React.useEffect(() => {
+    if (manualRates) return; // Disable auto-scrolling during manual overrides to ensure productive, jump-free editing
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const newVal = watchRateApplicableTextValue || "";
+    const oldVal = prevRateTextRef.current;
+    prevRateTextRef.current = newVal;
+
+    if (newVal === oldVal) return;
+
+    const oldLines = oldVal.split("\n");
+    const newLines = newVal.split("\n");
+
+    // Find the first line index that changed
+    let changingLineIdx = -1;
+    for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
+      if (oldLines[i] !== newLines[i]) {
+        changingLineIdx = i;
+        break;
+      }
+    }
+
+    if (changingLineIdx !== -1 && newLines.length > 0) {
+      // Calculate scroll position based on line index ratio
+      const scrollHeight = textarea.scrollHeight;
+      const clientHeight = textarea.clientHeight;
+      const lineEstimate = (changingLineIdx / newLines.length) * scrollHeight;
+
+      // Center the changing line in the textarea viewport
+      const targetScroll = Math.max(0, lineEstimate - clientHeight / 2);
+
+      textarea.scrollTo({
+        top: targetScroll,
+        behavior: "smooth",
+      });
+    }
+  }, [watchRateApplicableTextValue, manualRates]);
+
   const watchTourType = form.watch("tourType");
   const watchHotelName = form.watch("hotelName");
   const watchMarket = form.watch("market");
@@ -272,7 +315,7 @@ export function VoucherEntryScreen({
           </Button>
           <Button
             type="submit"
-            disabled={actionState !== "idle" || !hasChanges}
+            disabled={actionState !== "idle" || (!!form.watch("id") && !hasChanges)}
             onClick={handleTriggerShake}
             variant="primary"
             className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
@@ -709,21 +752,37 @@ export function VoucherEntryScreen({
               <label className="block space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="app-label">Rate Applicable</span>
-                  <label className="flex items-center gap-2 text-xs font-semibold text-steel hover:text-navy cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={manualRates}
-                      onChange={(e) => setManualRates(e.target.checked)}
-                      className="rounded border-line text-navy focus:ring-navy"
-                    />
-                    Manual Override
-                  </label>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-steel">
+                      Layout:
+                      <select
+                        {...form.register("rateStructure")}
+                        className="bg-cloud hover:bg-cloud-dark border border-line rounded px-2 py-0.5 text-navy font-bold cursor-pointer focus:ring-0 text-xs"
+                      >
+                        <option value="detailed">Detailed (By Date)</option>
+                        <option value="grouped">Grouped (By Room & Date)</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-steel hover:text-navy cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={manualRates}
+                        onChange={(e) => setManualRates(e.target.checked)}
+                        className="rounded border-line text-navy focus:ring-navy"
+                      />
+                      Manual Override
+                    </label>
+                  </div>
                 </div>
                 <textarea
-                  className={`app-textarea min-h-32 font-mono ${manualRates ? "border-line bg-surface text-ink" : "border-navy/20 bg-blue-100/20 text-navy"}`}
+                  className={`app-textarea min-h-56 font-mono ${manualRates ? "border-line bg-surface text-ink" : "border-navy/20 bg-blue-100/20 text-navy"}`}
                   readOnly={!manualRates}
-                  {...form.register("rateApplicableText")}
                   placeholder="Select a hotel and fill room details to see rates"
+                  {...form.register("rateApplicableText")}
+                  ref={(e) => {
+                    form.register("rateApplicableText").ref(e);
+                    textareaRef.current = e;
+                  }}
                 />
                 <p className="text-[11px] text-steel">
                   {manualRates

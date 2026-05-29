@@ -1,0 +1,35 @@
+# Build Stage
+FROM node:24-alpine AS builder
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+RUN npm ci
+
+COPY electron ./electron
+
+# Build Express API and related backend structures
+RUN npx tsc -p tsconfig.electron.json
+
+# Prune dev dependencies for production
+RUN npm prune --omit=dev
+
+# Production Stage
+FROM node:24-alpine AS runner
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/dist-electron ./dist-electron
+COPY templates ./templates
+
+ENV NODE_ENV=production
+ENV VOUCHER_API_PORT=5000
+ENV VOUCHER_API_HOST=0.0.0.0
+
+EXPOSE 5000
+
+CMD ["node", "dist-electron/main/standalone.js"]

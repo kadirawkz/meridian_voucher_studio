@@ -61,7 +61,7 @@ export function createNativeMenu(mainWindow: BrowserWindow): void {
       label: "View",
       submenu: [
         { role: "reload" },
-        { role: "toggleDevTools" },
+        ...(!app.isPackaged ? [{ role: "toggleDevTools" as const }] : []),
         { type: "separator" },
         { role: "resetZoom" },
         { role: "zoomIn" },

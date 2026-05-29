@@ -22,6 +22,8 @@ export const Input = forwardRef<
 
 Input.displayName = "Input";
 
+import { createPortal } from "react-dom";
+
 export const Select = forwardRef<
   HTMLSelectElement,
   ComponentPropsWithoutRef<"select">
@@ -30,6 +32,7 @@ export const Select = forwardRef<
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selectRef = useRef<HTMLSelectElement | null>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
   // Extract options from children React nodes
   const options = React.Children.toArray(children)
@@ -58,13 +61,54 @@ export const Select = forwardRef<
     }
   }, [value]);
 
+  const updateCoords = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  };
+
+  const handleToggle = () => {
+    if (props.disabled) return;
+    if (!isOpen) {
+      updateCoords();
+    }
+    setIsOpen(!isOpen);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.addEventListener("scroll", updateCoords, true);
+    window.addEventListener("resize", updateCoords);
+    return () => {
+      window.removeEventListener("scroll", updateCoords, true);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        // Also ensure we aren't clicking inside the portal-rendered dropdown container itself
+        const portalDropdowns = document.querySelectorAll(".app-portal-dropdown");
+        let clickedInsidePortal = false;
+        portalDropdowns.forEach((dropdown) => {
+          if (dropdown.contains(event.target as Node)) {
+            clickedInsidePortal = true;
+          }
+        });
+
+        if (!clickedInsidePortal) {
+          setIsOpen(false);
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -124,7 +168,7 @@ export const Select = forwardRef<
         <button
           type="button"
           disabled={props.disabled}
-          onClick={() => !props.disabled && setIsOpen(!isOpen)}
+          onClick={handleToggle}
           className={[
             "app-select app-select-with-chevron w-full text-left truncate pr-8 select-none bg-surface flex items-center justify-between border border-line transition-all cursor-pointer",
             isCompact
@@ -148,8 +192,15 @@ export const Select = forwardRef<
         />
       </div>
 
-      {isOpen && !props.disabled && (
-        <div className="absolute top-full left-0 mt-1 w-full bg-surface border border-line shadow-2xl rounded-app z-[200] max-h-60 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150">
+      {isOpen && !props.disabled && createPortal(
+        <div
+          className="app-portal-dropdown fixed bg-surface border border-line shadow-2xl rounded-app z-[99999] max-h-60 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
+          style={{
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            width: `${coords.width}px`,
+          }}
+        >
           {options.length === 0 ? (
             <div className="p-3 text-xs text-steel text-center select-none font-medium">
               No options available
@@ -178,7 +229,8 @@ export const Select = forwardRef<
               );
             })
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

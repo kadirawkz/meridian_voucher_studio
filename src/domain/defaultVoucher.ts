@@ -24,6 +24,7 @@ export const defaultVoucher: VoucherFormValues = {
   guideText: "",
   surchargeText: "",
   eventSupplementText: "",
+  rateStructure: "grouped",
   manuallyEdited: false,
   lineItems: [
     {

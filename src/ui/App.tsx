@@ -208,6 +208,7 @@ export function App() {
                 }}
                 onManageRates={() => setActiveView("manage-rates")}
                 onRatesChanged={() => setRatesTrigger((prev) => prev + 1)}
+                onClear={() => setEditHotelRateId(undefined)}
               />
             </div>
 
