@@ -141,7 +141,7 @@ if (typeof window !== "undefined" && !window.meridian) {
 
     // Templates DB
     listDatabaseTemplates: () => Promise.resolve([]),
-    uploadDatabaseTemplate: () => Promise.resolve(),
+    uploadDatabaseTemplate: (name: string, docxPath: string, htmlPath: string) => Promise.resolve(),
     downloadDatabaseTemplate: () => Promise.resolve(false),
     deleteDatabaseTemplate: () => Promise.resolve(),
 

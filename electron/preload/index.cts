@@ -162,8 +162,8 @@ const api: AppApi = {
     filters?: Array<{ name: string; extensions: string[] }>;
   }) => ipcRenderer.invoke("dialog:select-file", options),
   listDatabaseTemplates: () => ipcRenderer.invoke("template-db:list"),
-  uploadDatabaseTemplate: (name: string, filePath: string) =>
-    ipcRenderer.invoke("template-db:upload", { name, filePath }),
+  uploadDatabaseTemplate: (name: string, docxPath: string, htmlPath: string) =>
+    ipcRenderer.invoke("template-db:upload", { name, docxPath, htmlPath }),
   downloadDatabaseTemplate: (name: string) =>
     ipcRenderer.invoke("template-db:download", { name }),
   deleteDatabaseTemplate: (name: string) =>

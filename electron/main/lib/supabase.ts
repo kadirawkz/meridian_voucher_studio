@@ -805,13 +805,13 @@ export async function searchWorkspace(
 
 export async function getVoucherTemplate(
   name: string,
-): Promise<{ name: string; file_data: string } | null> {
+): Promise<{ name: string; docx_data: string; html_data: string } | null> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
     .from("voucher_templates")
-    .select("name, file_data")
+    .select("name, docx_data, html_data")
     .eq("name", name)
     .maybeSingle();
 
@@ -829,7 +829,8 @@ export async function getVoucherTemplate(
 
 export async function upsertVoucherTemplate(
   name: string,
-  fileData: string,
+  docxData: string,
+  htmlData: string,
 ): Promise<void> {
   const supabase = await getActiveSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
@@ -839,7 +840,7 @@ export async function upsertVoucherTemplate(
   const { error } = await supabase
     .from("voucher_templates")
     .upsert(
-      { name, file_data: fileData, created_by: userId },
+      { name, docx_data: docxData, html_data: htmlData, created_by: userId },
       { onConflict: "name" },
     );
 

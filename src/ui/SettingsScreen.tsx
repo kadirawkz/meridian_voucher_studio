@@ -158,17 +158,25 @@ export function SettingsScreen({
     }
 
     try {
-      const filePath = await window.meridian.selectFile({
-        title: "Select Voucher Template (.docx)",
+      const docxPath = await window.meridian.selectFile({
+        title: "Select Voucher Word Template (.docx)",
         filters: [{ name: "Word Documents", extensions: ["docx"] }],
       });
 
-      if (!filePath) return;
+      if (!docxPath) return;
+
+      const htmlPath = await window.meridian.selectFile({
+        title: "Select Voucher HTML Template (.html)",
+        filters: [{ name: "HTML Documents", extensions: ["html"] }],
+      });
+
+      if (!htmlPath) return;
 
       setUploadingTemplate(true);
       await window.meridian.uploadDatabaseTemplate(
         newTemplateName.trim(),
-        filePath,
+        docxPath,
+        htmlPath,
       );
       setNewTemplateName("");
       setFeedback("Template uploaded successfully to database");
@@ -686,7 +694,7 @@ export function SettingsScreen({
                   className="w-full md:w-1/2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-semibold text-navy outline-none focus:border-navy disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   <option value="">
-                    Built-in Default Template (voucher-template.docx)
+                    -- Select a Template --
                   </option>
                   {dbTemplates.map((t) => (
                     <option key={t.id} value={t.name}>
@@ -768,8 +776,7 @@ export function SettingsScreen({
                             colSpan={3}
                             className="px-4 py-8 text-center text-steel italic"
                           >
-                            No custom templates uploaded. Using built-in default
-                            template.
+                            No templates uploaded. Please upload a template (Word & HTML) to enable document generation.
                           </td>
                         </tr>
                       ) : (

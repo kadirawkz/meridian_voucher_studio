@@ -4,7 +4,6 @@ import { Buffer } from "node:buffer";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import {
-  getTemplatePath,
   resolveVoucherOutputDirectory,
   getAllSettings,
 } from "../config.js";
@@ -272,7 +271,7 @@ function renderLegacyStaticTemplate(
   zip.file("word/document.xml", xml);
 }
 
-function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
+export function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
   const totalRooms = voucher.lineItems.reduce(
     (total, item) =>
       total +
@@ -546,26 +545,20 @@ export async function generateDocuments(
   customOutputDir?: string,
 ): Promise<GeneratedDocument> {
   const settings = getAllSettings();
-  let template: Buffer | null = null;
-
-  if (settings.activeTemplateName) {
-    try {
-      const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
-      if (dbTemplate?.file_data) {
-        template = Buffer.from(dbTemplate.file_data, "base64");
-      }
-    } catch (e) {
-      console.warn(
-        `Failed to fetch database template '${settings.activeTemplateName}', falling back to default:`,
-        e,
-      );
-    }
+  if (!settings.activeTemplateName) {
+    throw new Error(
+      "No active voucher template is configured. Please select or upload a template in Settings."
+    );
   }
 
-  if (!template) {
-    const templatePath = getTemplatePath();
-    template = await fs.readFile(templatePath);
+  const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+  if (!dbTemplate || !dbTemplate.docx_data || !dbTemplate.html_data) {
+    throw new Error(
+      `Voucher template '${settings.activeTemplateName}' is incomplete or missing in the database.`
+    );
   }
+
+  const template = Buffer.from(dbTemplate.docx_data, "base64");
 
   const outputDirectory =
     customOutputDir ||
@@ -656,7 +649,7 @@ export async function generateDocuments(
         outputDirectory,
         `${path.basename(docxPath, ".docx")}.pdf`,
       );
-      await generatePdf(voucher, pdfPath);
+      await generatePdf(voucher, pdfPath, dbTemplate.html_data);
     } catch (err) {
       console.error("PDF generation failed:", err);
       pdfPath = undefined;

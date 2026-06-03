@@ -443,7 +443,11 @@ export interface AppApi {
     filters?: Array<{ name: string; extensions: string[] }>;
   }) => Promise<string | null>;
   listDatabaseTemplates: () => Promise<VoucherTemplateInfo[]>;
-  uploadDatabaseTemplate: (name: string, filePath: string) => Promise<void>;
+  uploadDatabaseTemplate: (
+    name: string,
+    docxPath: string,
+    htmlPath: string,
+  ) => Promise<void>;
   downloadDatabaseTemplate: (name: string) => Promise<boolean>;
   deleteDatabaseTemplate: (name: string) => Promise<void>;
 }

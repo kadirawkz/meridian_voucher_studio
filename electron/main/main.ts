@@ -685,11 +685,55 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(
     "template-db:upload",
-    async (_event, { name, filePath }: { name: string; filePath: string }) => {
-      await validateTemplate(filePath);
-      const content = await fs.promises.readFile(filePath);
-      const base64 = content.toString("base64");
-      await upsertVoucherTemplate(name, base64);
+    async (
+      _event,
+      {
+        name,
+        docxPath,
+        htmlPath,
+      }: { name: string; docxPath: string; htmlPath: string },
+    ) => {
+      await validateTemplate(docxPath);
+      const docxContent = await fs.promises.readFile(docxPath);
+      const docxBase64 = docxContent.toString("base64");
+      let htmlContent = await fs.promises.readFile(htmlPath, "utf8");
+
+      // Auto-inline images referenced in the HTML
+      const htmlDir = path.dirname(htmlPath);
+      const srcRegex = /src=(["'])(.*?)\1/gi;
+      const replacements: Array<{ quote: string; original: string; base64Uri: string }> = [];
+
+      const matches = [...htmlContent.matchAll(srcRegex)];
+      for (const m of matches) {
+        const quote = m[1];
+        const originalSrc = m[2];
+        if (
+          !originalSrc.startsWith("http://") &&
+          !originalSrc.startsWith("https://") &&
+          !originalSrc.startsWith("data:")
+        ) {
+          const relativePath = decodeURIComponent(originalSrc);
+          const absoluteImagePath = path.resolve(htmlDir, relativePath);
+          try {
+            const imageBuffer = await fs.promises.readFile(absoluteImagePath);
+            const ext = path.extname(absoluteImagePath).toLowerCase().replace(".", "");
+            const mimeType = ext === "svg" ? "image/svg+xml" : `image/${ext === "jpg" ? "jpeg" : ext}`;
+            const base64Uri = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
+            replacements.push({ quote, original: originalSrc, base64Uri });
+          } catch (err) {
+            console.warn(`Failed to auto-inline template image at ${absoluteImagePath}:`, err);
+          }
+        }
+      }
+
+      for (const r of replacements) {
+        htmlContent = htmlContent.replace(
+          `src=${r.quote}${r.original}${r.quote}`,
+          `src=${r.quote}${r.base64Uri}${r.quote}`
+        );
+      }
+
+      await upsertVoucherTemplate(name, docxBase64, htmlContent);
     },
   );
 
@@ -697,7 +741,7 @@ app.whenReady().then(async () => {
     "template-db:download",
     async (_event, { name }: { name: string }) => {
       const template = await getVoucherTemplate(name);
-      if (!template?.file_data) {
+      if (!template?.docx_data) {
         throw new Error(`Template '${name}' not found or empty.`);
       }
 
@@ -711,7 +755,7 @@ app.whenReady().then(async () => {
         return false;
       }
 
-      const buffer = Buffer.from(template.file_data, "base64");
+      const buffer = Buffer.from(template.docx_data, "base64");
       await fs.promises.writeFile(result.filePath, buffer);
       return true;
     },

@@ -698,7 +698,8 @@ WHERE p.id IS NULL;
 CREATE TABLE IF NOT EXISTS public.voucher_templates (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name       TEXT NOT NULL UNIQUE,
-    file_data  TEXT NOT NULL, -- Base64 encoded docx file
+    docx_data  TEXT NOT NULL, -- Base64 encoded docx file
+    html_data  TEXT NOT NULL, -- HTML template content
     created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

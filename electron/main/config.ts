@@ -31,17 +31,7 @@ try {
   };
 }
 
-export function getTemplatePath(): string {
-  if (app.isPackaged) {
-    return path.join(
-      process.resourcesPath,
-      "templates",
-      "voucher-template.docx",
-    );
-  }
 
-  return path.join(process.cwd(), "templates", "voucher-template.docx");
-}
 
 export function getOutputDirectory(): string {
   return path.join(app.getPath("documents"), "Meridian Voucher Studio");
