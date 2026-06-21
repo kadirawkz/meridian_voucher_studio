@@ -424,7 +424,7 @@ CREATE TRIGGER hotel_rates_set_updated_at
 
 -- Trigger to prevent basic info updates in hotel_rates
 CREATE OR REPLACE FUNCTION public.prevent_hotel_rates_basic_info_update()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
     IF OLD.hotel_id IS DISTINCT FROM NEW.hotel_id OR
        OLD.market_id IS DISTINCT FROM NEW.market_id OR
@@ -732,3 +732,4 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, authenticate
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, authenticated, service_role;
+
