@@ -31,6 +31,7 @@ export const Select = forwardRef<
   const isCompact = className?.includes("app-table-control");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
   const selectRef = useRef<HTMLSelectElement | null>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
@@ -90,6 +91,14 @@ export const Select = forwardRef<
       window.removeEventListener("resize", updateCoords);
     };
   }, [isOpen]);
+
+    useEffect(() => {
+      if (!portalRef.current) return;
+
+      portalRef.current.style.top = `${coords.top}px`;
+      portalRef.current.style.left = `${coords.left}px`;
+      portalRef.current.style.width = `${coords.width}px`;
+    }, [coords]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -198,12 +207,8 @@ export const Select = forwardRef<
         !props.disabled &&
         createPortal(
           <div
+            ref={portalRef}
             className="app-portal-dropdown fixed bg-surface border border-line shadow-2xl rounded-app z-[99999] max-h-60 overflow-y-auto dropdown-scrollbar p-1 animate-in fade-in slide-in-from-top-1 duration-150"
-            style={{
-              top: `${coords.top}px`,
-              left: `${coords.left}px`,
-              width: `${coords.width}px`,
-            }}
           >
             {options.length === 0 ? (
               <div className="p-3 text-xs text-steel text-center select-none font-medium">

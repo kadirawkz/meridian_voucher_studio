@@ -105,6 +105,7 @@ export function App() {
     handleSave,
     handleGenerateDocx,
     handleGeneratePdf,
+    handleSendEmail,
     handleVoucherStatusUpdate,
     openVoucherFromSearch,
     handleSelectToursFolder,
@@ -142,6 +143,7 @@ export function App() {
           onNavigate={(view) => setActiveView(view as ActiveView)}
           onSignOut={handleSignOut}
           onReportIssue={() => setShowReportIssue(true)}
+          isLoading={isCheckingAuth}
         />
 
         <div className="app-body">
@@ -169,6 +171,7 @@ export function App() {
                 handleSave={handleSave}
                 handleGenerateDocx={handleGenerateDocx}
                 handleGeneratePdf={handleGeneratePdf}
+                handleSendEmail={handleSendEmail}
                 docxDropdownOpen={docxDropdownOpen}
                 setDocxDropdownOpen={setDocxDropdownOpen}
                 pdfDropdownOpen={pdfDropdownOpen}
@@ -238,6 +241,7 @@ export function App() {
                   setActiveView("rate-master");
                 }}
                 onRatesChanged={() => setRatesTrigger((prev) => prev + 1)}
+                addNotice={addNotice}
               />
             ) : activeView === "settings" ? (
               <SettingsScreen
@@ -246,11 +250,13 @@ export function App() {
                 onReferencesChanged={() => setRatesTrigger((prev) => prev + 1)}
                 accountProfile={accountProfile}
                 onProfileUpdated={setAccountProfile}
+                addNotice={addNotice}
               />
             ) : activeView === "profile" ? (
               <ProfileScreen
                 accountProfile={accountProfile}
                 onProfileUpdated={setAccountProfile}
+                addNotice={addNotice}
               />
             ) : activeView === "register" ? (
               <SavedVouchersScreen

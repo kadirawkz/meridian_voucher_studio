@@ -24,6 +24,7 @@ import type {
   CurrencyRef,
   VoucherTemplateInfo,
   AccountProfile,
+  HotelRef,
 } from "../../electron/shared/types";
 
 interface AppSettings {
@@ -39,6 +40,7 @@ interface SettingsScreenProps {
   onReferencesChanged?: () => void;
   accountProfile: AccountProfile | null;
   onProfileUpdated: (profile: AccountProfile) => void;
+  addNotice?: (message: string, type?: "info" | "success" | "error") => void;
 }
 
 export function SettingsScreen({
@@ -47,13 +49,13 @@ export function SettingsScreen({
   onReferencesChanged,
   accountProfile: propAccountProfile,
   onProfileUpdated,
+  addNotice,
 }: SettingsScreenProps) {
   const [settings, setSettings] = useState<AppSettings>({ theme: activeTheme });
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(
     propAccountProfile,
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
     if (propAccountProfile) {
@@ -68,15 +70,17 @@ export function SettingsScreen({
     "system" | "templates" | "references"
   >("system");
   const [activeSubTab, setActiveSubTab] = useState<
+    | "hotels"
     | "tour-types"
     | "markets"
     | "customers"
     | "room-categories"
     | "meal-basis"
     | "currencies"
-  >("tour-types");
+  >("currencies");
 
   // Reference States
+  const [hotels, setHotels] = useState<HotelRef[]>([]);
   const [tourTypes, setTourTypes] = useState<TourTypeRef[]>([]);
   const [markets, setMarkets] = useState<MarketRef[]>([]);
   const [roomCategories, setRoomCategories] = useState<RoomCategoryRef[]>([]);
@@ -86,6 +90,7 @@ export function SettingsScreen({
 
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -108,6 +113,8 @@ export function SettingsScreen({
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [uploadingTemplate, setUploadingTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
+  const [selectedDocxPath, setSelectedDocxPath] = useState("");
+  const [selectedHtmlPath, setSelectedHtmlPath] = useState("");
 
   useEffect(() => {
     loadSettingsAndProfile();
@@ -135,7 +142,9 @@ export function SettingsScreen({
       }
     } catch (error) {
       console.error("Failed to load settings or profile:", error);
-      setFeedback("Failed to load settings");
+      if (addNotice) {
+        addNotice("Failed to load settings or user profile.", "error");
+      }
     }
   }
 
@@ -151,42 +160,77 @@ export function SettingsScreen({
     }
   }
 
-  async function handleUploadTemplate() {
-    if (!newTemplateName.trim()) {
-      setFeedback("Please enter a name for the template");
-      return;
-    }
-
+  async function handleSelectDocx() {
     try {
       const docxPath = await window.meridian.selectFile({
         title: "Select Voucher Word Template (.docx)",
         filters: [{ name: "Word Documents", extensions: ["docx"] }],
       });
+      if (docxPath) {
+        setSelectedDocxPath(docxPath);
+      }
+    } catch (error) {
+      console.error("Failed to select DOCX file:", error);
+    }
+  }
 
-      if (!docxPath) return;
-
+  async function handleSelectHtml() {
+    try {
       const htmlPath = await window.meridian.selectFile({
         title: "Select Voucher HTML Template (.html)",
         filters: [{ name: "HTML Documents", extensions: ["html"] }],
       });
+      if (htmlPath) {
+        setSelectedHtmlPath(htmlPath);
+      }
+    } catch (error) {
+      console.error("Failed to select HTML file:", error);
+    }
+  }
 
-      if (!htmlPath) return;
+  async function handleUploadTemplate() {
+    if (!newTemplateName.trim()) {
+      if (addNotice) {
+        addNotice("Please enter a name for the template before uploading.", "error");
+      }
+      return;
+    }
 
+    if (!selectedDocxPath) {
+      if (addNotice) {
+        addNotice("Please select a Word template (.docx).", "error");
+      }
+      return;
+    }
+
+    if (!selectedHtmlPath) {
+      if (addNotice) {
+        addNotice("Please select an HTML template (.html).", "error");
+      }
+      return;
+    }
+
+    try {
       setUploadingTemplate(true);
       await window.meridian.uploadDatabaseTemplate(
         newTemplateName.trim(),
-        docxPath,
-        htmlPath,
+        selectedDocxPath,
+        selectedHtmlPath,
       );
       setNewTemplateName("");
-      setFeedback("Template uploaded successfully to database");
-      setTimeout(() => setFeedback(""), 3000);
+      setSelectedDocxPath("");
+      setSelectedHtmlPath("");
+      if (addNotice) {
+        addNotice(`Template "${newTemplateName.trim()}" uploaded successfully to database.`, "success");
+      }
       await loadDbTemplates();
     } catch (error: unknown) {
       console.error("Failed to upload template:", error);
       const errMsg =
         error instanceof Error ? error.message : "Failed to upload template";
-      setFeedback(errMsg);
+      if (addNotice) {
+        addNotice(errMsg, "error");
+      }
     } finally {
       setUploadingTemplate(false);
     }
@@ -195,21 +239,23 @@ export function SettingsScreen({
   async function handleDownloadTemplate(name: string) {
     try {
       const success = await window.meridian.downloadDatabaseTemplate(name);
-      if (success) {
-        setFeedback("Template downloaded successfully");
-        setTimeout(() => setFeedback(""), 3000);
+      if (success && addNotice) {
+        addNotice(`Template "${name}" downloaded successfully.`, "success");
       }
     } catch (error) {
       console.error("Failed to download template:", error);
-      setFeedback("Failed to download template");
+      if (addNotice) {
+        addNotice(`Failed to download template "${name}".`, "error");
+      }
     }
   }
 
   async function handleDeleteTemplate(name: string) {
     try {
       await window.meridian.deleteDatabaseTemplate(name);
-      setFeedback("Template deleted successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      if (addNotice) {
+        addNotice(`Template "${name}" deleted successfully.`, "success");
+      }
 
       // If the deleted template was the active one, clear it
       if (settings.activeTemplateName === name) {
@@ -221,12 +267,18 @@ export function SettingsScreen({
       await loadDbTemplates();
     } catch (error) {
       console.error("Failed to delete template:", error);
-      setFeedback("Failed to delete template");
+      if (addNotice) {
+        addNotice(`Failed to delete template "${name}".`, "error");
+      }
     }
   }
 
   async function loadAllReferences() {
     try {
+      if (window.meridian.listHotels) {
+        const res = await window.meridian.listHotels();
+        setHotels(res || []);
+      }
       if (window.meridian.listTourTypes) {
         const res = await window.meridian.listTourTypes();
         setTourTypes(res || []);
@@ -260,11 +312,14 @@ export function SettingsScreen({
     try {
       setIsSaving(true);
       await window.meridian.saveSettings(settings as Record<string, unknown>);
-      setFeedback("Settings saved successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      if (addNotice) {
+        addNotice("System configuration settings saved successfully.", "success");
+      }
     } catch (error) {
       console.error("Failed to save settings:", error);
-      setFeedback("Failed to save settings");
+      if (addNotice) {
+        addNotice("Failed to save system configuration settings.", "error");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -300,7 +355,14 @@ export function SettingsScreen({
   async function handleAddItem(e: React.FormEvent) {
     e.preventDefault();
     try {
-      if (activeSubTab === "tour-types") {
+      if (activeSubTab === "hotels") {
+        if (!newName.trim()) return;
+        await window.meridian.saveHotel({
+          name: newName.trim(),
+          email: newEmail.trim() || undefined,
+          is_active: true,
+        });
+      } else if (activeSubTab === "tour-types") {
         if (!newCode.trim()) return;
         await window.meridian.saveTourType({
           code: newCode.trim().toUpperCase(),
@@ -337,13 +399,17 @@ export function SettingsScreen({
 
       setNewCode("");
       setNewName("");
-      setFeedback("Item added successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      setNewEmail("");
+      if (addNotice) {
+        addNotice(`Successfully added item "${newName.trim() || newCode.trim().toUpperCase()}" to reference list.`, "success");
+      }
       await loadAllReferences();
       if (onReferencesChanged) onReferencesChanged();
     } catch (error) {
       console.error("Failed to add item:", error);
-      setFeedback("Failed to add item");
+      if (addNotice) {
+        addNotice("Failed to add item to reference list.", "error");
+      }
     }
   }
 
@@ -355,6 +421,7 @@ export function SettingsScreen({
   /** Map UI sub-tab names to DB table names */
   function subTabToTable(subTab: string): string {
     const map: Record<string, string> = {
+      hotels: "hotels",
       "tour-types": "tour_types",
       markets: "markets",
       customers: "customers",
@@ -389,14 +456,17 @@ export function SettingsScreen({
         new Promise((resolve) => setTimeout(resolve, 350)),
       ]);
 
-      setFeedback("Item restored successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      if (addNotice) {
+        addNotice("Reference item restored successfully.", "success");
+      }
       await loadAllReferences();
       await loadArchivedItems();
       if (onReferencesChanged) onReferencesChanged();
     } catch (error) {
       console.error("Failed to restore item:", error);
-      setFeedback("Failed to restore item");
+      if (addNotice) {
+        addNotice("Failed to restore reference item.", "error");
+      }
     } finally {
       setRestoringIds((prev) => prev.filter((item) => item !== id));
     }
@@ -410,7 +480,9 @@ export function SettingsScreen({
       setDeletingIds((prev) => [...prev, id]);
 
       const apiCall = (async () => {
-        if (type === "tour-types") {
+        if (type === "hotels") {
+          await window.meridian.deleteHotel(id);
+        } else if (type === "tour-types") {
           await window.meridian.deleteTourType(id);
         } else if (type === "markets") {
           await window.meridian.deleteMarket(id);
@@ -430,14 +502,17 @@ export function SettingsScreen({
         new Promise((resolve) => setTimeout(resolve, 350)),
       ]);
 
-      setFeedback("Item deleted successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      if (addNotice) {
+        addNotice(`Reference item "${deleteTarget.label}" successfully deleted and archived.`, "success");
+      }
       await loadAllReferences();
       if (showArchived) await loadArchivedItems();
       if (onReferencesChanged) onReferencesChanged();
     } catch (error) {
       console.error("Failed to delete item:", error);
-      setFeedback("Failed to delete item");
+      if (addNotice) {
+        addNotice(`Failed to delete reference item "${deleteTarget.label}".`, "error");
+      }
     } finally {
       setDeletingIds((prev) => prev.filter((item) => item !== id));
       setDeleteTarget(null);
@@ -446,18 +521,6 @@ export function SettingsScreen({
 
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
-      <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-          System / Configuration
-        </p>
-        <h2 className="mt-1 font-display text-3xl font-bold text-navy">
-          Settings
-        </h2>
-        <p className="mt-2 text-sm text-steel">
-          Configure workspace defaults, system behavior, and reference tables.
-        </p>
-      </div>
-
       {/* Main Tab Navigation */}
       <div className="flex gap-6 border-b border-line mb-6">
         <button
@@ -497,17 +560,7 @@ export function SettingsScreen({
         )}
       </div>
 
-      {feedback && (
-        <div
-          className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
-            feedback.includes("success")
-              ? "border-green-500/20 bg-green-500/10 text-green-500"
-              : "border-red-500/20 bg-red-500/10 text-red-500"
-          }`}
-        >
-          {feedback}
-        </div>
-      )}
+
 
       {activeMainTab === "system" && (
         <div className="space-y-6">
@@ -683,6 +736,9 @@ export function SettingsScreen({
                   </p>
                 </label>
                 <select
+                  id="active-template-name"
+                  aria-label="Active Company Template"
+                  title="Active Company Template"
                   value={settings.activeTemplateName || ""}
                   disabled={!isAdminOrManager}
                   onChange={(e) =>
@@ -713,34 +769,111 @@ export function SettingsScreen({
                   <hr className="border-line" />
 
                   {/* Upload Form */}
-                  <div>
-                    <h4 className="font-bold text-xs uppercase text-steel tracking-wider mb-3">
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-xs uppercase text-steel tracking-wider">
                       Upload Custom Template
                     </h4>
-                    <div className="flex flex-col sm:flex-row gap-3 items-end">
-                      <div className="flex-1 w-full">
-                        <label className="block mb-1.5 text-xs font-bold text-navy">
-                          Template Name
-                        </label>
-                        <input
-                          type="text"
-                          value={newTemplateName}
-                          onChange={(e) => setNewTemplateName(e.target.value)}
-                          placeholder="e.g. Standard Tour Template, Winter Special"
-                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left side: Template Name and Upload button */}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block mb-1.5 text-xs font-bold text-navy">
+                            Template Name
+                          </label>
+                          <input
+                            type="text"
+                            value={newTemplateName}
+                            onChange={(e) => setNewTemplateName(e.target.value)}
+                            placeholder="e.g. Standard Tour Template, Winter Special"
+                            className="w-full rounded-app border border-line bg-surface px-3 py-2 text-sm font-semibold text-navy outline-none focus:border-navy"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleUploadTemplate}
+                          disabled={
+                            uploadingTemplate ||
+                            !newTemplateName.trim() ||
+                            !selectedDocxPath ||
+                            !selectedHtmlPath
+                          }
+                          className="app-button-primary w-full py-2 text-sm font-semibold flex items-center justify-center gap-1.5"
+                        >
+                          <Upload size={16} />
+                          {uploadingTemplate ? "Uploading..." : "Upload Template"}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleUploadTemplate}
-                        disabled={uploadingTemplate || !newTemplateName.trim()}
-                        className="app-button-secondary py-1.5 px-4 text-sm font-semibold flex items-center gap-1.5 whitespace-nowrap w-full sm:w-auto justify-center"
-                      >
-                        <Upload size={16} />
-                        {uploadingTemplate
-                          ? "Uploading..."
-                          : "Select File & Upload"}
-                      </button>
+
+                      {/* Right side: Two required files selection */}
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-navy">
+                          Required Template Files
+                        </label>
+                        
+                        {/* Word Template Selection */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleSelectDocx}
+                            className={`flex-1 flex items-center justify-between border rounded-app px-3 py-2 text-sm transition-all ${
+                              selectedDocxPath
+                                ? "border-emerald-500/30 bg-emerald-50/10 text-emerald-800"
+                                : "border-line bg-surface hover:border-steel text-steel"
+                            }`}
+                          >
+                            <span className="truncate font-semibold max-w-[80%]">
+                              {selectedDocxPath
+                                ? selectedDocxPath.split(/[\\/]/).pop()
+                                : "Select Word Template (.docx)"}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-cloud font-bold text-navy shrink-0 border border-line">
+                              {selectedDocxPath ? "Selected" : "Word"}
+                            </span>
+                          </button>
+                          {selectedDocxPath && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDocxPath("")}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              title="Clear Word selection"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* HTML Template Selection */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleSelectHtml}
+                            className={`flex-1 flex items-center justify-between border rounded-app px-3 py-2 text-sm transition-all ${
+                              selectedHtmlPath
+                                ? "border-emerald-500/30 bg-emerald-50/10 text-emerald-800"
+                                : "border-line bg-surface hover:border-steel text-steel"
+                            }`}
+                          >
+                            <span className="truncate font-semibold max-w-[80%]">
+                              {selectedHtmlPath
+                                ? selectedHtmlPath.split(/[\\/]/).pop()
+                                : "Select HTML Template (.html)"}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-cloud font-bold text-navy shrink-0 border border-line">
+                              {selectedHtmlPath ? "Selected" : "HTML"}
+                            </span>
+                          </button>
+                          {selectedHtmlPath && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedHtmlPath("")}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              title="Clear HTML selection"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </>
@@ -856,12 +989,13 @@ export function SettingsScreen({
           {/* Side Subtabs Navigation */}
           <div className="md:col-span-1 flex flex-col gap-1 border-r border-line pr-4">
             {[
-              { id: "tour-types", label: "Tour Types" },
-              { id: "markets", label: "Markets" },
-              { id: "customers", label: "Customers" },
-              { id: "room-categories", label: "Room Categories" },
-              { id: "meal-basis", label: "Meal Basis" },
               { id: "currencies", label: "Currencies" },
+              { id: "customers", label: "Customers" },
+              { id: "hotels", label: "Hotels" },
+              { id: "markets", label: "Markets" },
+              { id: "meal-basis", label: "Meal Basis" },
+              { id: "room-categories", label: "Room Categories" },
+              { id: "tour-types", label: "Tour Types" },
             ].map((subTab) => (
               <button
                 key={subTab.id}
@@ -869,6 +1003,7 @@ export function SettingsScreen({
                 onClick={() => {
                   setActiveSubTab(
                     subTab.id as
+                      | "hotels"
                       | "tour-types"
                       | "markets"
                       | "customers"
@@ -878,6 +1013,7 @@ export function SettingsScreen({
                   );
                   setNewCode("");
                   setNewName("");
+                  setNewEmail("");
                   setShowArchived(false);
                   setArchivedItems([]);
                 }}
@@ -908,8 +1044,35 @@ export function SettingsScreen({
                   Add New Entry
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                  {/* Tour types, markets, meal basis need code + optional name */}
-                  {[
+                  {activeSubTab === "hotels" ? (
+                    <>
+                      <div>
+                        <label className="block mb-1.5 text-xs font-bold text-navy">
+                          Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          placeholder="e.g. Hotel Grand, Sunset Resort"
+                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                        />
+                      </div>
+                      <div>
+                        <label className="block mb-1.5 text-xs font-bold text-navy">
+                          Email (Optional)
+                        </label>
+                        <input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="e.g. reservations@hotel.com"
+                          className="w-full rounded-app border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-navy outline-none focus:border-navy"
+                        />
+                      </div>
+                    </>
+                  ) : [
                     "tour-types",
                     "markets",
                     "meal-basis",
@@ -994,7 +1157,12 @@ export function SettingsScreen({
                 <table className="w-full border-collapse text-left text-sm text-navy">
                   <thead>
                     <tr className="bg-cloud border-b border-line text-xs font-bold uppercase tracking-wider text-steel">
-                      {[
+                      {activeSubTab === "hotels" ? (
+                        <>
+                          <th className="px-4 py-2.5">Name</th>
+                          <th className="px-4 py-2.5">Email Address</th>
+                        </>
+                      ) : [
                         "tour-types",
                         "markets",
                         "meal-basis",
@@ -1011,6 +1179,52 @@ export function SettingsScreen({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
+                    {/* Rendering Hotels */}
+                    {activeSubTab === "hotels" &&
+                      (hotels.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={3}
+                            className="px-4 py-8 text-center text-steel italic"
+                          >
+                            No hotels seeded in database.
+                          </td>
+                        </tr>
+                      ) : (
+                        hotels.map((item) => (
+                          <tr
+                            key={item.id}
+                            className={`reference-row-transition hover:bg-cloud/40 ${
+                              deletingIds.includes(item.id)
+                                ? "reference-row-exit"
+                                : ""
+                            }`}
+                          >
+                            <td className="px-4 py-3 font-semibold">{item.name}</td>
+                            <td className="px-4 py-3 text-steel">
+                              {item.email || <span className="text-slate-300 italic">No Email Configured</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                aria-label={`Delete hotel ${item.name}`}
+                                title={`Delete hotel ${item.name}`}
+                                onClick={() =>
+                                  triggerDelete(
+                                    "hotels",
+                                    item.id,
+                                    item.name,
+                                  )
+                                }
+                                className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ))}
+
                     {/* Rendering Tour Types */}
                     {activeSubTab === "tour-types" &&
                       (tourTypes.length === 0 ? (
@@ -1039,6 +1253,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete tour type ${item.code}`}
+                                title={`Delete tour type ${item.code}`}
                                 onClick={() =>
                                   triggerDelete(
                                     "tour-types",
@@ -1083,6 +1299,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete market ${item.code}`}
+                                title={`Delete market ${item.code}`}
                                 onClick={() =>
                                   triggerDelete("markets", item.id, item.code)
                                 }
@@ -1122,6 +1340,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete room category ${item.name}`}
+                                title={`Delete room category ${item.name}`}
                                 onClick={() =>
                                   triggerDelete(
                                     "room-categories",
@@ -1165,6 +1385,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete customer ${item.name}`}
+                                title={`Delete customer ${item.name}`}
                                 onClick={() =>
                                   triggerDelete("customers", item.id, item.name)
                                 }
@@ -1205,6 +1427,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete meal basis ${item.code}`}
+                                title={`Delete meal basis ${item.code}`}
                                 onClick={() =>
                                   triggerDelete(
                                     "meal-basis",
@@ -1249,6 +1473,8 @@ export function SettingsScreen({
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
+                                aria-label={`Delete currency ${item.code}`}
+                                title={`Delete currency ${item.code}`}
                                 onClick={() =>
                                   triggerDelete(
                                     "currencies",
@@ -1336,7 +1562,16 @@ export function SettingsScreen({
                                   : ""
                               }`}
                             >
-                              {hasCode ? (
+                              {activeSubTab === "hotels" ? (
+                                <>
+                                  <td className="px-4 py-3 font-semibold text-steel/70">
+                                    {name}
+                                  </td>
+                                  <td className="px-4 py-3 text-steel/70">
+                                    {(item.email as string) || <span className="text-slate-300/60 italic">No Email</span>}
+                                  </td>
+                                </>
+                              ) : hasCode ? (
                                 <>
                                   <td className="px-4 py-3 font-bold text-steel/70">
                                     {code}

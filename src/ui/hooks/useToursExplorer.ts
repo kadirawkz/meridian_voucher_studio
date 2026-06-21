@@ -28,6 +28,18 @@ export function useToursExplorer({
     });
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !window.meridian?.onToursFolderChanged) return;
+
+    const unsubscribe = window.meridian.onToursFolderChanged(() => {
+      void refreshToursFolderTree();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated]);
+
   async function refreshToursFolderTree() {
     if (!window.meridian?.getToursFolderTree) return;
 
@@ -39,7 +51,10 @@ export function useToursExplorer({
     } catch {
       setToursFolderExists(false);
       setToursFolderTree([]);
-      addNotice("Tours root folder not found or inaccessible", "error");
+      addNotice(
+        "The selected Tours root folder was not found or is inaccessible. Please verify the folder exists.",
+        "error",
+      );
     } finally {
       setIsLoadingTree(false);
     }
@@ -48,7 +63,7 @@ export function useToursExplorer({
   async function handleSelectToursFolder() {
     if (!window.meridian?.selectToursFolder) {
       addNotice(
-        "Tours folder selection is temporarily unavailable; please restart the application.",
+        "Tours folder selection is temporarily unavailable. Please restart the application.",
         "error",
       );
       return;
@@ -59,11 +74,11 @@ export function useToursExplorer({
       if (result) {
         setToursFolderPath(result.path);
         setToursFolderExists(true);
-        addNotice(`Tours folder set: ${result.path}`);
+        addNotice(`Tours folder path successfully updated to: ${result.path}`, "success");
         await refreshToursFolderTree();
       }
     } catch {
-      addNotice("Unable to select Tours folder", "error");
+      addNotice("Unable to select the Tours folder. Please check if the directory exists and try again.", "error");
     }
   }
 
@@ -73,20 +88,20 @@ export function useToursExplorer({
     setIsMigrating(true);
     try {
       const result = await window.meridian.migrateVouchersToTours();
-      if (result.moved > 0) {
-        addNotice(`Migrated ${result.moved} voucher(s)`);
-      } else {
-        addNotice("No vouchers to migrate");
+      if (result.moved > 0 && result.failed === 0) {
+        addNotice(`Successfully migrated ${result.moved} voucher(s) to the Tours folder structure.`, "success");
+      } else if (result.moved === 0 && result.failed === 0) {
+        addNotice("There are no new vouchers to migrate to the Tours folder structure.", "info");
       }
-      if (result.errors.length > 0) {
+      if (result.failed > 0) {
         addNotice(
-          `Migration: ${result.moved} moved, ${result.failed} failed`,
+          `Voucher migration completed with errors: ${result.moved} migrated successfully, ${result.failed} failed.`,
           "error",
         );
       }
       await refreshToursFolderTree();
     } catch {
-      addNotice("Migration failed", "error");
+      addNotice("Failed to complete voucher migration. Please verify folder permissions and try again.", "error");
     } finally {
       setIsMigrating(false);
     }

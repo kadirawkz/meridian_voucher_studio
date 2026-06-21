@@ -804,7 +804,7 @@ export function HotelRateMasterScreen({
       setSaveNotice((prev) => (prev === "Cleared" ? "" : prev));
     }, 2000);
     if (onClear) onClear();
-    if (addNotice) addNotice("Rate master form cleared", "info");
+    if (addNotice) addNotice("Rate sheet form cleared and reset to defaults.", "info");
   }
 
   function sectionStatus(sectionName: string, isEmpty: boolean): SectionStatus {
@@ -1096,40 +1096,25 @@ export function HotelRateMasterScreen({
 
   return (
     <div className="mx-auto max-w-[1400px] p-4 md:p-8">
-      {/* Page header */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-line/65 pb-5">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-            Operations / Data Management
-          </p>
-          <h2 className="mt-1 font-display text-3xl font-bold text-navy">
-            Rate Master
-          </h2>
-          <p className="mt-2 text-sm text-steel">
-            Create or update hotel contract rates, room categories, markets, and
-            seasonal surcharges in the rate master.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {onManageRates && (
-            <Button
-              variant="secondary"
-              onClick={onManageRates}
-              className="h-10 px-4 whitespace-nowrap shrink-0"
-            >
-              Manage Rates
-            </Button>
-          )}
-          {onBack && (
-            <Button
-              variant="secondary"
-              onClick={onBack}
-              className="h-10 px-4 whitespace-nowrap shrink-0"
-            >
-              Back to Entry
-            </Button>
-          )}
-        </div>
+      <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+        {onManageRates && (
+          <Button
+            variant="secondary"
+            onClick={onManageRates}
+            className="h-10 px-4 whitespace-nowrap shrink-0"
+          >
+            Manage Rates
+          </Button>
+        )}
+        {onBack && (
+          <Button
+            variant="secondary"
+            onClick={onBack}
+            className="h-10 px-4 whitespace-nowrap shrink-0"
+          >
+            Back to Entry
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">

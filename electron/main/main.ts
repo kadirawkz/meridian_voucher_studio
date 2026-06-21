@@ -38,7 +38,8 @@ import {
   migrateVouchersToTours,
 } from "./lib/toursFolder.js";
 import { getAllSettings, updateSettings } from "./config.js";
-import { validateTemplate } from "./lib/documentGenerator.js";
+import { validateTemplate, buildTemplateData } from "./lib/documentGenerator.js";
+import { renderHtmlTemplate } from "./lib/pdfGenerator.js";
 import {
   getVoucherTemplate,
   upsertVoucherTemplate,
@@ -49,6 +50,48 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let serverUrl = "";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+let toursFolderWatcher: fs.FSWatcher | null = null;
+let currentWatchedFolder: string | null = null;
+
+function setupToursFolderWatcher(): void {
+  const folderPath = getToursFolder();
+
+  if (currentWatchedFolder === folderPath) {
+    return;
+  }
+
+  if (toursFolderWatcher) {
+    toursFolderWatcher.close();
+    toursFolderWatcher = null;
+  }
+
+  currentWatchedFolder = folderPath;
+  if (!folderPath || !fs.existsSync(folderPath)) {
+    return;
+  }
+
+  try {
+    let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+    toursFolderWatcher = fs.watch(
+      folderPath,
+      { recursive: true },
+      () => {
+        if (debounceTimeout) {
+          globalThis.clearTimeout(debounceTimeout);
+        }
+        debounceTimeout = setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("tours-folder:changed");
+          }
+        }, 300);
+      }
+    );
+  } catch (err) {
+    console.error("[watcher] Failed to watch tours folder:", err);
+  }
+}
+
 
 type PublicRuntimeConfig = {
   supabaseUrl?: string;
@@ -162,6 +205,7 @@ async function createWindow(): Promise<void> {
   } else {
     await mainWindow.loadFile(path.join(__dirname, "../../dist/index.html"));
   }
+  setupToursFolderWatcher();
 }
 
 app.whenReady().then(async () => {
@@ -231,6 +275,22 @@ app.whenReady().then(async () => {
 
       return response.json();
     },
+  );
+
+  ipcMain.handle(
+    "voucher:render-html",
+    async (_event, voucher: VoucherPayload) => {
+      const settings = getAllSettings();
+      if (!settings.activeTemplateName) {
+        return "";
+      }
+      const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+      if (!dbTemplate || !dbTemplate.html_data) {
+        return "";
+      }
+      const data = buildTemplateData(voucher);
+      return renderHtmlTemplate(dbTemplate.html_data, data);
+    }
   );
 
   ipcMain.handle("voucher-documents:list", async () => {
@@ -322,6 +382,52 @@ app.whenReady().then(async () => {
     },
   );
 
+  ipcMain.handle(
+    "voucher:open-email-client",
+    async (_event, payload: { voucherId: string; pdfPath: string }) => {
+      const response = await fetch(`${serverUrl}/api/vouchers/${payload.voucherId}`);
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      const voucher = await response.json();
+      const hotelEmail = voucher.hotelEmail || "";
+      const subject = encodeURIComponent(`Voucher: ${voucher.requisitionNo || voucher.tourNo || ""} - ${voucher.tourName || ""}`);
+      const body = encodeURIComponent(
+        `Dear ${voucher.hotelName || "Reservations Team"},\n\n` +
+        `Please find the attached voucher details for Requisition: ${voucher.requisitionNo || "N/A"}.\n\n` +
+        `Tour Number: ${voucher.tourNo || "N/A"}\n` +
+        `Tour Name: ${voucher.tourName || "N/A"}\n\n` +
+        `Please confirm receipt and booking details.\n\n` +
+        `Best regards,\n` +
+        `${voucher.employeeName || "Meridian Operations"}\n` +
+        `${voucher.employeeEmail || ""}`
+      );
+      
+      const mailtoUrl = `mailto:${hotelEmail}?subject=${subject}&body=${body}`;
+      
+      // Open the system's default email client
+      await shell.openExternal(mailtoUrl);
+      
+      // Reveal the generated PDF in the system file explorer
+      if (payload.pdfPath && fs.existsSync(payload.pdfPath)) {
+        shell.showItemInFolder(payload.pdfPath);
+      }
+      
+      // Update voucher status to "sent" using the server API
+      const statusResponse = await fetch(
+        `${serverUrl}/api/vouchers/${payload.voucherId}/status`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ status: "sent" }),
+        }
+      );
+      if (!statusResponse.ok) {
+        console.error("Failed to automatically update voucher status to sent:", await statusResponse.text());
+      }
+    }
+  );
+
   ipcMain.handle("workspace:search", async (_event, query: string) => {
     const searchParams = new URLSearchParams({ q: query });
     const response = await fetch(
@@ -349,6 +455,24 @@ app.whenReady().then(async () => {
 
   ipcMain.handle("reference:hotels", async () => {
     const response = await fetch(`${serverUrl}/api/reference/hotels`);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:save-hotel", async (_event, ref) => {
+    const response = await fetch(`${serverUrl}/api/reference/hotels`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(ref),
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  });
+
+  ipcMain.handle("reference:delete-hotel", async (_event, id) => {
+    const response = await fetch(`${serverUrl}/api/reference/hotels/${id}`, {
+      method: "DELETE",
+    });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   });
@@ -615,7 +739,11 @@ app.whenReady().then(async () => {
   /* ---------- Tours Folder IPC handlers ---------- */
 
   ipcMain.handle("tours-folder:select", async () => {
-    return selectToursFolder(mainWindow);
+    const result = await selectToursFolder(mainWindow);
+    if (result) {
+      setupToursFolderWatcher();
+    }
+    return result;
   });
 
   ipcMain.handle("tours-folder:get", async () => {
@@ -643,7 +771,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     "settings:set",
     async (_event, settings: Record<string, unknown>) => {
-      return updateSettings(settings);
+      const result = updateSettings(settings);
+      if (settings.toursFolderRoot !== undefined) {
+        setupToursFolderWatcher();
+      }
+      return result;
     },
   );
 

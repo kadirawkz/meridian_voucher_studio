@@ -55,7 +55,7 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
           }
         })
         .catch((err) => console.error("Error auto-syncing profile:", err));
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [accountProfile]);
@@ -66,7 +66,7 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
     if (onAuthLoaded) {
       onAuthLoaded(state.profile);
     }
-    addNotice("Logged in");
+    addNotice("Successfully signed in to your account.", "success");
   }
 
   async function handleSignOut(onSignOutDone?: () => void) {

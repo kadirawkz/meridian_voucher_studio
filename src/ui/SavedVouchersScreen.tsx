@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Eye,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { Select } from "./ui-kit/Inputs";
 import type {
@@ -49,6 +50,11 @@ export function SavedVouchersScreen({
   openVoucherFromSearch,
 }: SavedVouchersScreenProps) {
   const [localSearch, setLocalSearch] = useState(voucherFilters.query || "");
+  const [statusConfirmVoucher, setStatusConfirmVoucher] = useState<{
+    id: string;
+    currentStatus: VoucherStatus;
+    nextStatus: VoucherStatus;
+  } | null>(null);
 
   // Calculate high-productivity metrics in real-time
   const totalCount = voucherRegister.length;
@@ -102,35 +108,17 @@ export function SavedVouchersScreen({
 
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-              Operations & Data Studio
-            </p>
-            <h2 className="mt-1 font-display text-3xl font-bold text-navy tracking-tight">
-              Saved Vouchers
-            </h2>
-            <p className="mt-1 text-sm text-steel">
-              Manage, track, and supervise all active bookings and historic
-              revisions.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void refreshVoucherRegister(voucherFilters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-line rounded-app bg-surface text-navy hover:bg-cloud transition-all active:scale-95 shadow-sm"
-          >
-            <RefreshCw
-              size={14}
-              className={isLoadingRegister ? "animate-spin" : ""}
-            />
-            Reload List
-          </button>
-        </div>
+      <div className="flex items-center justify-end gap-3">
+        <button
+          onClick={() => void refreshVoucherRegister(voucherFilters)}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-line rounded-app bg-surface text-navy hover:bg-cloud transition-all active:scale-95 shadow-sm"
+        >
+          <RefreshCw
+            size={14}
+            className={isLoadingRegister ? "animate-spin" : ""}
+          />
+          Reload List
+        </button>
       </div>
 
       {/* Metric Banners (KPI cards) */}
@@ -300,10 +288,15 @@ export function SavedVouchersScreen({
           {/* Advanced filter parameters */}
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-line/40">
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-steel block">
+              <label
+                htmlFor="voucher-status-filter"
+                className="text-xs font-bold uppercase tracking-wider text-steel block"
+              >
                 Status Classification
-              </span>
+              </label>
               <Select
+                id="voucher-status-filter"
+                aria-label="Status Classification"
                 className="w-full bg-cloud/20"
                 value={voucherFilters.status || "all"}
                 onChange={(event) => {
@@ -325,12 +318,17 @@ export function SavedVouchersScreen({
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-steel block">
+              <label
+                htmlFor="voucher-date-from-filter"
+                className="text-xs font-bold uppercase tracking-wider text-steel block"
+              >
                 Date Start
-              </span>
+              </label>
               <div className="relative">
                 <input
+                  id="voucher-date-from-filter"
                   type="date"
+                  aria-label="Date start"
                   className="w-full rounded-app border border-line px-3 py-2 text-sm bg-cloud/20"
                   value={voucherFilters.dateFrom || ""}
                   onChange={(event) => {
@@ -346,12 +344,17 @@ export function SavedVouchersScreen({
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-steel block">
+              <label
+                htmlFor="voucher-date-to-filter"
+                className="text-xs font-bold uppercase tracking-wider text-steel block"
+              >
                 Date End
-              </span>
+              </label>
               <div className="relative">
                 <input
+                  id="voucher-date-to-filter"
                   type="date"
+                  aria-label="Date end"
                   className="w-full rounded-app border border-line px-3 py-2 text-sm bg-cloud/20"
                   value={voucherFilters.dateTo || ""}
                   onChange={(event) => {
@@ -544,10 +547,12 @@ export function SavedVouchersScreen({
                               disabled={statusUpdatingId === voucher.id}
                               value={voucher.status}
                               onChange={(event) => {
-                                void handleVoucherStatusUpdate(
-                                  voucher.id,
-                                  event.target.value as VoucherStatus,
-                                );
+                                const nextStatus = event.target.value as VoucherStatus;
+                                setStatusConfirmVoucher({
+                                  id: voucher.id,
+                                  currentStatus: voucher.status,
+                                  nextStatus,
+                                });
                               }}
                               className="app-table-control text-xs bg-surface border border-line rounded-app focus:ring-1 focus:ring-navy max-w-[110px] py-0.5 px-2.5 font-semibold text-navy"
                             >
@@ -581,6 +586,47 @@ export function SavedVouchersScreen({
           </div>
         )}
       </div>
+      {statusConfirmVoucher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-surface rounded-app border border-line p-6 shadow-xl text-left">
+            <div className="flex gap-4 items-start">
+              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-full shrink-0">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display font-bold text-lg text-navy">
+                  Confirm Status Change
+                </h3>
+                <p className="mt-2 text-sm text-steel leading-relaxed">
+                  Are you sure you want to change the status of this voucher from{" "}
+                  <strong className="capitalize text-amber-600">"{statusConfirmVoucher.currentStatus}"</strong> to{" "}
+                  <strong className="capitalize text-indigo-600">"{statusConfirmVoucher.nextStatus}"</strong>?
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setStatusConfirmVoucher(null)}
+                className="app-button-secondary px-5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const { id, nextStatus } = statusConfirmVoucher;
+                  setStatusConfirmVoucher(null);
+                  await handleVoucherStatusUpdate(id, nextStatus);
+                }}
+                className="app-button-primary bg-navy hover:bg-navy-light text-white px-5"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

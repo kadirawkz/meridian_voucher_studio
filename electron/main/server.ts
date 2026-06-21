@@ -37,6 +37,8 @@ import {
   listInactiveHotelRates,
   restoreHotelRate,
   listHotels,
+  saveHotel,
+  deleteHotel,
   listMarkets,
   listRoomCategories,
   listCustomers,
@@ -200,6 +202,35 @@ export async function createVoucherServer(): Promise<{
     }
   });
 
+  app.post("/api/vouchers/render-html", async (request, response) => {
+    try {
+      const { renderHtmlTemplate } = await import("./lib/pdfGenerator.js");
+      const { buildTemplateData } = await import("./lib/documentGenerator.js");
+      const { getVoucherTemplate } = await import("./lib/supabase.js");
+      const { getAllSettings } = await import("./config.js");
+      const voucher = request.body as VoucherPayload;
+      const settings = getAllSettings();
+      if (!settings.activeTemplateName) {
+        response.send("");
+        return;
+      }
+      const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+      if (!dbTemplate || !dbTemplate.html_data) {
+        response.send("");
+        return;
+      }
+      const data = buildTemplateData(voucher);
+      const rendered = renderHtmlTemplate(dbTemplate.html_data, data);
+      response.send(rendered);
+    } catch (error) {
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to render voucher HTML",
+        );
+    }
+  });
+
   app.get("/api/voucher-documents", async (_request, response) => {
     try {
       const result = await listVoucherDocuments();
@@ -317,6 +348,30 @@ export async function createVoucherServer(): Promise<{
       response
         .status(500)
         .send(error instanceof Error ? error.message : "Unable to load hotels");
+    }
+  });
+
+  app.post("/api/reference/hotels", async (request, response) => {
+    try {
+      await saveHotel(request.body);
+      response.json({ success: true });
+    } catch (error) {
+      response
+        .status(500)
+        .send(error instanceof Error ? error.message : "Unable to save hotel");
+    }
+  });
+
+  app.delete("/api/reference/hotels/:id", async (request, response) => {
+    try {
+      await deleteHotel(request.params.id);
+      response.json({ success: true });
+    } catch (error) {
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to delete hotel",
+        );
     }
   });
 

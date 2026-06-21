@@ -175,8 +175,7 @@ export function DashboardScreen({
     void load();
   }, []);
 
-  const { allVouchers, contracts, hotelsWithContracts, loading, loadedAt } =
-    data;
+  const { allVouchers, contracts, hotelsWithContracts, loading } = data;
 
   // Derived stats
   const todayStr = today();
@@ -230,44 +229,27 @@ export function DashboardScreen({
 
   return (
     <div className="mx-auto max-w-[1500px] p-4 md:p-8 space-y-8 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-            Administrative Dashboard
-          </p>
-          <h2 className="mt-1 font-display text-3xl font-black text-navy tracking-tight">
-            Meridian Control Center
-          </h2>
-          <p className="mt-1.5 text-sm text-steel flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            {loadedAt
-              ? `Operational metrics updated today at ${loadedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-              : "Synchronizing system statistics…"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-line rounded-app bg-surface text-navy hover:bg-cloud transition-all active:scale-95 shadow-sm disabled:opacity-50"
-          >
-            <RefreshCw
-              size={15}
-              className={loading ? "animate-spin text-navy" : ""}
-            />
-            Refresh
-          </button>
-          <button
-            type="button"
-            onClick={onNewVoucher}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-app bg-navy hover:bg-navy-light text-white transition-all active:scale-95 shadow-md shadow-navy/10"
-          >
-            <Plus size={16} />
-            New Voucher
-          </button>
-        </div>
+      <div className="flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-line rounded-app bg-surface text-navy hover:bg-cloud transition-all active:scale-95 shadow-sm disabled:opacity-50"
+        >
+          <RefreshCw
+            size={15}
+            className={loading ? "animate-spin text-navy" : ""}
+          />
+          Refresh
+        </button>
+        <button
+          type="button"
+          onClick={onNewVoucher}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-app bg-navy hover:bg-navy-light text-white transition-all active:scale-95 shadow-md shadow-navy/10"
+        >
+          <Plus size={16} />
+          New Voucher
+        </button>
       </div>
 
       {/* ── Stat cards ── */}
@@ -473,13 +455,11 @@ export function DashboardScreen({
             </div>
             {expiringContracts.length === 0 ? (
               <div
-                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30"
-                style={{ color: "var(--color-success)" }}
+                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700"
               >
                 <ShieldCheck
                   size={18}
-                  className="shrink-0 animate-bounce"
-                  style={{ color: "var(--color-success)" }}
+                  className="shrink-0 animate-bounce text-emerald-600"
                 />
                 <span>All rate contracts are valid for the next 30+ days.</span>
               </div>
@@ -536,11 +516,16 @@ export function DashboardScreen({
                 <span>Coverage Ratio</span>
                 <span>{coveragePercentage}%</span>
               </div>
-              <div className="h-2 w-full bg-cloud rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500"
-                  style={{ width: `${coveragePercentage}%` }}
-                />
+              <div
+                className="grid h-2 w-full grid-flow-col auto-cols-fr gap-0.5 rounded-full overflow-hidden bg-cloud"
+                aria-label={`Coverage progress ${coveragePercentage}%`}
+              >
+                {Array.from({ length: 20 }, (_, index) => (
+                  <span
+                    key={index}
+                    className={`rounded-full transition-colors duration-300 ${index < Math.round(coveragePercentage / 5) ? "bg-gradient-to-r from-blue-600 to-indigo-600" : "bg-cloud"}`}
+                  />
+                ))}
               </div>
               <p className="mt-2.5 text-[11px] text-steel font-semibold uppercase tracking-wider">
                 {totalReferenceHotels - coveredCount} operational hotels missing
@@ -583,13 +568,11 @@ export function DashboardScreen({
               </div>
             ) : (
               <div
-                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30"
-                style={{ color: "var(--color-success)" }}
+                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700"
               >
                 <CheckCircle2
                   size={16}
-                  className="shrink-0"
-                  style={{ color: "var(--color-success)" }}
+                  className="shrink-0 text-emerald-600"
                 />
                 <span>Zero Database Gaps! Perfect Coverage!</span>
               </div>

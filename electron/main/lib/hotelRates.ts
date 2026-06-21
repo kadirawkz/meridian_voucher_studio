@@ -121,11 +121,35 @@ export async function listHotels(): Promise<HotelRef[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("hotels")
-    .select("id,name,is_active")
+    .select("id,name,email,is_active")
     .eq("is_active", true)
     .order("name");
   if (error) throw new Error(`Unable to load hotels: ${error.message}`);
   return (data ?? []) as HotelRef[];
+}
+
+export async function saveHotel(ref: {
+  id?: string;
+  name: string;
+  email?: string;
+  is_active?: boolean;
+}): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase
+    .from("hotels")
+    .upsert(ref, { onConflict: "name" });
+  if (error) throw new Error(`Unable to save hotel: ${error.message}`);
+}
+
+export async function deleteHotel(id: string): Promise<void> {
+  const supabase = await getActiveSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase
+    .from("hotels")
+    .update({ is_active: false })
+    .eq("id", id);
+  if (error) throw new Error(`Unable to delete hotel: ${error.message}`);
 }
 
 export async function listMarkets(): Promise<MarketRef[]> {
@@ -334,6 +358,7 @@ export async function deleteCurrency(id: string): Promise<void> {
 /* ---------- Generic Soft-Delete Restore Helpers ---------- */
 
 const REFERENCE_TABLES = [
+  "hotels",
   "markets",
   "room_categories",
   "customers",

@@ -90,6 +90,11 @@ const api: AppApi = {
     ipcRenderer.on("menu:account", listener);
     return () => ipcRenderer.removeListener("menu:account", listener);
   },
+  onToursFolderChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("tours-folder:changed", listener);
+    return () => ipcRenderer.removeListener("tours-folder:changed", listener);
+  },
   saveHotelRates: (record: HotelRateRecord) =>
     ipcRenderer.invoke("rate-master:save", record),
   deleteHotelRate: (hotelRateId: string) =>
@@ -104,6 +109,15 @@ const api: AppApi = {
     ipcRenderer.invoke("rate-master:get", hotelRateId),
   listHotelsFromRates: () => ipcRenderer.invoke("rate-master:hotels"),
   listHotels: () => ipcRenderer.invoke("reference:hotels"),
+  saveHotel: (ref: {
+    id?: string;
+    name: string;
+    email?: string;
+    is_active?: boolean;
+  }) => ipcRenderer.invoke("reference:save-hotel", ref),
+  deleteHotel: (id: string) => ipcRenderer.invoke("reference:delete-hotel", id),
+  openEmailClient: (options: { voucherId: string; pdfPath: string }) =>
+    ipcRenderer.invoke("voucher:open-email-client", options),
   listMarkets: () => ipcRenderer.invoke("reference:markets"),
   listRoomCategories: () => ipcRenderer.invoke("reference:room-categories"),
   listCustomers: () => ipcRenderer.invoke("reference:customers"),
@@ -168,6 +182,8 @@ const api: AppApi = {
     ipcRenderer.invoke("template-db:download", { name }),
   deleteDatabaseTemplate: (name: string) =>
     ipcRenderer.invoke("template-db:delete", { name }),
+  renderVoucherHtml: (voucher: VoucherPayload) =>
+    ipcRenderer.invoke("voucher:render-html", voucher),
 };
 
 contextBridge.exposeInMainWorld("meridian", api);

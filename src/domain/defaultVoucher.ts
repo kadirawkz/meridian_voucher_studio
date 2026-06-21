@@ -1,6 +1,7 @@
 import type { VoucherFormValues } from "./voucherSchema";
 
 export const defaultVoucher: VoucherFormValues = {
+  status: "draft",
   voucherType: "" as unknown as VoucherFormValues["voucherType"],
   tourType: "" as unknown as VoucherFormValues["tourType"],
   pageNumber: "1",

@@ -12,6 +12,7 @@ import {
   Trash2,
   FolderOpen,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import logo from "../assets/logo.png";
 
@@ -31,6 +32,7 @@ interface MenuBarProps {
   onNavigate: (view: string) => void;
   onSignOut: () => void;
   onReportIssue: () => void;
+  isLoading?: boolean;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -56,6 +58,7 @@ export function MenuBar({
   onNavigate,
   onSignOut,
   onReportIssue,
+  isLoading,
 }: MenuBarProps) {
   const searchInputRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -281,6 +284,13 @@ export function MenuBar({
           ))}
         </div>
       </div>
+
+      {/* Loading / Buffering Icon */}
+      {isLoading && (
+        <div className="flex items-center justify-center ml-2 text-navy animate-spin no-drag" title="Loading state...">
+          <Loader2 size={16} />
+        </div>
+      )}
 
       {/* Center: Search */}
       <div className="flex-1 min-w-0 px-2 sm:px-4 max-w-xs no-drag transition-all">

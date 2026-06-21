@@ -5,16 +5,17 @@ import type { AccountProfile } from "../../electron/shared/types";
 interface ProfileScreenProps {
   accountProfile: AccountProfile | null;
   onProfileUpdated: (profile: AccountProfile) => void;
+  addNotice?: (message: string, type?: "info" | "success" | "error") => void;
 }
 
 export function ProfileScreen({
   accountProfile,
   onProfileUpdated,
+  addNotice,
 }: ProfileScreenProps) {
   const [profile, setProfile] = useState<AccountProfile | null>(accountProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState("");
   const [formData, setFormData] = useState({
     employeeName: "",
     employeeEmail: "",
@@ -40,11 +41,14 @@ export function ProfileScreen({
       setProfile(result);
       onProfileUpdated(result);
       setIsEditing(false);
-      setFeedback("Profile updated successfully");
-      setTimeout(() => setFeedback(""), 3000);
+      if (addNotice) {
+        addNotice("Profile information updated successfully.", "success");
+      }
     } catch (error) {
       console.error("Failed to update profile:", error);
-      setFeedback("Failed to update profile");
+      if (addNotice) {
+        addNotice("Failed to update profile information. Please verify the input and try again.", "error");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -70,30 +74,6 @@ export function ProfileScreen({
 
   return (
     <div className="mx-auto max-w-2xl p-4 md:p-8">
-      <div className="mb-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-          User / Account
-        </p>
-        <h2 className="mt-1 font-display text-3xl font-bold text-navy">
-          Profile
-        </h2>
-        <p className="mt-2 text-sm text-steel">
-          Manage your account information and settings.
-        </p>
-      </div>
-
-      {feedback && (
-        <div
-          className={`mb-6 rounded-app border px-4 py-3 text-sm font-semibold ${
-            feedback.includes("success")
-              ? "border-green-500/20 bg-green-500/10 text-green-500"
-              : "border-red-500/20 bg-red-500/10 text-red-500"
-          }`}
-        >
-          {feedback}
-        </div>
-      )}
-
       <div className="space-y-6">
         {/* Profile Information */}
         <section className="app-panel app-panel-body-lg">

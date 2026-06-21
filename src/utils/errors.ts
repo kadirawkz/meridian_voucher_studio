@@ -18,6 +18,23 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
 
   // List of recognized safe user-facing/validation errors
   if (
+    normalizedMessage.includes("already been generated") ||
+    normalizedMessage.includes("already exists")
+  ) {
+    return message;
+  }
+
+  if (
+    normalizedMessage.includes("ebusy") ||
+    normalizedMessage.includes("resource busy or locked") ||
+    normalizedMessage.includes("lock") ||
+    ((normalizedMessage.includes("permission denied") || normalizedMessage.includes("eperm")) &&
+      (normalizedMessage.includes(".docx") || normalizedMessage.includes(".pdf")))
+  ) {
+    return "The document is currently open or locked by another application (such as Microsoft Word or a PDF viewer). Please close it and try again.";
+  }
+
+  if (
     normalizedMessage.includes("password") &&
     (normalizedMessage.includes("pwned") ||
       normalizedMessage.includes("haveibeenpwned") ||

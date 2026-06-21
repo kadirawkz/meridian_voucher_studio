@@ -18,6 +18,7 @@ import {
   FileDown,
   Hotel,
   ReceiptText,
+  Mail,
 } from "lucide-react";
 import { VoucherTable } from "./VoucherTable";
 
@@ -37,6 +38,7 @@ interface VoucherEntryScreenProps {
     values: VoucherFormValues,
     customOutputDir?: string,
   ) => void;
+  handleSendEmail: (voucherId: string) => void;
   docxDropdownOpen: boolean;
   setDocxDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
   pdfDropdownOpen: boolean;
@@ -131,6 +133,7 @@ export function VoucherEntryScreen({
   handleSave,
   handleGenerateDocx,
   handleGeneratePdf,
+  handleSendEmail,
   docxDropdownOpen,
   setDocxDropdownOpen,
   pdfDropdownOpen,
@@ -158,6 +161,7 @@ export function VoucherEntryScreen({
   startDragPreview,
 }: VoucherEntryScreenProps) {
   const voucherType = form.watch("voucherType") || "reservation";
+  const voucherStatus = form.watch("status");
   const [shakeTrigger, setShakeTrigger] = React.useState(0);
 
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -290,20 +294,7 @@ export function VoucherEntryScreen({
       className="mx-auto max-w-[1400px] p-8"
       onSubmit={form.handleSubmit(handleSave)}
     >
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-steel">
-            Operations / Finance
-          </p>
-          <h2 className="mt-1 font-display text-3xl font-bold text-navy">
-            Voucher Entry
-          </h2>
-          <p className="mt-2 text-sm text-steel">
-            Create reservation, amendment, and PPTP documents from one
-            controlled template.
-          </p>
-        </div>
-        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+      <div className="mb-8 flex max-w-full flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             disabled={actionState !== "idle"}
@@ -472,8 +463,35 @@ export function VoucherEntryScreen({
               </>
             )}
           </div>
+
+          {/* Email dispatch button */}
+          {(voucherStatus === "generated" || voucherStatus === "sent") && (
+            <Button
+              type="button"
+              disabled={actionState !== "idle"}
+              onClick={() => {
+                const id = form.getValues("id");
+                if (id) {
+                  handleSendEmail(id);
+                }
+              }}
+              variant={voucherStatus === "sent" ? "secondary" : "primary"}
+              className={
+                voucherStatus === "sent"
+                  ? "h-10 shrink-0 whitespace-nowrap px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-600 shadow-panel transition-colors rounded-app"
+                  : "h-10 shrink-0 whitespace-nowrap px-4 font-bold"
+              }
+              title={
+                voucherStatus === "sent"
+                  ? "Voucher emailed. Click to resend."
+                  : "Email PDF voucher to hotel"
+              }
+            >
+              <Mail size={17} />{" "}
+              {voucherStatus === "sent" ? "Email Sent" : "Send Email"}
+            </Button>
+          )}
         </div>
-      </div>
 
       <div className="flex flex-col gap-6">
         {/* Top Section: Side-by-Side Configuration and Booking Info */}
@@ -679,6 +697,7 @@ export function VoucherEntryScreen({
                 <Select
                   className="w-full"
                   {...form.register("customerName")}
+                  value={form.watch("customerName") || ""}
                   onChange={(event) => {
                     form.setValue("customerName", event.target.value, {
                       shouldValidate: true,
@@ -877,6 +896,21 @@ export function VoucherEntryScreen({
           billingInstructions={form.watch("billingInstructions") || ""}
           employeeName={form.watch("employeeName") || ""}
           employeeEmail={form.watch("employeeEmail") || ""}
+          tourType={form.watch("tourType") || ""}
+          market={form.watch("market") || ""}
+          ratePeriod={form.watch("ratePeriod") || ""}
+          voucherTitle={form.watch("voucherTitle") || ""}
+          rateStructure={form.watch("rateStructure") || "detailed"}
+          manuallyEdited={form.watch("manuallyEdited") || false}
+          guideText={form.watch("guideText") || ""}
+          surchargeText={form.watch("surchargeText") || ""}
+          eventSupplementText={form.watch("eventSupplementText") || ""}
+          totalPax={lineItems.reduce((sum, li) => {
+            const adults = Number(li.singleRooms || 0) + Number(li.doubleRooms || 0) * 2 + Number(li.twinRooms || 0) * 2 + Number(li.tripleRooms || 0) * 3;
+            const children = Number(li.child2_5 || 0) + Number(li.child2_5Sharing || 0) + Number(li.child2_5Bed || 0) + Number(li.child2_5OwnRoom || 0) +
+                             Number(li.child6_11 || 0) + Number(li.child6_11Sharing || 0) + Number(li.child6_11Bed || 0) + Number(li.child6_11OwnRoom || 0);
+            return sum + adults + children;
+          }, 0)}
         />
       </div>
     </form>

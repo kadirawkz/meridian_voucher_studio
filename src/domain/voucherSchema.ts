@@ -46,6 +46,7 @@ export const voucherLineItemSchema = z
 
 export const voucherSchema = z.object({
   id: z.string().optional(),
+  status: z.enum(["draft", "generated", "sent"]).optional(),
   voucherType: z.enum(["reservation", "amendment", "pptp"], {
     errorMap: (issue, ctx) => {
       if (issue.code === "invalid_enum_value") {

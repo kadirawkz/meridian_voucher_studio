@@ -122,7 +122,7 @@ export function useVoucherRegister({
   ) {
     if (!window.meridian?.updateVoucherStatus) {
       addNotice(
-        "Voucher status update is unavailable; restart the application",
+        "Voucher status update is temporarily unavailable. Please restart the application and try again.",
         "error",
       );
       return;
@@ -134,7 +134,7 @@ export function useVoucherRegister({
         voucherId,
         status,
       );
-      addNotice(`Voucher marked as ${result.status}`);
+      addNotice(`Voucher status successfully updated to: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`, "success");
       await refreshVoucherRevisions(voucherId);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {
@@ -153,7 +153,7 @@ export function useVoucherRegister({
   ) {
     if (!window.meridian?.getVoucher) {
       addNotice(
-        "Voucher loading is unavailable; restart the application",
+        "Voucher loading is temporarily unavailable. Please restart the application and try again.",
         "error",
       );
       return;
@@ -168,7 +168,8 @@ export function useVoucherRegister({
         onOpenSuccess();
       }
       addNotice(
-        `Loaded voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)}`,
+        `Voucher ${voucher.requisitionNo || voucher.tourNo || voucher.id.slice(0, 8)} loaded successfully.`,
+        "success",
       );
     } catch (error) {
       addNotice(friendlyErrorMessage(error, "Unable to load voucher"), "error");

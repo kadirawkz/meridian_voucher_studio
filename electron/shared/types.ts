@@ -8,6 +8,7 @@ export type DocumentFormat = "docx" | "pdf";
 export interface HotelRef {
   id: string;
   name: string;
+  email?: string;
   is_active: boolean;
 }
 
@@ -73,6 +74,7 @@ export interface VoucherLineItem {
 
 export interface VoucherPayload {
   id?: string;
+  status?: VoucherStatus;
   voucherType: VoucherType;
   tourType: TourType;
   pageNumber: string;
@@ -80,6 +82,7 @@ export interface VoucherPayload {
   voucherTitle?: string;
   hotelId?: string;
   hotelName: string; // read-only on load, resolved from hotelId
+  hotelEmail?: string; // read-only on load, resolved from hotelId
   marketId?: string;
   market?: string; // read-only on load, resolved from marketId
   customerId?: string;
@@ -386,6 +389,7 @@ export interface AppApi {
   onMenuGenerateDocx: (callback: () => void) => () => void;
   onMenuSignOut: (callback: () => void) => () => void;
   onMenuAccount: (callback: (action: string) => void) => () => void;
+  onToursFolderChanged?: (callback: () => void) => () => void;
   saveHotelRates: (record: HotelRateRecord) => Promise<{ id: string }>;
   deleteHotelRate: (hotelRateId: string) => Promise<void>;
   listInactiveHotelRates: () => Promise<HotelRateRecord[]>;
@@ -395,6 +399,17 @@ export interface AppApi {
   getHotelRates: (hotelRateId: string) => Promise<HotelRateRecord>;
   listHotelsFromRates: () => Promise<string[]>;
   listHotels: () => Promise<HotelRef[]>;
+  saveHotel: (ref: {
+    id?: string;
+    name: string;
+    email?: string;
+    is_active?: boolean;
+  }) => Promise<void>;
+  deleteHotel: (id: string) => Promise<void>;
+  openEmailClient: (options: {
+    voucherId: string;
+    pdfPath: string;
+  }) => Promise<void>;
   listMarkets: () => Promise<MarketRef[]>;
   listRoomCategories: () => Promise<RoomCategoryRef[]>;
   listCustomers: () => Promise<CustomerRef[]>;
@@ -450,4 +465,5 @@ export interface AppApi {
   ) => Promise<void>;
   downloadDatabaseTemplate: (name: string) => Promise<boolean>;
   deleteDatabaseTemplate: (name: string) => Promise<void>;
+  renderVoucherHtml: (voucher: VoucherPayload) => Promise<string>;
 }

@@ -14,9 +14,10 @@ type Props = {
   onBack: () => void;
   onEdit: (hotelRateId: string) => void;
   onRatesChanged?: () => void;
+  addNotice?: (message: string, type?: "info" | "success" | "error") => void;
 };
 
-export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
+export function ManageRatesScreen({ onBack, onEdit, onRatesChanged, addNotice }: Props) {
   const [rates, setRates] = useState<HotelRateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,6 +72,10 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
   const handleDelete = async () => {
     if (!deleteId) return;
     const targetId = deleteId;
+    const rateRecord = rates.find((r) => r.id === targetId);
+    const nameAndContract = rateRecord
+      ? `${rateRecord.hotel_name} (${rateRecord.contract_name})`
+      : "";
     try {
       setDeleteId(null);
       setDeletingIds((prev) => [...prev, targetId]);
@@ -84,14 +89,29 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
       await loadRates();
       if (showArchived) await loadArchivedRates();
       if (onRatesChanged) onRatesChanged();
+      if (addNotice) {
+        addNotice(
+          `Rate contract ${nameAndContract || ""} successfully deactivated and archived.`,
+          "success",
+        );
+      }
     } catch (err) {
-      window.alert(friendlyErrorMessage(err, "Failed to delete rate"));
+      if (addNotice) {
+        addNotice(
+          friendlyErrorMessage(err, "Failed to deactivate rate contract"),
+          "error",
+        );
+      }
     } finally {
       setDeletingIds((prev) => prev.filter((id) => id !== targetId));
     }
   };
 
   const handleRestore = async (id: string) => {
+    const rateRecord = archivedRates.find((r) => r.id === id);
+    const nameAndContract = rateRecord
+      ? `${rateRecord.hotel_name} (${rateRecord.contract_name})`
+      : "";
     try {
       setRestoringIds((prev) => [...prev, id]);
 
@@ -104,8 +124,19 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged }: Props) {
       await loadRates();
       await loadArchivedRates();
       if (onRatesChanged) onRatesChanged();
+      if (addNotice) {
+        addNotice(
+          `Rate contract ${nameAndContract || ""} successfully restored and activated.`,
+          "success",
+        );
+      }
     } catch (err) {
-      window.alert(friendlyErrorMessage(err, "Failed to restore rate"));
+      if (addNotice) {
+        addNotice(
+          friendlyErrorMessage(err, "Failed to restore rate contract"),
+          "error",
+        );
+      }
     } finally {
       setRestoringIds((prev) => prev.filter((item) => item !== id));
     }

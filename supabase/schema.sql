@@ -25,6 +25,7 @@ CREATE INDEX IF NOT EXISTS employee_profiles_role_idx ON public.employee_profile
 CREATE TABLE IF NOT EXISTS public.hotels (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name       TEXT NOT NULL UNIQUE,
+    email      TEXT,
     is_active  BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

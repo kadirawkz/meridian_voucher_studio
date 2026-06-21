@@ -541,7 +541,7 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
 
   const { data: row, error } = await supabase
     .from("vouchers")
-    .select("*, hotels(name), markets(code), customers(name)")
+    .select("*, hotels(name, email), markets(code), customers(name)")
     .eq("id", voucherId)
     .single();
   if (error) throw new Error(`Unable to load voucher: ${error.message}`);
@@ -565,6 +565,7 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
 
   return {
     id: v.id as string,
+    status: v.status as VoucherStatus,
     voucherType: v.voucher_type as VoucherPayload["voucherType"],
     tourType: v.tour_type as VoucherPayload["tourType"],
     pageNumber: (v.page_number ?? "1") as string,
@@ -572,6 +573,8 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
     voucherTitle: (v.voucher_title ?? "") as string,
     hotelId: (v.hotel_id ?? undefined) as string | undefined,
     hotelName: ((v.hotels as Record<string, unknown> | null)?.name ??
+      "") as string,
+    hotelEmail: ((v.hotels as Record<string, unknown> | null)?.email ??
       "") as string,
     marketId: (v.market_id ?? undefined) as string | undefined,
     market: ((v.markets as Record<string, unknown> | null)?.code ??

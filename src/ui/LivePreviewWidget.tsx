@@ -1,27 +1,7 @@
 import React from "react";
 import { FileText, Minus, Maximize2 } from "lucide-react";
 import logo from "../assets/logo.png";
-
-interface LineItem {
-  requiredDate: string;
-  roomCategory: string;
-  basis: string;
-  singleRooms?: number;
-  doubleRooms?: number;
-  twinRooms?: number;
-  tripleRooms?: number;
-  child2_5?: number;
-  child2_5Sharing?: number;
-  child2_5Bed?: number;
-  child2_5OwnRoom?: number;
-  child6_11?: number;
-  child6_11Sharing?: number;
-  child6_11Bed?: number;
-  child6_11OwnRoom?: number;
-  guide?: number;
-  guideBasis?: string;
-  arrivingFor?: string;
-}
+import type { VoucherFormValues } from "../domain/voucherSchema";
 
 interface LivePreviewWidgetProps {
   previewMode: "collapsed" | "thumbnail" | "expanded";
@@ -34,19 +14,31 @@ interface LivePreviewWidgetProps {
   startDragPreview: (e: React.MouseEvent) => void;
   // Watched fields
   date: string;
-  voucherType: string;
+  voucherType: VoucherFormValues["voucherType"];
   hotelName: string;
   requisitionNo: string;
   tourNo: string;
   tourName: string;
   customerName: string;
-  lineItems: LineItem[];
+  lineItems: VoucherFormValues["lineItems"];
   confirmedBy: string;
   rateApplicableText: string;
   remarks: string;
   billingInstructions: string;
   employeeName: string;
   employeeEmail: string;
+
+  // New template fields
+  tourType?: string;
+  market?: string;
+  ratePeriod?: string;
+  voucherTitle?: string;
+  rateStructure?: "detailed" | "grouped";
+  manuallyEdited?: boolean;
+  guideText?: string;
+  surchargeText?: string;
+  eventSupplementText?: string;
+  totalPax?: number;
 }
 
 export function LivePreviewWidget({
@@ -70,9 +62,95 @@ export function LivePreviewWidget({
   billingInstructions,
   employeeName,
   employeeEmail,
+
+  // New fields
+  tourType = "",
+  market = "",
+  ratePeriod = "",
+  voucherTitle = "",
+  rateStructure = "detailed",
+  manuallyEdited = false,
+  guideText = "",
+  surchargeText = "",
+  eventSupplementText = "",
+  totalPax = 0,
 }: LivePreviewWidgetProps) {
   const baseWidth = 700;
   const baseHeight = 968;
+
+  const [renderedHtml, setRenderedHtml] = React.useState<string>("");
+
+  React.useEffect(() => {
+    let active = true;
+    async function updatePreview() {
+      if (!window.meridian?.renderVoucherHtml) return;
+      try {
+        const html = await window.meridian.renderVoucherHtml({
+          date,
+          voucherType,
+          hotelName,
+          requisitionNo,
+          tourNo,
+          tourName,
+          customerName,
+          lineItems,
+          confirmedBy,
+          rateApplicableText,
+          remarks,
+          billingInstructions,
+          employeeName,
+          employeeEmail,
+          tourType,
+          market,
+          ratePeriod,
+          voucherTitle,
+          rateStructure,
+          manuallyEdited,
+          guideText,
+          surchargeText,
+          eventSupplementText,
+          totalPax,
+          pageNumber: "1",
+          rateApplicable: 0,
+        });
+        if (active) {
+          setRenderedHtml(html);
+        }
+      } catch (err) {
+        console.error("Failed to render preview HTML:", err);
+      }
+    }
+
+    void updatePreview();
+    return () => {
+      active = false;
+    };
+  }, [
+    date,
+    voucherType,
+    hotelName,
+    requisitionNo,
+    tourNo,
+    tourName,
+    customerName,
+    lineItems,
+    confirmedBy,
+    rateApplicableText,
+    remarks,
+    billingInstructions,
+    employeeName,
+    employeeEmail,
+    tourType,
+    market,
+    ratePeriod,
+    voucherTitle,
+    rateStructure,
+    manuallyEdited,
+    guideText,
+    surchargeText,
+    eventSupplementText,
+    totalPax,
+  ]);
 
   let fitScale = 1;
   if (previewMode === "expanded") {
@@ -190,174 +268,189 @@ export function LivePreviewWidget({
             cursor: previewMode === "thumbnail" ? "zoom-in" : "zoom-out",
           }}
         >
-          <div
-            className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800"
-            style={{ backgroundColor: "#ffffff" }}
-          >
-            {/* Header Section */}
-            <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
-              <div className="flex gap-4">
-                <img
-                  src={logo}
-                  className="w-12 h-12 object-contain opacity-40 grayscale"
-                  alt="Meridian Logo"
-                />
-                <div className="text-gray-500">
-                  <div className="text-[12px]">Meridian</div>
-                  <div>Colombo, Sri Lanka</div>
-                  <div>Fax: +94-(0)11-2345678</div>
-                  <div className="text-blue-400 underline decoration-blue-400">
-                    example@merid.com
+          {renderedHtml ? (
+            <iframe
+              srcDoc={renderedHtml}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                overflow: "hidden",
+                pointerEvents: "none",
+                backgroundColor: "#ffffff",
+              }}
+              title="Voucher Live Preview"
+            />
+          ) : (
+            <div
+              className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800"
+              style={{ backgroundColor: "#ffffff" }}
+            >
+              {/* Header Section */}
+              <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
+                <div className="flex gap-4">
+                  <img
+                    src={logo}
+                    className="w-12 h-12 object-contain opacity-40 grayscale"
+                    alt="Meridian Logo"
+                  />
+                  <div className="text-gray-500">
+                    <div className="text-[12px]">Meridian</div>
+                    <div>Colombo, Sri Lanka</div>
+                    <div>Fax: +94-(0)11-2345678</div>
+                    <div className="text-blue-400 underline decoration-blue-400">
+                      example@merid.com
+                    </div>
+                  </div>
+                </div>
+                <div className="text-gray-500 font-medium pt-1">
+                  Date: {date || "—"}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="text-center font-bold text-[14px] mb-8">
+                <span className="border-b-2 border-black inline-block pb-0.5">
+                  {voucherType === "reservation"
+                    ? "Hotel Reservation Voucher"
+                    : voucherType === "amendment"
+                      ? "Amendment Voucher"
+                      : "PPTP Voucher"}
+                </span>
+              </div>
+
+              {/* Top Body Grid */}
+              <div className="mb-8">
+                <div className="grid grid-cols-[110px_1fr] gap-y-1">
+                  <div className="font-bold">To</div>
+                  <div>: {hotelName || "—"}</div>
+
+                  <div className="font-bold">Requisition No</div>
+                  <div>: {requisitionNo || "—"}</div>
+
+                  <div className="font-bold">Tour No</div>
+                  <div>: {tourNo || "—"}</div>
+
+                  <div className="font-bold">Tour Name</div>
+                  <div>: {tourName || "—"}</div>
+
+                  <div className="font-bold">Customer</div>
+                  <div>: {customerName || "—"}</div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="mb-8 flex-1 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="font-bold text-[9px]">
+                      <th className="py-2 px-2 whitespace-nowrap">
+                        Required Date
+                      </th>
+                      <th className="py-2 px-2 whitespace-nowrap">
+                        Room Category
+                      </th>
+                      <th className="py-2 px-2">Basis</th>
+                      <th className="py-2 px-1 text-center">SGL</th>
+                      <th className="py-2 px-1 text-center">DBL</th>
+                      <th className="py-2 px-1 text-center">TWN</th>
+                      <th className="py-2 px-1 text-center">TPL</th>
+                      <th className="py-2 px-1 text-center">Child</th>
+                      <th className="py-2 px-1 text-center">Guide</th>
+                      <th className="py-2 px-2 whitespace-nowrap">
+                        Arriving for
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(lineItems || []).map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-[#f6f8fb]/50" : "bg-white"}
+                      >
+                        <td className="py-1.5 px-2">
+                          {item.requiredDate || "—"}
+                        </td>
+                        <td className="py-1.5 px-2 whitespace-pre-wrap">
+                          {item.roomCategory || "—"}
+                        </td>
+                        <td className="py-1.5 px-2">{item.basis || "—"}</td>
+                        <td className="py-1.5 px-1 text-center">
+                          {item.singleRooms || ""}
+                        </td>
+                        <td className="py-1.5 px-1 text-center">
+                          {item.doubleRooms || ""}
+                        </td>
+                        <td className="py-1.5 px-1 text-center">
+                          {item.twinRooms || ""}
+                        </td>
+                        <td className="py-1.5 px-1 text-center">
+                          {item.tripleRooms || ""}
+                        </td>
+                        <td className="py-1.5 px-1 text-center">
+                          {(() => {
+                            const cc =
+                              (Number(item.child2_5) || 0) +
+                              (Number(item.child2_5Sharing) || 0) +
+                              (Number(item.child2_5Bed) || 0) +
+                              (Number(item.child2_5OwnRoom) || 0) +
+                              (Number(item.child6_11) || 0) +
+                              (Number(item.child6_11Sharing) || 0) +
+                              (Number(item.child6_11Bed) || 0) +
+                              (Number(item.child6_11OwnRoom) || 0);
+                            return cc > 0 ? cc : "";
+                          })()}
+                        </td>
+                        <td className="py-1.5 px-1 text-center">
+                          {item.guide
+                            ? `${item.guide} ${item.guideBasis || ""}`.trim()
+                            : ""}
+                        </td>
+                        <td className="py-1.5 px-2">{item.arrivingFor || ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bottom Sections */}
+              <div className="space-y-4">
+                <div>
+                  <div className="font-bold mb-1">
+                    Confirmed By - {confirmedBy || "Team"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="font-bold mb-1">Rate Applicable -</div>
+                  <div className="whitespace-pre-wrap leading-[1.5]">
+                    {rateApplicableText || "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="font-bold mb-1">Remarks -</div>
+                  <div className="whitespace-pre-wrap">{remarks || "No"}</div>
+                </div>
+
+                <div>
+                  <div className="font-bold mb-1">Billing Instruction -</div>
+                  <div className="whitespace-pre-wrap leading-[1.5]">
+                    {billingInstructions || ""}
                   </div>
                 </div>
               </div>
-              <div className="text-gray-500 font-medium pt-1">
-                Date: {date || "—"}
-              </div>
-            </div>
 
-            {/* Title */}
-            <div className="text-center font-bold text-[14px] mb-8">
-              <span className="border-b-2 border-black inline-block pb-0.5">
-                {voucherType === "reservation"
-                  ? "Hotel Reservation Voucher"
-                  : voucherType === "amendment"
-                    ? "Amendment Voucher"
-                    : "PPTP Voucher"}
-              </span>
-            </div>
-
-            {/* Top Body Grid */}
-            <div className="mb-8">
-              <div className="grid grid-cols-[110px_1fr] gap-y-1">
-                <div className="font-bold">To</div>
-                <div>: {hotelName || "—"}</div>
-
-                <div className="font-bold">Requisition No</div>
-                <div>: {requisitionNo || "—"}</div>
-
-                <div className="font-bold">Tour No</div>
-                <div>: {tourNo || "—"}</div>
-
-                <div className="font-bold">Tour Name</div>
-                <div>: {tourName || "—"}</div>
-
-                <div className="font-bold">Customer</div>
-                <div>: {customerName || "—"}</div>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="mb-8 flex-1 overflow-hidden">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="font-bold text-[9px]">
-                    <th className="py-2 px-2 whitespace-nowrap">
-                      Required Date
-                    </th>
-                    <th className="py-2 px-2 whitespace-nowrap">
-                      Room Category
-                    </th>
-                    <th className="py-2 px-2">Basis</th>
-                    <th className="py-2 px-1 text-center">SGL</th>
-                    <th className="py-2 px-1 text-center">DBL</th>
-                    <th className="py-2 px-1 text-center">TWN</th>
-                    <th className="py-2 px-1 text-center">TPL</th>
-                    <th className="py-2 px-1 text-center">Child</th>
-                    <th className="py-2 px-1 text-center">Guide</th>
-                    <th className="py-2 px-2 whitespace-nowrap">
-                      Arriving for
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(lineItems || []).map((item, idx) => (
-                    <tr
-                      key={idx}
-                      className={idx % 2 === 0 ? "bg-[#f6f8fb]/50" : "bg-white"}
-                    >
-                      <td className="py-1.5 px-2">
-                        {item.requiredDate || "—"}
-                      </td>
-                      <td className="py-1.5 px-2 whitespace-pre-wrap">
-                        {item.roomCategory || "—"}
-                      </td>
-                      <td className="py-1.5 px-2">{item.basis || "—"}</td>
-                      <td className="py-1.5 px-1 text-center">
-                        {item.singleRooms || ""}
-                      </td>
-                      <td className="py-1.5 px-1 text-center">
-                        {item.doubleRooms || ""}
-                      </td>
-                      <td className="py-1.5 px-1 text-center">
-                        {item.twinRooms || ""}
-                      </td>
-                      <td className="py-1.5 px-1 text-center">
-                        {item.tripleRooms || ""}
-                      </td>
-                      <td className="py-1.5 px-1 text-center">
-                        {(() => {
-                          const cc =
-                            (Number(item.child2_5) || 0) +
-                            (Number(item.child2_5Sharing) || 0) +
-                            (Number(item.child2_5Bed) || 0) +
-                            (Number(item.child2_5OwnRoom) || 0) +
-                            (Number(item.child6_11) || 0) +
-                            (Number(item.child6_11Sharing) || 0) +
-                            (Number(item.child6_11Bed) || 0) +
-                            (Number(item.child6_11OwnRoom) || 0);
-                          return cc > 0 ? cc : "";
-                        })()}
-                      </td>
-                      <td className="py-1.5 px-1 text-center">
-                        {item.guide
-                          ? `${item.guide} ${item.guideBasis || ""}`.trim()
-                          : ""}
-                      </td>
-                      <td className="py-1.5 px-2">{item.arrivingFor || ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bottom Sections */}
-            <div className="space-y-4">
-              <div>
-                <div className="font-bold mb-1">
-                  Confirmed By - {confirmedBy || "Team"}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-bold mb-1">Rate Applicable -</div>
-                <div className="whitespace-pre-wrap leading-[1.5]">
-                  {rateApplicableText || "—"}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-bold mb-1">Remarks -</div>
-                <div className="whitespace-pre-wrap">{remarks || "No"}</div>
-              </div>
-
-              <div>
-                <div className="font-bold mb-1">Billing Instruction -</div>
-                <div className="whitespace-pre-wrap leading-[1.5]">
-                  {billingInstructions || ""}
+              {/* Footer */}
+              <div className="mt-8 pt-4 text-gray-400 font-medium">
+                <div>{employeeName || "kadira"}</div>
+                <div>{employeeEmail || "dilshanstoregiriulla@gmail.com"}</div>
+                <div className="font-bold text-gray-500 mt-0.5">
+                  Meridian (Pvt.) Ltd.
                 </div>
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="mt-8 pt-4 text-gray-400 font-medium">
-              <div>{employeeName || "kadira"}</div>
-              <div>{employeeEmail || "dilshanstoregiriulla@gmail.com"}</div>
-              <div className="font-bold text-gray-500 mt-0.5">
-                Meridian (Pvt.) Ltd.
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

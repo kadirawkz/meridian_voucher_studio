@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { defaultVoucher } from "../../domain/defaultVoucher";
@@ -22,7 +22,7 @@ import type {
 
 interface UseVoucherFormProps {
   isAuthenticated: boolean;
-  activeView: string;
+  _activeView: string;
   accountProfile: AccountProfile | null;
   addNotice: (message: string, type?: "info" | "success" | "error") => void;
   refreshVoucherRegister: () => Promise<void>;
@@ -33,7 +33,6 @@ interface UseVoucherFormProps {
 
 export function useVoucherForm({
   isAuthenticated,
-  activeView,
   accountProfile,
   addNotice,
   refreshVoucherRegister,
@@ -84,7 +83,10 @@ export function useVoucherForm({
   const [lastSavedValues, setLastSavedValues] =
     useState<VoucherFormValues>(defaultVoucher);
 
+  const justResetRef = useRef(false);
+
   function resetForm(newValues: VoucherFormValues) {
+    justResetRef.current = true;
     form.reset(newValues);
     setLastSavedValues(newValues);
   }
@@ -185,6 +187,10 @@ export function useVoucherForm({
 
   // Reset selected rate ID and ratePeriod form value on hotel/market change
   useEffect(() => {
+    if (justResetRef.current) {
+      justResetRef.current = false;
+      return;
+    }
     setSelectedHotelRateId("");
     form.setValue("ratePeriod", "");
   }, [hotelName, market, form]);
@@ -255,7 +261,7 @@ export function useVoucherForm({
         )
         .catch(() => setMealBasisOptionsState([]));
     }
-  }, [isAuthenticated, activeView, ratesTrigger]);
+  }, [isAuthenticated, ratesTrigger]);
 
   // Voucher autofill listener
   useEffect(() => {
@@ -368,7 +374,7 @@ export function useVoucherForm({
   async function handleSave(values: VoucherFormValues) {
     if (!window.meridian) {
       addNotice(
-        "Connection to local services lost; please restart the application.",
+        "Connection to local services lost. Please restart the application.",
         "error",
       );
       return;
@@ -377,7 +383,7 @@ export function useVoucherForm({
     setActionState("saving");
     try {
       const result = await window.meridian.saveVoucher(values);
-      addNotice(`Draft saved successfully (${result.id.slice(0, 8)})`);
+      addNotice(`Draft voucher for "${values.tourName || "unnamed tour"}" saved successfully.`, "success");
       resetForm({ ...values, id: result.id });
       await refreshVoucherRevisions(result.id);
       await refreshVoucherRegister();
@@ -394,7 +400,7 @@ export function useVoucherForm({
   ) {
     if (!window.meridian) {
       addNotice(
-        "Connection to local services lost; please restart the application.",
+        "Connection to local services lost. Please restart the application.",
         "error",
       );
       return;
@@ -408,12 +414,14 @@ export function useVoucherForm({
       setGenerated(result);
       if (result.voucherId) {
         form.setValue("id", result.voucherId);
+        form.setValue("status", "generated");
         await refreshVoucherRevisions(result.voucherId);
       }
       addNotice(
         customOutputDir
-          ? "DOCX generated in custom location"
-          : "DOCX generated",
+          ? `DOCX voucher successfully generated at: ${customOutputDir}`
+          : "DOCX voucher successfully generated in the default export folder.",
+        "success",
       );
       await refreshDocumentHistory();
       await refreshVoucherRegister();
@@ -434,7 +442,7 @@ export function useVoucherForm({
   ) {
     if (!window.meridian) {
       addNotice(
-        "Connection to local services lost; please restart the application.",
+        "Connection to local services lost. Please restart the application.",
         "error",
       );
       return;
@@ -448,10 +456,14 @@ export function useVoucherForm({
       setGenerated(result);
       if (result.voucherId) {
         form.setValue("id", result.voucherId);
+        form.setValue("status", "generated");
         await refreshVoucherRevisions(result.voucherId);
       }
       addNotice(
-        customOutputDir ? "PDF generated in custom location" : "PDF generated",
+        customOutputDir
+          ? `PDF voucher successfully generated at: ${customOutputDir}`
+          : "PDF voucher successfully generated in the default export folder.",
+        "success",
       );
       await refreshDocumentHistory();
       await refreshVoucherRegister();
@@ -466,7 +478,7 @@ export function useVoucherForm({
   function handleClearForm() {
     resetForm(withAccountDefaults(defaultVoucher, accountProfile));
     setGenerated(null);
-    addNotice("Form cleared");
+    addNotice("Form cleared and reset to defaults.", "info");
   }
 
   return {

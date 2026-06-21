@@ -10,6 +10,8 @@ import { defaultVoucher } from "../domain/defaultVoucher";
 import type { VoucherFormValues } from "../domain/voucherSchema";
 import type { AppNotification } from "./MenuBar";
 import type { VoucherRecord } from "../../electron/shared/types";
+import { friendlyErrorMessage } from "../utils/errors";
+
 
 type ActiveView =
   | "entry"
@@ -60,11 +62,15 @@ export function useAppBridge() {
   });
 
   // Basic layout state
-  const [activeView, setActiveView] = useState<ActiveView>("dashboard");
+  const [activeView, setActiveView] = useState<ActiveView>(() => {
+    const saved = localStorage.getItem("activeView");
+    return (saved as ActiveView) || "dashboard";
+  });
 
   // Sync view history to browser history to enable mouse back/forward button navigation
   useEffect(() => {
-    window.history.replaceState("dashboard", "");
+    const initialView = localStorage.getItem("activeView") || "dashboard";
+    window.history.replaceState(initialView, "");
 
     const handlePopState = (e: PopStateEvent) => {
       if (e.state) {
@@ -79,6 +85,7 @@ export function useAppBridge() {
     if (window.history.state !== activeView) {
       window.history.pushState(activeView, "");
     }
+    localStorage.setItem("activeView", activeView);
   }, [activeView]);
 
   const [previewMode, setPreviewMode] = useState<
@@ -205,7 +212,7 @@ export function useAppBridge() {
   // 6. Voucher Forms State Hook
   const formHook = useVoucherForm({
     isAuthenticated: auth.authState.isAuthenticated,
-    activeView,
+    _activeView: activeView,
     accountProfile: auth.accountProfile,
     addNotice,
     refreshVoucherRegister: () =>
@@ -214,6 +221,46 @@ export function useAppBridge() {
     refreshToursFolderTree: () => explorer.refreshToursFolderTree(),
     refreshVoucherRevisions: (id) => register.refreshVoucherRevisions(id),
   });
+
+  const handleSendEmail = async (voucherId: string) => {
+    if (!window.meridian?.openEmailClient) {
+      addNotice("Email service is not available.", "error");
+      return;
+    }
+
+    try {
+      const docs = await window.meridian.listVoucherDocuments();
+      const pdfDocs = docs.filter(
+        (d) => d.voucherId === voucherId && (d.pdfPath || d.format === "pdf")
+      );
+      if (pdfDocs.length === 0) {
+        addNotice("No generated PDF voucher found to email. Please generate a PDF first.", "error");
+        return;
+      }
+      const latestPdfDoc = pdfDocs.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })[0];
+
+      const pdfPath = latestPdfDoc.pdfPath || latestPdfDoc.docxPath.replace(/\.docx$/, ".pdf");
+
+      await window.meridian.openEmailClient({ voucherId, pdfPath });
+
+      addNotice("Email client opened. PDF path has been revealed in Explorer for drag-and-drop.", "success");
+      
+      if (formHook.form.getValues("id") === voucherId) {
+        formHook.form.setValue("status", "sent");
+      }
+
+      await register.refreshVoucherRevisions(voucherId);
+      await register.refreshVoucherRegister(register.voucherFilters);
+      await register.refreshDocumentHistory();
+    } catch (error) {
+      addNotice(friendlyErrorMessage(error, "Failed to send email"), "error");
+    }
+  };
+
 
   return {
     // Theme properties
@@ -356,6 +403,7 @@ export function useAppBridge() {
     handleSave: formHook.handleSave,
     handleGenerateDocx: formHook.handleGenerateDocx,
     handleGeneratePdf: formHook.handleGeneratePdf,
+    handleSendEmail,
     handleClearForm: () => {
       formHook.handleClearForm();
       register.setVoucherRevisions([]);

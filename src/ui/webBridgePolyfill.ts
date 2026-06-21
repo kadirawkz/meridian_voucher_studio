@@ -73,6 +73,8 @@ if (typeof window !== "undefined" && !window.meridian) {
         format: "pdf",
         customOutputDir,
       }),
+    renderVoucherHtml: (voucher: any) =>
+      makePost("/api/vouchers/render-html", voucher),
     listVoucherDocuments: () => makeGet("/api/voucher-documents"),
     listVouchers: (filters?: any) => {
       const params = new URLSearchParams();
@@ -108,6 +110,12 @@ if (typeof window !== "undefined" && !window.meridian) {
 
     // Reference Lists
     listHotels: () => makeGet("/api/reference/hotels"),
+    saveHotel: (ref: any) => makePost("/api/reference/hotels", ref),
+    deleteHotel: (id: string) => makeDelete(`/api/reference/hotels/${id}`),
+    openEmailClient: (options: { voucherId: string; pdfPath: string }) => {
+      console.log("[Web Polyfill] openEmailClient called:", options);
+      return Promise.resolve();
+    },
     listMarkets: () => makeGet("/api/reference/markets"),
     listRoomCategories: () => makeGet("/api/reference/room-categories"),
     listCustomers: () => makeGet("/api/reference/customers"),
@@ -141,6 +149,7 @@ if (typeof window !== "undefined" && !window.meridian) {
 
     // Templates DB
     listDatabaseTemplates: () => Promise.resolve([]),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     uploadDatabaseTemplate: (name: string, docxPath: string, htmlPath: string) => Promise.resolve(),
     downloadDatabaseTemplate: () => Promise.resolve(false),
     deleteDatabaseTemplate: () => Promise.resolve(),

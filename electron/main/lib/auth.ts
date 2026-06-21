@@ -36,6 +36,12 @@ const sessionFileName = "auth-session.json";
 let sessionRestorePromise: Promise<void> | null = null;
 let isSessionRestored = false;
 
+let cachedUser: User | null = null;
+let cachedEmployeeProfile: AccountProfile | null = null;
+let lastUserFetchTime = 0;
+let lastProfileFetchTime = 0;
+const CACHE_TTL_MS = 10000; // 10 seconds cache to group parallel requests
+
 function getSessionPath(): string {
   return path.join(app.getPath("userData"), sessionFileName);
 }
@@ -230,9 +236,15 @@ export async function signIn(credentials: AuthCredentials): Promise<AuthState> {
   }
   isSessionRestored = true;
 
+  const profile = data.user ? await getEmployeeProfile(client, data.user) : null;
+  cachedUser = data.user;
+  cachedEmployeeProfile = profile;
+  lastUserFetchTime = Date.now();
+  lastProfileFetchTime = Date.now();
+
   return {
     isAuthenticated: Boolean(data.session),
-    profile: data.user ? await getEmployeeProfile(client, data.user) : null,
+    profile,
   };
 }
 
@@ -263,11 +275,17 @@ export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
   }
   isSessionRestored = true;
 
+  const profile = data.user
+      ? await upsertEmployeeProfile(client, data.user, credentials.employeeName)
+      : null;
+  cachedUser = data.user;
+  cachedEmployeeProfile = profile;
+  lastUserFetchTime = Date.now();
+  lastProfileFetchTime = Date.now();
+
   return {
     isAuthenticated: Boolean(data.session),
-    profile: data.user
-      ? await upsertEmployeeProfile(client, data.user, credentials.employeeName)
-      : null,
+    profile,
     message: data.session
       ? "Account created"
       : "Account created. Check email if confirmation is enabled.",
@@ -281,6 +299,11 @@ export async function signOut(): Promise<AuthState> {
   }
   await clearRememberedSession();
   isSessionRestored = false;
+
+  cachedUser = null;
+  cachedEmployeeProfile = null;
+  lastUserFetchTime = 0;
+  lastProfileFetchTime = 0;
 
   return {
     isAuthenticated: false,
@@ -346,12 +369,22 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 
   await ensureRememberedSessionRestored(client);
+
+  const now = Date.now();
+  if (cachedUser && (now - lastUserFetchTime < CACHE_TTL_MS)) {
+    return cachedUser;
+  }
+
   const { data, error } = await client.auth.getUser();
 
   if (error) {
+    cachedUser = null;
+    lastUserFetchTime = 0;
     return null;
   }
 
+  cachedUser = data.user;
+  lastUserFetchTime = now;
   return data.user;
 }
 
@@ -365,7 +398,19 @@ export async function getCurrentEmployeeProfile(
     return null;
   }
 
-  return getEmployeeProfile(client, resolvedUser);
+  const now = Date.now();
+  if (
+    cachedEmployeeProfile &&
+    cachedEmployeeProfile.id === resolvedUser.id &&
+    (now - lastProfileFetchTime < CACHE_TTL_MS)
+  ) {
+    return cachedEmployeeProfile;
+  }
+
+  const profile = await getEmployeeProfile(client, resolvedUser);
+  cachedEmployeeProfile = profile;
+  lastProfileFetchTime = now;
+  return profile;
 }
 
 export function getAuthenticatedSupabaseClient(): SupabaseClient | null {
@@ -397,5 +442,9 @@ export async function updateProfile(updates: {
     throw new Error(error.message);
   }
 
-  return profileFromRow(data);
+  const profile = profileFromRow(data);
+  cachedEmployeeProfile = profile;
+  lastProfileFetchTime = Date.now();
+
+  return profile;
 }

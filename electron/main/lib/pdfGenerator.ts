@@ -3,8 +3,7 @@ import type { VoucherPayload } from "../../shared/types.js";
 import { buildTemplateData } from "./documentGenerator.js";
 
 // Safe import of Electron to support standalone server mode
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let BrowserWindow: any;
+let BrowserWindow: (typeof import("electron"))["BrowserWindow"] | undefined;
 try {
   const electron = await import("electron");
   BrowserWindow = electron.BrowserWindow;
@@ -12,7 +11,7 @@ try {
   // Headless container mode: operations utilizing GUI features will fail gracefully
 }
 
-function escapeHtml(value: string | number | undefined | null): string {
+function escapeHtml(value: unknown): string {
   if (value == null) return "";
   return String(value)
     .replace(/&/g, "&amp;")
@@ -22,16 +21,39 @@ function escapeHtml(value: string | number | undefined | null): string {
     .replace(/'/g, "&#039;");
 }
 
-function renderHtmlTemplate(html: string, data: Record<string, any>): string {
+function getNestedValue(data: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, prop) => {
+    if (acc && typeof acc === "object" && prop in acc) {
+      return (acc as Record<string, unknown>)[prop];
+    }
+    return undefined;
+  }, data);
+}
+
+export function renderHtmlTemplate(
+  html: string,
+  data: Record<string, unknown>,
+  isRoot = true,
+): string {
+  let processedHtml = html;
+
+  // Auto-fix legacy HTML templates that use line item variables but lack a {#lineItems} loop
+  if (isRoot && !processedHtml.includes("{#lineItems}")) {
+    const trRegex = /<tr[^>]*>(?:(?!<\/tr>)[\s\S])*?\{(?:required_date|requiredDate|RequiredDate|requiredDateDisplay)\}[\s\S]*?<\/tr>/gi;
+    processedHtml = processedHtml.replace(trRegex, (match) => {
+      return `{#lineItems}${match}{/lineItems}`;
+    });
+  }
+
   // 1. Process loops: {#lineItems} ... {/lineItems}
   const loopRegex = /\{#([a-zA-Z0-9_]+)\}([\s\S]*?)\{\/\1\}/g;
-  let rendered = html.replace(loopRegex, (match, key, content) => {
+  let rendered = processedHtml.replace(loopRegex, (match, key, content) => {
     const list = data[key];
     if (Array.isArray(list)) {
       return list
         .map((item) => {
           const mergedContext = { ...data, ...item };
-          return renderHtmlTemplate(content, mergedContext);
+          return renderHtmlTemplate(content, mergedContext, false);
         })
         .join("");
     }
@@ -41,7 +63,7 @@ function renderHtmlTemplate(html: string, data: Record<string, any>): string {
   // 2. Process variables: {variableName}
   const varRegex = /\{([a-zA-Z0-9_\-.]+)\}/g;
   rendered = rendered.replace(varRegex, (match, key) => {
-    const val = key.split('.').reduce((acc: any, prop: string) => acc?.[prop], data);
+    const val = getNestedValue(data, key);
     if (val !== undefined && val !== null) {
       return escapeHtml(val).replace(/\n/g, "<br/>");
     }
@@ -58,6 +80,10 @@ export async function generatePdf(
 ): Promise<void> {
   const data = buildTemplateData(voucher);
   const htmlContent = renderHtmlTemplate(htmlTemplate, data);
+
+  if (!BrowserWindow) {
+    throw new Error("Electron BrowserWindow is unavailable in this runtime.");
+  }
 
   const win = new BrowserWindow({
     show: false,
