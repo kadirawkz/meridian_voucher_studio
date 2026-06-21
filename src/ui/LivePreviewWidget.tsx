@@ -182,110 +182,112 @@ export function LivePreviewWidget({
   );
 
   return (
-    <div
-      className="fixed z-50 bg-surface shadow-panel rounded-app overflow-hidden flex flex-col pointer-events-auto"
-      style={{
-        left: `${safeX}px`,
-        top: `${safeY}px`,
-        width: `${targetWidth}px`,
-        height: `${targetHeight}px`,
-        opacity: previewMode === "expanded" || isDraggingPreview ? 1 : 0.95,
-        boxShadow:
-          previewMode === "expanded"
-            ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-            : "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-        transition: isDraggingPreview
-          ? "none"
-          : "left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out",
-      }}
-    >
-      <div
-        className="border-b border-line bg-navy px-4 flex justify-between items-center text-white shrink-0 h-[32px] cursor-move select-none"
-        onMouseDown={startDragPreview}
-        onDoubleClick={() =>
-          setPreviewMode((prev) =>
-            prev === "collapsed" ? "thumbnail" : "collapsed",
-          )
+    <>
+      <style>{`
+        #live-preview-widget-container {
+          left: ${safeX}px;
+          top: ${safeY}px;
+          width: ${targetWidth}px;
+          height: ${targetHeight}px;
+          opacity: ${previewMode === "expanded" || isDraggingPreview ? 1 : 0.95};
+          box-shadow: ${
+            previewMode === "expanded"
+              ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+              : "0 10px 15px -3px rgba(0, 0, 0, 0.1)"
+          };
+          transition: ${
+            isDraggingPreview
+              ? "none"
+              : "left 0.3s ease-out, top 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out"
+          };
         }
-      >
-        <div className="flex items-center gap-2 pointer-events-none">
-          <FileText size={14} />
-          <h3 className="text-[10px] font-bold uppercase tracking-wide">
-            Live Preview
-          </h3>
-        </div>
-
-        <div className="flex items-center gap-1.5 ml-2">
-          {previewMode !== "collapsed" && (
-            <button
-              className="hover:bg-white/20 p-1 rounded transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviewMode("collapsed");
-              }}
-              title="Minimize"
-            >
-              <Minus size={16} />
-            </button>
-          )}
-          {previewMode === "collapsed" && (
-            <button
-              className="hover:bg-white/20 p-1 rounded transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviewMode("thumbnail");
-              }}
-              title="Restore"
-            >
-              <Maximize2 size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="flex-1 bg-white overflow-hidden relative"
-        onClick={() =>
-          setPreviewMode((prev) =>
-            prev === "thumbnail" ? "expanded" : "thumbnail",
-          )
+        #live-preview-widget-inner {
+          top: ${
+            previewMode === "expanded"
+              ? `${Math.round(8 * fitScale)}px`
+              : "8px"
+          };
+          left: ${
+            previewMode === "expanded"
+              ? `${Math.round(24 * fitScale)}px`
+              : "10px"
+          };
+          transform: scale(${previewMode === "expanded" ? fitScale : 0.383});
+          width: 652px;
+          height: 920px;
+          cursor: ${previewMode === "thumbnail" ? "zoom-in" : "zoom-out"};
         }
+      `}</style>
+      <div
+        id="live-preview-widget-container"
+        className="fixed z-50 bg-surface shadow-panel rounded-app overflow-hidden flex flex-col pointer-events-auto"
       >
         <div
-          className="origin-top-left transition-transform duration-300 ease-out absolute"
-          style={{
-            top:
-              previewMode === "expanded"
-                ? `${Math.round(8 * fitScale)}px`
-                : "8px",
-            left:
-              previewMode === "expanded"
-                ? `${Math.round(24 * fitScale)}px`
-                : "10px",
-            transform: `scale(${previewMode === "expanded" ? fitScale : 0.383})`,
-            width: "652px",
-            height: "920px",
-            cursor: previewMode === "thumbnail" ? "zoom-in" : "zoom-out",
-          }}
+          className="border-b border-line bg-navy px-4 flex justify-between items-center text-white shrink-0 h-[32px] cursor-move select-none"
+          onMouseDown={startDragPreview}
+          onDoubleClick={() =>
+            setPreviewMode((prev) =>
+              prev === "collapsed" ? "thumbnail" : "collapsed",
+            )
+          }
         >
-          {renderedHtml ? (
-            <iframe
-              srcDoc={renderedHtml}
-              style={{
-                width: "100%",
-                height: "100%",
-                border: "none",
-                overflow: "hidden",
-                pointerEvents: "none",
-                backgroundColor: "#ffffff",
-              }}
-              title="Voucher Live Preview"
-            />
-          ) : (
-            <div
-              className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+          <div className="flex items-center gap-2 pointer-events-none">
+            <FileText size={14} />
+            <h3 className="text-[10px] font-bold uppercase tracking-wide">
+              Live Preview
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-2">
+            {previewMode !== "collapsed" && (
+              <button
+                className="hover:bg-white/20 p-1 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewMode("collapsed");
+                }}
+                title="Minimize"
+              >
+                <Minus size={16} />
+              </button>
+            )}
+            {previewMode === "collapsed" && (
+              <button
+                className="hover:bg-white/20 p-1 rounded transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewMode("thumbnail");
+                }}
+                title="Restore"
+              >
+                <Maximize2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="flex-1 bg-white overflow-hidden relative"
+          onClick={() =>
+            setPreviewMode((prev) =>
+              prev === "thumbnail" ? "expanded" : "thumbnail",
+            )
+          }
+        >
+          <div
+            id="live-preview-widget-inner"
+            className="origin-top-left transition-transform duration-300 ease-out absolute"
+          >
+            {renderedHtml ? (
+              <iframe
+                srcDoc={renderedHtml}
+                className="w-full h-full border-none overflow-hidden pointer-events-none bg-white"
+                title="Voucher Live Preview"
+              />
+            ) : (
+              <div
+                className="w-full h-full p-6 text-[10px] leading-[1.4] overflow-hidden flex flex-col font-sans text-gray-800 bg-white"
+              >
               {/* Header Section */}
               <div className="flex justify-between items-start mb-6 border-b border-gray-400 pb-4">
                 <div className="flex gap-4">
@@ -454,5 +456,6 @@ export function LivePreviewWidget({
         </div>
       </div>
     </div>
-  );
+  </>
+);
 }

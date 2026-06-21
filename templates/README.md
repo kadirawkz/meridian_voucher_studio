@@ -1,21 +1,17 @@
 # Voucher Template
 
-Place the controlled Word template at:
+Place the controlled Word template at [templates/voucher-template.docx](templates/voucher-template.docx).
 
-```text
-templates/voucher-template.docx
-```
+The generator uses Docxtemplater tags. Tags must be exact field names, not sample values.
 
-The generator uses Docxtemplater tags. Tags must be field names, not example values.
-
-Do this:
+Use this:
 
 ```text
 {hotelName}
 {requisitionNo}
 ```
 
-Do not do this:
+Avoid this:
 
 ```text
 {Hotel name}
@@ -23,13 +19,12 @@ Do not do this:
 {0}
 ```
 
-Recommended top-level tags:
+## Common Top-Level Tags
 
 ```text
 {voucherTypeLabel}
 {pageNumber}
 {date}
-{voucherTypeLabel}
 {hotelName}
 {requisitionNo}
 {tourNo}
@@ -45,29 +40,38 @@ Recommended top-level tags:
 {generatedAt}
 ```
 
-For the voucher content table, add a Docxtemplater loop in the Word table:
+Prefer `{rateApplicableText}` in new templates. `{rateApplicable}` remains available for backward compatibility.
+
+## Booking Table Loop
+
+Use a Docxtemplater loop for the voucher content table:
 
 ```text
 {#lineItems}
-{requiredDateDisplay} | {roomCategory} | {basis} | {singleRooms} | {doubleRooms} | {twinRooms} | {tripleRooms} | {guide} | {guideBasis} | {arrivingFor}
+{requiredDateDisplay} | {roomCategory} | {basis} | {singleRooms} | {doubleRooms} | {twinRooms} | {tripleRooms} | {guideWithBasis} | {arrivingFor}
 {/lineItems}
 ```
 
-If the template has one combined Guide column, use `{guideWithBasis}` instead of separate `{guide}` and `{guideBasis}` tags. It renders values like `1 (HB)`.
+If your table separates guide name and basis into two columns, use `{guide}` and `{guideBasis}` instead of `{guideWithBasis}`.
 
-In Word, type each tag in one continuous action if possible. If Word splits a tag into multiple styled runs, Docxtemplater can usually handle it, but heavily edited tags are easier to break. The safest method is to paste the complete tag as plain text.
+## Conditional Sections
 
-Keep all voucher variants in this one template. Use conditional sections such as:
+Keep voucher variants in one template and switch text with boolean sections:
 
 ```text
 {#isReservation}
 Reservation-specific wording
 {/isReservation}
+
+{#isAmendment}
+Amendment-specific wording
+{/isAmendment}
 ```
 
-Add the matching boolean fields in `electron/main/lib/documentGenerator.ts` if the final template needs conditional text.
+The matching flags are provided by `electron/main/lib/documentGenerator.ts`.
 
-Notes:
+## Template Editing Notes
 
-- `{rateApplicable}` resolves to computed rate text for backward compatibility.
-- Prefer `{rateApplicableText}` in new templates.
+- Paste each tag in one run when possible.
+- Word can split tags across styled text runs, but keeping tags plain and uninterrupted is safer.
+- If you need a tag that is not listed here, check the generator before adding it to the template.

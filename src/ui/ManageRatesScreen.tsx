@@ -260,8 +260,7 @@ export function ManageRatesScreen({ onBack, onEdit, onRatesChanged, addNotice }:
                       >
                         <td className="px-4 py-3 font-semibold text-navy flex items-center gap-2 select-none">
                           <span
-                            className={`inline-block text-[8px] transform transition-transform text-steel font-bold ${expandedRateId === r.id ? "rotate-90" : ""}`}
-                            style={{ width: "8px" }}
+                            className={`inline-block w-[8px] text-[8px] transform transition-transform text-steel font-bold ${expandedRateId === r.id ? "rotate-90" : ""}`}
                           >
                             ▶
                           </span>
