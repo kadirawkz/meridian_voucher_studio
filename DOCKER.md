@@ -33,6 +33,8 @@ SUPABASE_ANON_KEY=your-supabase-anon-key
 MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 ```
 
+The API container reads `.env` at runtime. The web image also consumes `SUPABASE_URL` and `SUPABASE_ANON_KEY` as Compose build args so the browser bundle is built with the same public values.
+
 ---
 
 ## Quick Start
@@ -46,6 +48,7 @@ MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 2. **Verify the Services**:
    - The Web Interface will be active at: **`http://localhost:3000`**
    - The API Server health endpoint can be checked at: **`http://localhost:5000/health`**
+   - Compose waits for the API healthcheck before marking the web service ready.
 
 3. **Stop the Containers**:
    ```bash
@@ -62,3 +65,4 @@ MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 >
 > - **DOCX document generation** works flawlessly inside Docker since it is executed via a pure Node.js template processor (`docxtemplater` + `pizzip`).
 > - Selecting the **PDF Generation** action in the browser will fallback to DOCX generation or display a status warning, because Electron's window printing API is disabled in headless contexts.
+

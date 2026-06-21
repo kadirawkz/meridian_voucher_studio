@@ -57,13 +57,13 @@
    VOUCHER_API_PORT=5183
    ```
 
-3. Generate the public runtime config used by Electron and Docker builds:
+3. Generate the public runtime config used by Electron builds:
 
    ```bash
    npm run sync:public-config
    ```
 
-   This writes `build-resources/config.json` from `.env` and keeps the generated file out of source control.
+   This writes `build-resources/config.json` from `.env` and keeps the generated file out of source control. Docker builds now generate the browser config inside the image using Compose build args, so the container path stays self-contained.
 
 4. Start the local Electron workflow:
 
@@ -105,3 +105,4 @@ Database schema and seed files live in [supabase/schema.sql](supabase/schema.sql
 <p align="center">
   Developed by <strong>Meridian Destination Management</strong>. Released under the [MIT License](LICENSE).
 </p>
+
