@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Build Stage
 FROM node:24-alpine AS builder
 
@@ -6,7 +8,14 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-RUN npm ci
+# Reduce npm concurrency and add stronger retry behavior for flaky registry connections.
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set maxsockets 1 \
+ && npm config set fetch-retries 10 \
+ && npm config set fetch-retry-factor 3 \
+ && npm config set fetch-retry-mintimeout 30000 \
+ && npm config set fetch-retry-maxtimeout 240000 \
+ && npm ci --no-audit --no-fund --prefer-offline --network-concurrency=1
 
 COPY electron ./electron
 

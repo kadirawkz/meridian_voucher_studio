@@ -16,11 +16,48 @@
 
 ## 📋 Overview
 
-**Meridian Voucher Studio** is an enterprise-grade utility tailored for Destination Management Companies (DMCs). It streamlines the voucher lifecycle—from secure database persistence to exporting professional travel documentation. 
+**Meridian Voucher Studio** is an enterprise-grade utility tailored for Destination Management Companies (DMCs). It streamlines the voucher lifecycle—from secure database persistence to exporting professional travel documentation.
 
 The software operates in two primary modes:
 1. **Desktop Client (Electron)**: A native application providing local, high-performance HTML-to-PDF rendering alongside local DOCX template assembly.
 2. **Web Service (Docker)**: A lightweight, containerized multi-service deployment with an Nginx reverse proxy and an Express API bridge, enabling teams to access voucher management in standard browser environments.
+
+---
+
+## 📐 Architecture Overview
+
+The system handles document templating and data storage seamlessly across both desktop and web platforms.
+
+```mermaid
+graph TD
+    subgraph UI ["User Clients"]
+        A[Electron Desktop Client]
+        B[Standard Web Browser]
+    end
+
+    subgraph Local ["Desktop Runtime (Electron)"]
+        A -->|Native File Access| C[Local Word Templates]
+        A -->|Chromium Offscreen Print| D[HTML to PDF Rendering]
+    end
+
+    subgraph DockerEnv ["Docker Containerized Web Stack"]
+        B -->|HTTP/HTTPS| E[Nginx Reverse Proxy / Port 3000]
+        E -->|Static Files| E_React[Vite React UI]
+        E -->|Proxy /api/*| F[Express API Bridge / Port 5000]
+        F -->|Server-side Engine| G[docxtemplater + pizzip]
+        G -->|Outputs| H[DOCX Document Generation]
+    end
+
+    subgraph Data ["Cloud Persistence"]
+        A -->|Direct SDK| I[(Supabase Cloud Database)]
+        F -->|Server-side SDK| I
+    end
+
+    style UI fill:#f9f,stroke:#333,stroke-width:2px
+    style Local fill:#bbf,stroke:#333,stroke-width:2px
+    style DockerEnv fill:#dfd,stroke:#333,stroke-width:2px
+    style Data fill:#fdd,stroke:#333,stroke-width:2px
+```
 
 ---
 
@@ -87,7 +124,8 @@ Ensure you have the following installed on your development machine:
    ```bash
    npm run sync:public-config
    ```
-   *Note: This generates `build-resources/config.json` from `.env`. This file is git-ignored to prevent exposing sensitive environment settings.*
+   > [!NOTE]
+   > This generates `build-resources/config.json` from `.env`. This file is git-ignored to prevent exposing sensitive environment settings.
 
 ---
 

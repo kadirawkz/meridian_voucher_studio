@@ -1,56 +1,89 @@
-Public push checklist
+# Public Release & Push Checklist
 
-1. Verify no tracked secrets
-   - Ensure `.env` and `build-resources/config.json` are untracked:
+Use this checklist to ensure all code, configurations, and assets are fully verified and cleaned of sensitive keys or environment variables before performing a public push or creating a production release.
 
-     ```bash
-     git ls-files --error-unmatch .env || echo ".env untracked"
-     git ls-files --error-unmatch build-resources/config.json || echo "build-resources/config.json untracked"
-     ```
+---
 
-   - If a secret file was accidentally committed, remove it from the index and commit:
+## 🔒 Secret & Credential Safety
 
-     ```bash
-     git rm --cached PATH/TO/SECRET_FILE
-     git commit -m "Remove secret file from tracked files"
-     ```
+- [ ] **Verify Untracked Configurations**
+  Ensure `.env` and `build-resources/config.json` are not tracked by version control:
+  ```bash
+  git ls-files --error-unmatch .env || echo ".env untracked"
+  git ls-files --error-unmatch build-resources/config.json || echo "build-resources/config.json untracked"
+  ```
 
-   - To purge a secret from history, use `git filter-repo` or BFG (manual, follow their docs).
+- [ ] **Purge Accidental Staging**
+  If a secret-bearing file was tracked by accident, remove it from the index:
+  ```bash
+  git rm --cached path/to/secret-file
+  git commit -m "chore: remove credential configurations from tracking"
+  ```
 
-2. Provide example config files
-   - Add `.env.example` and `build-resources/config.example.json` (already present).
+- [ ] **Provide Example Templates**
+  Verify the repository has template-safe defaults for configuration reference:
+  - `.env.example`
+  - `config.public.example.json`
 
-3. Build verification
-   - Install deps and build locally to verify no build-time secrets are required:
+---
 
-     ```bash
-     npm ci
-     npm run build
-     ```
+## 🛠️ Code Validation & Build Verification
 
-4. Update README
-   - Confirm README documents how to create `.env` from `.env.example` and how to configure Supabase.
+- [ ] **Clean Dependency Verification**
+  Perform a clean installation of dependencies:
+  ```bash
+  npm ci
+  ```
 
-5. Final push
-   - Create a release branch or tag, then push to remote:
+- [ ] **Static Code Checks**
+  Run linter, formatter, and compiler checks:
+  ```bash
+  npm run lint
+  ```
+  ```bash
+  npm run typecheck
+  ```
 
-     ```bash
-     git checkout -b release/public-ready
-     git add .
-     git commit -m "Prepare for public release: remove local secrets, add examples"
-     git push origin release/public-ready
-     ```
+- [ ] **Local Build Compilations**
+  Compile the production binaries and web distribution bundle locally to verify setup:
+  ```bash
+  npm run build
+  ```
 
-   - When ready to publish to `main` or `master`:
+---
 
-     ```bash
-     git checkout main
-     git merge --no-ff release/public-ready
-     git tag -a vX.Y.Z -m "Release vX.Y.Z"
-     git push origin main --tags
-     ```
+## 📚 Documentation Updates
 
-Notes
+- [ ] **Ensure Env Variable Reference**
+  Verify that the `README.md` documents every required configuration variable and details how to establish connection strings.
 
-- This project writes `build-resources/config.json` from `.env` during the build (`scripts/sync-public-config.mjs`). Do not commit the generated `config.json` — it is ignored by `.gitignore`.
-- If you need help purging secrets from history, I can prepare the `git filter-repo` commands for the specific files.
+- [ ] **Voucher Template Schemas**
+  If any fields were added to the Document Generator, update the dictionary details inside `templates/README.md`.
+
+---
+
+## 🚀 Release Lifecycle Steps
+
+- [ ] **Create a Clean Release Branch**
+  ```bash
+  git checkout -b release/vX.Y.Z
+  git add .
+  git commit -m "release: prepare distribution version vX.Y.Z"
+  git push origin release/vX.Y.Z
+  ```
+
+- [ ] **Merge and Tag the Release**
+  ```bash
+  git checkout main
+  git merge --no-ff release/vX.Y.Z
+  git tag -a vX.Y.Z -m "Release version vX.Y.Z"
+  git push origin main --tags
+  ```
+
+---
+
+## 💡 Key Notes
+
+> [!IMPORTANT]
+> - `build-resources/config.json` is generated at build time from `.env` properties via `scripts/sync-public-config.mjs`. Do not force-commit this file.
+> - If secrets were pushed to public remotes in the commit history, use `git-filter-repo` or BFG Repo-Cleaner to rewrite history before merging to the public remote branch.
