@@ -135,10 +135,6 @@
    Dark-mode contrast fix: bg-navy buttons need dark text
    Must live OUTSIDE @layer so it wins over Tailwind utilities
    ============================================================ */
-.dark .bg-navy,
-.dark [class*="bg-navy"] {
-  /* keep bg as-is */
-}
 
 /* Any element with bg-navy that also has text-white in dark mode
    gets dark text so it's readable on the light navy bg */
