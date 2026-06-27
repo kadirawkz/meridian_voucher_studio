@@ -1,6 +1,5 @@
 import React from "react";
 import { FileText, Minus, Maximize2, RefreshCw } from "lucide-react";
-import logo from "../assets/logo.png";
 import type { VoucherFormValues } from "../domain/voucherSchema";
 
 interface LivePreviewWidgetProps {

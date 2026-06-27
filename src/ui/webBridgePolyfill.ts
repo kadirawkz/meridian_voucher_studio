@@ -365,7 +365,7 @@ if (typeof window !== "undefined" && !window.meridian) {
           }
           const fileHandle = await currentHandle.getFileHandle(parts[parts.length - 1]);
           const file = await fileHandle.getFile();
-          const url = URL.createObjectURL(file);
+          const url = window.URL.createObjectURL(file);
           window.open(url, "_blank");
           return;
         } catch (err) {
