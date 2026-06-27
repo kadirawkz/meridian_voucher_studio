@@ -3,10 +3,7 @@ import path from "node:path";
 import { Buffer } from "node:buffer";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
-import {
-  resolveVoucherOutputDirectory,
-  getAllSettings,
-} from "../config.js";
+import { resolveVoucherOutputDirectory, getAllSettings } from "../config.js";
 import type {
   DocumentFormat,
   GeneratedDocument,
@@ -271,7 +268,9 @@ function renderLegacyStaticTemplate(
   zip.file("word/document.xml", xml);
 }
 
-export function buildTemplateData(voucher: VoucherPayload): Record<string, unknown> {
+export function buildTemplateData(
+  voucher: VoucherPayload,
+): Record<string, unknown> {
   const totalRooms = voucher.lineItems.reduce(
     (total, item) =>
       total +
@@ -547,14 +546,14 @@ export async function generateDocuments(
   const settings = getAllSettings();
   if (!settings.activeTemplateName) {
     throw new Error(
-      "No active voucher template is configured. Please select or upload a template in Settings."
+      "No active voucher template is configured. Please select or upload a template in Settings.",
     );
   }
 
   const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
   if (!dbTemplate || !dbTemplate.docx_data || !dbTemplate.html_data) {
     throw new Error(
-      `Voucher template '${settings.activeTemplateName}' is incomplete or missing in the database.`
+      `Voucher template '${settings.activeTemplateName}' is incomplete or missing in the database.`,
     );
   }
 
@@ -639,8 +638,6 @@ export async function generateDocuments(
   }
 
   const docxPath = path.join(outputDirectory, `${uniqueFileBase}.docx`);
-
-
 
   await fs.writeFile(
     docxPath,

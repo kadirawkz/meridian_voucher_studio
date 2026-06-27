@@ -47,7 +47,10 @@ export function ProfileScreen({
     } catch (error) {
       console.error("Failed to update profile:", error);
       if (addNotice) {
-        addNotice("Failed to update profile information. Please verify the input and try again.", "error");
+        addNotice(
+          "Failed to update profile information. Please verify the input and try again.",
+          "error",
+        );
       }
     } finally {
       setIsSaving(false);

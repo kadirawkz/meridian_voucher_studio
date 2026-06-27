@@ -238,7 +238,9 @@ export async function signIn(credentials: AuthCredentials): Promise<AuthState> {
   }
   isSessionRestored = true;
 
-  const profile = data.user ? await getEmployeeProfile(client, data.user) : null;
+  const profile = data.user
+    ? await getEmployeeProfile(client, data.user)
+    : null;
   cachedUser = data.user;
   cachedEmployeeProfile = profile;
   lastUserFetchTime = Date.now();
@@ -282,8 +284,8 @@ export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
   isSessionRestored = true;
 
   const profile = data.user
-      ? await upsertEmployeeProfile(client, data.user, credentials.employeeName)
-      : null;
+    ? await upsertEmployeeProfile(client, data.user, credentials.employeeName)
+    : null;
   cachedUser = data.user;
   cachedEmployeeProfile = profile;
   lastUserFetchTime = Date.now();
@@ -355,7 +357,7 @@ export async function getAuthState(): Promise<AuthState> {
   }
 
   const now = Date.now();
-  if (cachedAuthState && (now - lastAuthStateFetchTime < CACHE_TTL_MS)) {
+  if (cachedAuthState && now - lastAuthStateFetchTime < CACHE_TTL_MS) {
     return cachedAuthState;
   }
 
@@ -392,7 +394,7 @@ export async function getCurrentUser(): Promise<User | null> {
   await ensureRememberedSessionRestored(client);
 
   const now = Date.now();
-  if (cachedUser && (now - lastUserFetchTime < CACHE_TTL_MS)) {
+  if (cachedUser && now - lastUserFetchTime < CACHE_TTL_MS) {
     return cachedUser;
   }
 
@@ -423,7 +425,7 @@ export async function getCurrentEmployeeProfile(
   if (
     cachedEmployeeProfile &&
     cachedEmployeeProfile.id === resolvedUser.id &&
-    (now - lastProfileFetchTime < CACHE_TTL_MS)
+    now - lastProfileFetchTime < CACHE_TTL_MS
   ) {
     return cachedEmployeeProfile;
   }

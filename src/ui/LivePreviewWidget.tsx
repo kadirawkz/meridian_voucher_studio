@@ -202,9 +202,7 @@ export function LivePreviewWidget({
         }
         #live-preview-widget-inner {
           top: ${
-            previewMode === "expanded"
-              ? `${Math.round(8 * fitScale)}px`
-              : "8px"
+            previewMode === "expanded" ? `${Math.round(8 * fitScale)}px` : "8px"
           };
           left: ${
             previewMode === "expanded"
@@ -289,8 +287,8 @@ export function LivePreviewWidget({
               </div>
             )}
           </div>
+        </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
 }

@@ -12,7 +12,6 @@ import type { AppNotification } from "./MenuBar";
 import type { VoucherRecord } from "../../electron/shared/types";
 import { friendlyErrorMessage } from "../utils/errors";
 
-
 type ActiveView =
   | "entry"
   | "dashboard"
@@ -70,7 +69,8 @@ export function useAppBridge() {
 
   // Sync view history to browser history to enable mouse back/forward button navigation
   useEffect(() => {
-    const initialView = window.sessionStorage.getItem("activeView") || "dashboard";
+    const initialView =
+      window.sessionStorage.getItem("activeView") || "dashboard";
     window.history.replaceState(initialView, "");
 
     const handlePopState = (e: PopStateEvent) => {
@@ -232,10 +232,13 @@ export function useAppBridge() {
     try {
       const docs = await window.meridian.listVoucherDocuments();
       const pdfDocs = docs.filter(
-        (d) => d.voucherId === voucherId && (d.pdfPath || d.format === "pdf")
+        (d) => d.voucherId === voucherId && (d.pdfPath || d.format === "pdf"),
       );
       if (pdfDocs.length === 0) {
-        addNotice("No generated PDF voucher found to email. Please generate a PDF first.", "error");
+        addNotice(
+          "No generated PDF voucher found to email. Please generate a PDF first.",
+          "error",
+        );
         return;
       }
       const latestPdfDoc = pdfDocs.sort((a, b) => {
@@ -244,12 +247,17 @@ export function useAppBridge() {
         return dateB - dateA;
       })[0];
 
-      const pdfPath = latestPdfDoc.pdfPath || latestPdfDoc.docxPath.replace(/\.docx$/, ".pdf");
+      const pdfPath =
+        latestPdfDoc.pdfPath ||
+        latestPdfDoc.docxPath.replace(/\.docx$/, ".pdf");
 
       await window.meridian.openEmailClient({ voucherId, pdfPath });
 
-      addNotice("Email client opened. PDF path has been revealed in Explorer for drag-and-drop.", "success");
-      
+      addNotice(
+        "Email client opened. PDF path has been revealed in Explorer for drag-and-drop.",
+        "success",
+      );
+
       if (formHook.form.getValues("id") === voucherId) {
         formHook.form.setValue("status", "sent");
       }
@@ -261,7 +269,6 @@ export function useAppBridge() {
       addNotice(friendlyErrorMessage(error, "Failed to send email"), "error");
     }
   };
-
 
   return {
     // Theme properties

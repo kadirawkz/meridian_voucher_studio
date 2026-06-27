@@ -134,7 +134,10 @@ export function useVoucherRegister({
         voucherId,
         status,
       );
-      addNotice(`Voucher status successfully updated to: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`, "success");
+      addNotice(
+        `Voucher status successfully updated to: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)}`,
+        "success",
+      );
       await refreshVoucherRevisions(voucherId);
       await refreshVoucherRegister(voucherFilters);
     } catch (error) {

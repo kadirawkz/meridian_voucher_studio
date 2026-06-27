@@ -454,9 +454,7 @@ export function DashboardScreen({
               )}
             </div>
             {expiringContracts.length === 0 ? (
-              <div
-                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700"
-              >
+              <div className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700">
                 <ShieldCheck
                   size={18}
                   className="shrink-0 animate-bounce text-emerald-600"
@@ -567,13 +565,8 @@ export function DashboardScreen({
                 )}
               </div>
             ) : (
-              <div
-                className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700"
-              >
-                <CheckCircle2
-                  size={16}
-                  className="shrink-0 text-emerald-600"
-                />
+              <div className="flex items-center gap-2.5 px-5 py-6 text-xs font-semibold bg-cloud/30 text-emerald-700">
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
                 <span>Zero Database Gaps! Perfect Coverage!</span>
               </div>
             )}

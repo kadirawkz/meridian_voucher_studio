@@ -38,7 +38,10 @@ import {
   migrateVouchersToTours,
 } from "./lib/toursFolder.js";
 import { getAllSettings, updateSettings } from "./config.js";
-import { validateTemplate, buildTemplateData } from "./lib/documentGenerator.js";
+import {
+  validateTemplate,
+  buildTemplateData,
+} from "./lib/documentGenerator.js";
 import { renderHtmlTemplate } from "./lib/pdfGenerator.js";
 import {
   getVoucherTemplate,
@@ -74,25 +77,20 @@ function setupToursFolderWatcher(): void {
 
   try {
     let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-    toursFolderWatcher = fs.watch(
-      folderPath,
-      { recursive: true },
-      () => {
-        if (debounceTimeout) {
-          globalThis.clearTimeout(debounceTimeout);
-        }
-        debounceTimeout = setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send("tours-folder:changed");
-          }
-        }, 300);
+    toursFolderWatcher = fs.watch(folderPath, { recursive: true }, () => {
+      if (debounceTimeout) {
+        globalThis.clearTimeout(debounceTimeout);
       }
-    );
+      debounceTimeout = setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("tours-folder:changed");
+        }
+      }, 300);
+    });
   } catch (err) {
     console.error("[watcher] Failed to watch tours folder:", err);
   }
 }
-
 
 type PublicRuntimeConfig = {
   supabaseUrl?: string;
@@ -278,31 +276,31 @@ app.whenReady().then(async () => {
     },
   );
 
-function renderFallbackPageHtml(
-  title: string,
-  message: string,
-  subMessage: string,
-  iconSvg: string,
-  badgeText: string,
-  statusType: "info" | "warning" | "error"
-): string {
-  const borderColors = {
-    info: "#e2e8f0",
-    warning: "#fef3c7",
-    error: "#fee2e2",
-  };
-  const titleColors = {
-    info: "#0f172a",
-    warning: "#b45309",
-    error: "#991b1b",
-  };
-  const badgeClasses = {
-    info: "info",
-    warning: "warning",
-    error: "error",
-  };
+  function renderFallbackPageHtml(
+    title: string,
+    message: string,
+    subMessage: string,
+    iconSvg: string,
+    badgeText: string,
+    statusType: "info" | "warning" | "error",
+  ): string {
+    const borderColors = {
+      info: "#e2e8f0",
+      warning: "#fef3c7",
+      error: "#fee2e2",
+    };
+    const titleColors = {
+      info: "#0f172a",
+      warning: "#b45309",
+      error: "#991b1b",
+    };
+    const badgeClasses = {
+      info: "info",
+      warning: "warning",
+      error: "error",
+    };
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head>
   <style>
@@ -447,7 +445,7 @@ function renderFallbackPageHtml(
   </div>
 </body>
 </html>`;
-}
+  }
 
   ipcMain.handle(
     "voucher:render-html",
@@ -463,11 +461,13 @@ function renderFallbackPageHtml(
             <polyline points="14 2 14 8 20 8"></polyline>
           </svg>`,
           "Configuration Required",
-          "info"
+          "info",
         );
       }
       try {
-        const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+        const dbTemplate = await getVoucherTemplate(
+          settings.activeTemplateName,
+        );
         if (!dbTemplate || !dbTemplate.html_data) {
           throw new Error("TEMPLATE_INCOMPLETE_OR_MISSING");
         }
@@ -487,7 +487,7 @@ function renderFallbackPageHtml(
               <line x1="9" y1="19" x2="13" y2="19"></line>
             </svg>`,
             "Template Missing",
-            "error"
+            "error",
           );
         }
 
@@ -502,14 +502,16 @@ function renderFallbackPageHtml(
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>`,
             "Offline Limit",
-            "warning"
+            "warning",
           );
         }
 
         // General error
         return renderFallbackPageHtml(
           "Failed to Load Template",
-          errMsg.includes("missing in the database") ? errMsg : `An error occurred while loading active template '${settings.activeTemplateName}'.`,
+          errMsg.includes("missing in the database")
+            ? errMsg
+            : `An error occurred while loading active template '${settings.activeTemplateName}'.`,
           "",
           `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
@@ -517,10 +519,10 @@ function renderFallbackPageHtml(
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>`,
           "Error Details",
-          "error"
+          "error",
         );
       }
-    }
+    },
   );
 
   ipcMain.handle("voucher-documents:list", async () => {
@@ -615,34 +617,38 @@ function renderFallbackPageHtml(
   ipcMain.handle(
     "voucher:open-email-client",
     async (_event, payload: { voucherId: string; pdfPath: string }) => {
-      const response = await fetch(`${serverUrl}/api/vouchers/${payload.voucherId}`);
+      const response = await fetch(
+        `${serverUrl}/api/vouchers/${payload.voucherId}`,
+      );
       if (!response.ok) {
         throw new Error(await response.text());
       }
       const voucher = await response.json();
       const hotelEmail = voucher.hotelEmail || "";
-      const subject = encodeURIComponent(`Voucher: ${voucher.requisitionNo || voucher.tourNo || ""} - ${voucher.tourName || ""}`);
+      const subject = encodeURIComponent(
+        `Voucher: ${voucher.requisitionNo || voucher.tourNo || ""} - ${voucher.tourName || ""}`,
+      );
       const body = encodeURIComponent(
         `Dear ${voucher.hotelName || "Reservations Team"},\n\n` +
-        `Please find the attached voucher details for Requisition: ${voucher.requisitionNo || "N/A"}.\n\n` +
-        `Tour Number: ${voucher.tourNo || "N/A"}\n` +
-        `Tour Name: ${voucher.tourName || "N/A"}\n\n` +
-        `Please confirm receipt and booking details.\n\n` +
-        `Best regards,\n` +
-        `${voucher.employeeName || "Meridian Operations"}\n` +
-        `${voucher.employeeEmail || ""}`
+          `Please find the attached voucher details for Requisition: ${voucher.requisitionNo || "N/A"}.\n\n` +
+          `Tour Number: ${voucher.tourNo || "N/A"}\n` +
+          `Tour Name: ${voucher.tourName || "N/A"}\n\n` +
+          `Please confirm receipt and booking details.\n\n` +
+          `Best regards,\n` +
+          `${voucher.employeeName || "Meridian Operations"}\n` +
+          `${voucher.employeeEmail || ""}`,
       );
-      
+
       const mailtoUrl = `mailto:${hotelEmail}?subject=${subject}&body=${body}`;
-      
+
       // Open the system's default email client
       await shell.openExternal(mailtoUrl);
-      
+
       // Reveal the generated PDF in the system file explorer
       if (payload.pdfPath && fs.existsSync(payload.pdfPath)) {
         shell.showItemInFolder(payload.pdfPath);
       }
-      
+
       // Update voucher status to "sent" using the server API
       const statusResponse = await fetch(
         `${serverUrl}/api/vouchers/${payload.voucherId}/status`,
@@ -650,12 +656,15 @@ function renderFallbackPageHtml(
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ status: "sent" }),
-        }
+        },
       );
       if (!statusResponse.ok) {
-        console.error("Failed to automatically update voucher status to sent:", await statusResponse.text());
+        console.error(
+          "Failed to automatically update voucher status to sent:",
+          await statusResponse.text(),
+        );
       }
-    }
+    },
   );
 
   ipcMain.handle("workspace:search", async (_event, query: string) => {
@@ -1010,9 +1019,14 @@ function renderFallbackPageHtml(
       }
       if (settings.activeTemplateName) {
         // Pre-cache the template file for offline support
-        getVoucherTemplate(settings.activeTemplateName as string).catch((err) => {
-          console.warn(`Failed to pre-cache active template '${settings.activeTemplateName}':`, err);
-        });
+        getVoucherTemplate(settings.activeTemplateName as string).catch(
+          (err) => {
+            console.warn(
+              `Failed to pre-cache active template '${settings.activeTemplateName}':`,
+              err,
+            );
+          },
+        );
       }
       return result;
     },
@@ -1072,7 +1086,11 @@ function renderFallbackPageHtml(
       // Auto-inline images referenced in the HTML
       const htmlDir = path.dirname(htmlPath);
       const srcRegex = /src=(["'])(.*?)\1/gi;
-      const replacements: Array<{ quote: string; original: string; base64Uri: string }> = [];
+      const replacements: Array<{
+        quote: string;
+        original: string;
+        base64Uri: string;
+      }> = [];
 
       const matches = [...htmlContent.matchAll(srcRegex)];
       for (const m of matches) {
@@ -1087,12 +1105,21 @@ function renderFallbackPageHtml(
           const absoluteImagePath = path.resolve(htmlDir, relativePath);
           try {
             const imageBuffer = await fs.promises.readFile(absoluteImagePath);
-            const ext = path.extname(absoluteImagePath).toLowerCase().replace(".", "");
-            const mimeType = ext === "svg" ? "image/svg+xml" : `image/${ext === "jpg" ? "jpeg" : ext}`;
+            const ext = path
+              .extname(absoluteImagePath)
+              .toLowerCase()
+              .replace(".", "");
+            const mimeType =
+              ext === "svg"
+                ? "image/svg+xml"
+                : `image/${ext === "jpg" ? "jpeg" : ext}`;
             const base64Uri = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
             replacements.push({ quote, original: originalSrc, base64Uri });
           } catch (err) {
-            console.warn(`Failed to auto-inline template image at ${absoluteImagePath}:`, err);
+            console.warn(
+              `Failed to auto-inline template image at ${absoluteImagePath}:`,
+              err,
+            );
           }
         }
       }
@@ -1100,7 +1127,7 @@ function renderFallbackPageHtml(
       for (const r of replacements) {
         htmlContent = htmlContent.replace(
           `src=${r.quote}${r.original}${r.quote}`,
-          `src=${r.quote}${r.base64Uri}${r.quote}`
+          `src=${r.quote}${r.base64Uri}${r.quote}`,
         );
       }
 

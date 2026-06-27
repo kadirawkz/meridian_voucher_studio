@@ -17,7 +17,12 @@ type Props = {
   addNotice?: (message: string, type?: "info" | "success" | "error") => void;
 };
 
-export function ManageRatesScreen({ onBack, onEdit, onRatesChanged, addNotice }: Props) {
+export function ManageRatesScreen({
+  onBack,
+  onEdit,
+  onRatesChanged,
+  addNotice,
+}: Props) {
   const [rates, setRates] = useState<HotelRateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

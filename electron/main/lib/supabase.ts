@@ -41,7 +41,12 @@ function getTemplateCachePath(name: string): string {
 
 async function writeTemplateToCache(
   name: string,
-  data: { name: string; docx_data: string; html_data: string; updated_at?: string },
+  data: {
+    name: string;
+    docx_data: string;
+    html_data: string;
+    updated_at?: string;
+  },
 ): Promise<void> {
   try {
     const cachePath = getTemplateCachePath(name);
@@ -52,9 +57,12 @@ async function writeTemplateToCache(
   }
 }
 
-async function readTemplateFromCache(
-  name: string,
-): Promise<{ name: string; docx_data: string; html_data: string; updated_at?: string } | null> {
+async function readTemplateFromCache(name: string): Promise<{
+  name: string;
+  docx_data: string;
+  html_data: string;
+  updated_at?: string;
+} | null> {
   try {
     const cachePath = getTemplateCachePath(name);
     const rawData = await fs.readFile(cachePath, "utf8");
@@ -677,8 +685,7 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
     billingInstructions: (v.billing_instructions ?? "") as string,
     remarks: (v.remarks ?? "") as string,
     matchedHotelRateId: (v.matched_hotel_rate_id ?? undefined) as
-      | string
-      | undefined,
+      string | undefined,
     rateApplicableText: (v.rate_applicable_text ?? "") as string,
     guideText: (v.guide_text ?? "") as string,
     surchargeText: (v.surcharge_text ?? "") as string,
@@ -688,8 +695,7 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
       (li) => ({
         requiredDate: (li.required_date ?? "") as string,
         roomCategoryId: (li.room_category_id ?? undefined) as
-          | string
-          | undefined,
+          string | undefined,
         roomCategory: ((li.room_categories as Record<string, unknown> | null)
           ?.name ?? "") as string,
         basis: (li.basis ?? "") as string,
@@ -890,7 +896,10 @@ export async function searchWorkspace(
   return { vouchers, documents };
 }
 
-const templateMemoryCache = new Map<string, { name: string; docx_data: string; html_data: string }>();
+const templateMemoryCache = new Map<
+  string,
+  { name: string; docx_data: string; html_data: string }
+>();
 
 export function clearTemplateMemoryCache(name?: string) {
   if (name) {
@@ -900,9 +909,12 @@ export function clearTemplateMemoryCache(name?: string) {
   }
 }
 
-export async function getVoucherTemplate(
-  name: string,
-): Promise<{ name: string; docx_data: string; html_data: string; updated_at?: string } | null> {
+export async function getVoucherTemplate(name: string): Promise<{
+  name: string;
+  docx_data: string;
+  html_data: string;
+  updated_at?: string;
+} | null> {
   if (templateMemoryCache.has(name)) {
     return templateMemoryCache.get(name)!;
   }
@@ -917,7 +929,10 @@ export async function getVoucherTemplate(
       isOnline = true;
     }
   } catch (err) {
-    console.warn("Could not connect to Supabase or retrieve authenticated client:", err);
+    console.warn(
+      "Could not connect to Supabase or retrieve authenticated client:",
+      err,
+    );
   }
 
   if (isOnline && supabase) {
@@ -961,10 +976,16 @@ export async function getVoucherTemplate(
       }
     } catch (err) {
       const errMsg = (err as Error).message;
-      if (errMsg === "TEMPLATE_NOT_FOUND_IN_DB" || errMsg.includes("missing in the database")) {
+      if (
+        errMsg === "TEMPLATE_NOT_FOUND_IN_DB" ||
+        errMsg.includes("missing in the database")
+      ) {
         throw err;
       }
-      console.warn(`Database query error fetching template '${name}', attempting local cache fallback:`, err);
+      console.warn(
+        `Database query error fetching template '${name}', attempting local cache fallback:`,
+        err,
+      );
     }
   }
 
@@ -992,7 +1013,9 @@ export async function upsertVoucherTemplate(
 
   const supabase = await getActiveSupabaseClient();
   if (!supabase) {
-    console.warn("Supabase is not configured. Template saved to local cache only.");
+    console.warn(
+      "Supabase is not configured. Template saved to local cache only.",
+    );
     return;
   }
 
@@ -1040,7 +1063,10 @@ export async function listVoucherTemplates(): Promise<
 
     return data || [];
   } catch (err) {
-    console.warn("Database error listing templates, attempting local cache fallback:", err);
+    console.warn(
+      "Database error listing templates, attempting local cache fallback:",
+      err,
+    );
     return getCachedTemplatesList();
   }
 }

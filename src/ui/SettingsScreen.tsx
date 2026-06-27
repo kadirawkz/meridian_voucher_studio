@@ -191,7 +191,10 @@ export function SettingsScreen({
   async function handleUploadTemplate() {
     if (!newTemplateName.trim()) {
       if (addNotice) {
-        addNotice("Please enter a name for the template before uploading.", "error");
+        addNotice(
+          "Please enter a name for the template before uploading.",
+          "error",
+        );
       }
       return;
     }
@@ -221,7 +224,10 @@ export function SettingsScreen({
       setSelectedDocxPath("");
       setSelectedHtmlPath("");
       if (addNotice) {
-        addNotice(`Template "${newTemplateName.trim()}" uploaded successfully to database.`, "success");
+        addNotice(
+          `Template "${newTemplateName.trim()}" uploaded successfully to database.`,
+          "success",
+        );
       }
       await loadDbTemplates();
     } catch (error: unknown) {
@@ -313,7 +319,10 @@ export function SettingsScreen({
       setIsSaving(true);
       await window.meridian.saveSettings(settings as Record<string, unknown>);
       if (addNotice) {
-        addNotice("System configuration settings saved successfully.", "success");
+        addNotice(
+          "System configuration settings saved successfully.",
+          "success",
+        );
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -402,7 +411,10 @@ export function SettingsScreen({
       setNewName("");
       setNewEmail("");
       if (addNotice) {
-        addNotice(`Successfully added item "${newName.trim() || newCode.trim().toUpperCase()}" to reference list.`, "success");
+        addNotice(
+          `Successfully added item "${newName.trim() || newCode.trim().toUpperCase()}" to reference list.`,
+          "success",
+        );
       }
       await loadAllReferences();
       if (onReferencesChanged) onReferencesChanged();
@@ -504,7 +516,10 @@ export function SettingsScreen({
       ]);
 
       if (addNotice) {
-        addNotice(`Reference item "${deleteTarget.label}" successfully deleted and archived.`, "success");
+        addNotice(
+          `Reference item "${deleteTarget.label}" successfully deleted and archived.`,
+          "success",
+        );
       }
       await loadAllReferences();
       if (showArchived) await loadArchivedItems();
@@ -512,7 +527,10 @@ export function SettingsScreen({
     } catch (error) {
       console.error("Failed to delete item:", error);
       if (addNotice) {
-        addNotice(`Failed to delete reference item "${deleteTarget.label}".`, "error");
+        addNotice(
+          `Failed to delete reference item "${deleteTarget.label}".`,
+          "error",
+        );
       }
     } finally {
       setDeletingIds((prev) => prev.filter((item) => item !== id));
@@ -560,8 +578,6 @@ export function SettingsScreen({
           </button>
         )}
       </div>
-
-
 
       {activeMainTab === "system" && (
         <div className="space-y-6">
@@ -749,27 +765,39 @@ export function SettingsScreen({
                     };
                     setSettings(nextSettings);
                     try {
-                      await window.meridian.saveSettings(nextSettings as Record<string, unknown>);
+                      await window.meridian.saveSettings(
+                        nextSettings as Record<string, unknown>,
+                      );
                       if (addNotice) {
-                        addNotice("Active company template updated successfully.", "success");
+                        addNotice(
+                          "Active company template updated successfully.",
+                          "success",
+                        );
                       }
                     } catch (err) {
-                      console.error("Failed to auto-save active template name:", err);
+                      console.error(
+                        "Failed to auto-save active template name:",
+                        err,
+                      );
                       if (addNotice) {
-                        addNotice("Failed to save active template choice.", "error");
+                        addNotice(
+                          "Failed to save active template choice.",
+                          "error",
+                        );
                       }
                     }
                   }}
                   className="w-full md:w-1/2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-semibold text-navy outline-none focus:border-navy disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  <option value="">
-                    -- Select a Template --
-                  </option>
-                  {settings.activeTemplateName && !dbTemplates.some((t) => t.name === settings.activeTemplateName) && (
-                    <option value={settings.activeTemplateName}>
-                      {settings.activeTemplateName} (Not loaded / Offline)
-                    </option>
-                  )}
+                  <option value="">-- Select a Template --</option>
+                  {settings.activeTemplateName &&
+                    !dbTemplates.some(
+                      (t) => t.name === settings.activeTemplateName,
+                    ) && (
+                      <option value={settings.activeTemplateName}>
+                        {settings.activeTemplateName} (Not loaded / Offline)
+                      </option>
+                    )}
                   {dbTemplates.map((t) => (
                     <option key={t.id} value={t.name}>
                       {t.name} (Uploaded{" "}
@@ -818,7 +846,9 @@ export function SettingsScreen({
                           className="app-button-primary w-full py-2 text-sm font-semibold flex items-center justify-center gap-1.5"
                         >
                           <Upload size={16} />
-                          {uploadingTemplate ? "Uploading..." : "Upload Template"}
+                          {uploadingTemplate
+                            ? "Uploading..."
+                            : "Upload Template"}
                         </button>
                       </div>
 
@@ -827,7 +857,7 @@ export function SettingsScreen({
                         <label className="block text-xs font-bold text-navy">
                           Required Template Files
                         </label>
-                        
+
                         {/* Word Template Selection */}
                         <div className="flex items-center gap-3">
                           <button
@@ -927,7 +957,8 @@ export function SettingsScreen({
                             colSpan={3}
                             className="px-4 py-8 text-center text-steel italic"
                           >
-                            No templates uploaded. Please upload a template (Word & HTML) to enable document generation.
+                            No templates uploaded. Please upload a template
+                            (Word & HTML) to enable document generation.
                           </td>
                         </tr>
                       ) : (
@@ -1091,11 +1122,11 @@ export function SettingsScreen({
                       </div>
                     </>
                   ) : [
-                    "tour-types",
-                    "markets",
-                    "meal-basis",
-                    "currencies",
-                  ].includes(activeSubTab) ? (
+                      "tour-types",
+                      "markets",
+                      "meal-basis",
+                      "currencies",
+                    ].includes(activeSubTab) ? (
                     <>
                       <div>
                         <label className="block mb-1.5 text-xs font-bold text-navy">
@@ -1181,11 +1212,11 @@ export function SettingsScreen({
                           <th className="px-4 py-2.5">Email Address</th>
                         </>
                       ) : [
-                        "tour-types",
-                        "markets",
-                        "meal-basis",
-                        "currencies",
-                      ].includes(activeSubTab) ? (
+                          "tour-types",
+                          "markets",
+                          "meal-basis",
+                          "currencies",
+                        ].includes(activeSubTab) ? (
                         <>
                           <th className="px-4 py-2.5">Code</th>
                           <th className="px-4 py-2.5">Name</th>
@@ -1218,9 +1249,15 @@ export function SettingsScreen({
                                 : ""
                             }`}
                           >
-                            <td className="px-4 py-3 font-semibold">{item.name}</td>
+                            <td className="px-4 py-3 font-semibold">
+                              {item.name}
+                            </td>
                             <td className="px-4 py-3 text-steel">
-                              {item.email || <span className="text-slate-300 italic">No Email Configured</span>}
+                              {item.email || (
+                                <span className="text-slate-300 italic">
+                                  No Email Configured
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <button
@@ -1228,11 +1265,7 @@ export function SettingsScreen({
                                 aria-label={`Delete hotel ${item.name}`}
                                 title={`Delete hotel ${item.name}`}
                                 onClick={() =>
-                                  triggerDelete(
-                                    "hotels",
-                                    item.id,
-                                    item.name,
-                                  )
+                                  triggerDelete("hotels", item.id, item.name)
                                 }
                                 className="text-steel hover:text-red-500 rounded p-1 hover:bg-red-500/10 transition-colors"
                               >
@@ -1586,7 +1619,11 @@ export function SettingsScreen({
                                     {name}
                                   </td>
                                   <td className="px-4 py-3 text-steel/70">
-                                    {(item.email as string) || <span className="text-slate-300/60 italic">No Email</span>}
+                                    {(item.email as string) || (
+                                      <span className="text-slate-300/60 italic">
+                                        No Email
+                                      </span>
+                                    )}
                                   </td>
                                 </>
                               ) : hasCode ? (

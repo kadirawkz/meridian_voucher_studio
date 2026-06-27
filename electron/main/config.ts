@@ -31,11 +31,11 @@ try {
   };
 }
 
-
-
 export function getOutputDirectory(): string {
   const settings = readSettings();
-  const dir = settings.exportDirectory || path.join(app.getPath("documents"), "Meridian Voucher Studio");
+  const dir =
+    settings.exportDirectory ||
+    path.join(app.getPath("documents"), "Meridian Voucher Studio");
   if (!fs.existsSync(dir)) {
     try {
       fs.mkdirSync(dir, { recursive: true });

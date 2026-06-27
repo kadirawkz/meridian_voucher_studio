@@ -38,6 +38,7 @@ A specialized **web-bridge polyfill** is automatically activated in browser cont
 ## 📋 Prerequisites
 
 Before proceeding, ensure you have installed:
+
 - **Docker** (v20.10.0 or higher)
 - **Docker Compose** (v2.0.0 or higher)
 - An active **Supabase** instance configured
@@ -64,36 +65,46 @@ MERIDIAN_EMPLOYEE_EMAIL=admin@example.com
 Follow these steps to launch the stack locally:
 
 ### 1. Start Services
+
 To build the images and run the containers in detached (background) mode:
+
 ```bash
 docker compose up --build -d
 ```
 
 ### 2. Verify Deployments
+
 You can monitor service health and access endpoints at:
+
 - **Web Frontend**: [http://localhost:3000](http://localhost:3000)
 - **API Health Check**: [http://localhost:5000/health](http://localhost:5000/health)
 
-*Note: The web container configuration waits until the API server's health check returns `200 OK` before starting to serve traffic.*
+_Note: The web container configuration waits until the API server's health check returns `200 OK` before starting to serve traffic._
 
 ### 3. Retrieve Container Logs
+
 To inspect logs across all services:
+
 ```bash
 docker compose logs -f
 ```
 
 To isolate logs for a single service:
+
 ```bash
 docker compose logs -f meridian-api
 ```
 
 ### 4. Stop Services
+
 To stop running containers and tear down the virtual network:
+
 ```bash
 docker compose down
 ```
 
 To also destroy persistent volumes:
+
 ```bash
 docker compose down -v
 ```

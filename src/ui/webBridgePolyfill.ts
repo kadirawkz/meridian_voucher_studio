@@ -50,12 +50,14 @@ if (typeof window !== "undefined" && !window.meridian) {
 
   async function buildTreeFromDirectoryHandle(
     dirHandle: any,
-    parentPath = ""
+    parentPath = "",
   ): Promise<any[]> {
     const nodes: any[] = [];
     for await (const entry of dirHandle.values()) {
       if (entry.name.startsWith(".") || entry.name.startsWith("~$")) continue;
-      const currentPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+      const currentPath = parentPath
+        ? `${parentPath}/${entry.name}`
+        : entry.name;
       if (entry.kind === "directory") {
         const children = await buildTreeFromDirectoryHandle(entry, currentPath);
         nodes.push({
@@ -84,7 +86,11 @@ if (typeof window !== "undefined" && !window.meridian) {
     return nodes;
   }
 
-  const writeToLocalToursFolder = async (voucher: any, result: any, format: string) => {
+  const writeToLocalToursFolder = async (
+    voucher: any,
+    result: any,
+    format: string,
+  ) => {
     if (!toursDirectoryHandle) return;
     try {
       const sanitize = (name: string) =>
@@ -97,24 +103,40 @@ if (typeof window !== "undefined" && !window.meridian) {
       const hotelDir = sanitize(voucher.hotelName || "Unknown Hotel");
 
       // Ensure subdirectories exist
-      const tourFolder = await toursDirectoryHandle.getDirectoryHandle(tourTypeDir, { create: true });
-      const hotelFolder = await tourFolder.getDirectoryHandle(hotelDir, { create: true });
+      const tourFolder = await toursDirectoryHandle.getDirectoryHandle(
+        tourTypeDir,
+        { create: true },
+      );
+      const hotelFolder = await tourFolder.getDirectoryHandle(hotelDir, {
+        create: true,
+      });
 
       // Fetch document blob from server
       const serverPath = format === "pdf" ? result.pdfPath : result.docxPath;
       if (!serverPath) return;
 
-      const response = await fetch(`/api/documents/download?path=${encodeURIComponent(serverPath)}`);
+      const response = await fetch(
+        `/api/documents/download?path=${encodeURIComponent(serverPath)}`,
+      );
       const blob = await response.blob();
 
-      const fileName = serverPath.split(/[/\\]/).pop() || `${Date.now()}.${format}`;
-      const fileHandle = await hotelFolder.getFileHandle(fileName, { create: true });
+      const fileName =
+        serverPath.split(/[/\\]/).pop() || `${Date.now()}.${format}`;
+      const fileHandle = await hotelFolder.getFileHandle(fileName, {
+        create: true,
+      });
       const writable = await fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
-      console.log(`[Web Polyfill] Successfully saved generated ${format} to local folder:`, fileName);
+      console.log(
+        `[Web Polyfill] Successfully saved generated ${format} to local folder:`,
+        fileName,
+      );
     } catch (err) {
-      console.error("Failed to write generated document to local tours folder:", err);
+      console.error(
+        "Failed to write generated document to local tours folder:",
+        err,
+      );
     }
   };
 
@@ -133,7 +155,10 @@ if (typeof window !== "undefined" && !window.meridian) {
     // Vouchers endpoints
     saveVoucher: (voucher: any) => makePost("/api/vouchers", voucher),
     generateDocuments: async (voucher: any) => {
-      const result = await makePost("/api/vouchers/generate", { voucher, format: "pdf" });
+      const result = await makePost("/api/vouchers/generate", {
+        voucher,
+        format: "pdf",
+      });
       await writeToLocalToursFolder(voucher, result, "pdf");
       return result;
     },
@@ -194,20 +219,25 @@ if (typeof window !== "undefined" && !window.meridian) {
     listHotels: () => makeGet("/api/reference/hotels"),
     saveHotel: (ref: any) => makePost("/api/reference/hotels", ref),
     deleteHotel: (id: string) => makeDelete(`/api/reference/hotels/${id}`),
-    openEmailClient: async (options: { voucherId: string; pdfPath: string }) => {
+    openEmailClient: async (options: {
+      voucherId: string;
+      pdfPath: string;
+    }) => {
       try {
         const voucher = await makeGet(`/api/vouchers/${options.voucherId}`);
         const hotelEmail = voucher.hotelEmail || "";
-        const subject = encodeURIComponent(`Voucher: ${voucher.requisitionNo || voucher.tourNo || ""} - ${voucher.tourName || ""}`);
+        const subject = encodeURIComponent(
+          `Voucher: ${voucher.requisitionNo || voucher.tourNo || ""} - ${voucher.tourName || ""}`,
+        );
         const body = encodeURIComponent(
           `Dear ${voucher.hotelName || "Reservations Team"},\n\n` +
-          `Please find the attached voucher details for Requisition: ${voucher.requisitionNo || "N/A"}.\n\n` +
-          `Tour Number: ${voucher.tourNo || "N/A"}\n` +
-          `Tour Name: ${voucher.tourName || "N/A"}\n\n` +
-          `Please confirm receipt and booking details.\n\n` +
-          `Best regards,\n` +
-          `${voucher.employeeName || "Meridian Operations"}\n` +
-          `${voucher.employeeEmail || ""}`
+            `Please find the attached voucher details for Requisition: ${voucher.requisitionNo || "N/A"}.\n\n` +
+            `Tour Number: ${voucher.tourNo || "N/A"}\n` +
+            `Tour Name: ${voucher.tourName || "N/A"}\n\n` +
+            `Please confirm receipt and booking details.\n\n` +
+            `Best regards,\n` +
+            `${voucher.employeeName || "Meridian Operations"}\n` +
+            `${voucher.employeeEmail || ""}`,
         );
 
         const mailtoUrl = `mailto:${hotelEmail}?subject=${subject}&body=${body}`;
@@ -224,7 +254,9 @@ if (typeof window !== "undefined" && !window.meridian) {
         }
 
         // Update status to sent
-        await makePatch(`/api/vouchers/${options.voucherId}/status`, { status: "sent" });
+        await makePatch(`/api/vouchers/${options.voucherId}/status`, {
+          status: "sent",
+        });
       } catch (err) {
         console.error("Failed to open email client in web mode:", err);
       }
@@ -263,7 +295,11 @@ if (typeof window !== "undefined" && !window.meridian) {
     // Templates DB
     listDatabaseTemplates: () => Promise.resolve([]),
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    uploadDatabaseTemplate: (name: string, docxPath: string, htmlPath: string) => Promise.resolve(),
+    uploadDatabaseTemplate: (
+      name: string,
+      docxPath: string,
+      htmlPath: string,
+    ) => Promise.resolve(),
     downloadDatabaseTemplate: () => Promise.resolve(false),
     deleteDatabaseTemplate: () => Promise.resolve(),
 
@@ -293,9 +329,13 @@ if (typeof window !== "undefined" && !window.meridian) {
     getToursFolderTree: async () => {
       if (!toursDirectoryHandle) return [];
       try {
-        const permission = await toursDirectoryHandle.queryPermission({ mode: "readwrite" });
+        const permission = await toursDirectoryHandle.queryPermission({
+          mode: "readwrite",
+        });
         if (permission !== "granted") {
-          const request = await toursDirectoryHandle.requestPermission({ mode: "readwrite" });
+          const request = await toursDirectoryHandle.requestPermission({
+            mode: "readwrite",
+          });
           if (request !== "granted") return [];
         }
         return await buildTreeFromDirectoryHandle(toursDirectoryHandle);
@@ -307,7 +347,11 @@ if (typeof window !== "undefined" && !window.meridian) {
     revealInExplorer: () => Promise.resolve(),
     migrateVouchersToTours: async () => {
       if (!toursDirectoryHandle) {
-        return { moved: 0, failed: 0, errors: ["No local Tours folder selected"] };
+        return {
+          moved: 0,
+          failed: 0,
+          errors: ["No local Tours folder selected"],
+        };
       }
       try {
         const docs = await makeGet("/api/voucher-documents");
@@ -319,17 +363,23 @@ if (typeof window !== "undefined" && !window.meridian) {
           try {
             if (doc.docxPath) {
               await writeToLocalToursFolder(
-                { tourType: doc.tourNo || "Uncategorized", hotelName: doc.hotelName || "Unknown Hotel" },
+                {
+                  tourType: doc.tourNo || "Uncategorized",
+                  hotelName: doc.hotelName || "Unknown Hotel",
+                },
                 { docxPath: doc.docxPath },
-                "docx"
+                "docx",
               );
               moved++;
             }
             if (doc.pdfPath) {
               await writeToLocalToursFolder(
-                { tourType: doc.tourNo || "Uncategorized", hotelName: doc.hotelName || "Unknown Hotel" },
+                {
+                  tourType: doc.tourNo || "Uncategorized",
+                  hotelName: doc.hotelName || "Unknown Hotel",
+                },
                 { pdfPath: doc.pdfPath },
-                "pdf"
+                "pdf",
               );
               moved++;
             }
@@ -340,7 +390,11 @@ if (typeof window !== "undefined" && !window.meridian) {
         }
         return { moved, failed, errors };
       } catch (err) {
-        return { moved: 0, failed: 0, errors: [err instanceof Error ? err.message : String(err)] };
+        return {
+          moved: 0,
+          failed: 0,
+          errors: [err instanceof Error ? err.message : String(err)],
+        };
       }
     },
     openDocument: async (filePath: string) => {
@@ -363,7 +417,9 @@ if (typeof window !== "undefined" && !window.meridian) {
           for (let i = 0; i < parts.length - 1; i++) {
             currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
           }
-          const fileHandle = await currentHandle.getFileHandle(parts[parts.length - 1]);
+          const fileHandle = await currentHandle.getFileHandle(
+            parts[parts.length - 1],
+          );
           const file = await fileHandle.getFile();
           const url = window.URL.createObjectURL(file);
           window.open(url, "_blank");

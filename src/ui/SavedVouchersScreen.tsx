@@ -547,7 +547,8 @@ export function SavedVouchersScreen({
                               disabled={statusUpdatingId === voucher.id}
                               value={voucher.status}
                               onChange={(event) => {
-                                const nextStatus = event.target.value as VoucherStatus;
+                                const nextStatus = event.target
+                                  .value as VoucherStatus;
                                 setStatusConfirmVoucher({
                                   id: voucher.id,
                                   currentStatus: voucher.status,
@@ -598,9 +599,16 @@ export function SavedVouchersScreen({
                   Confirm Status Change
                 </h3>
                 <p className="mt-2 text-sm text-steel leading-relaxed">
-                  Are you sure you want to change the status of this voucher from{" "}
-                  <strong className="capitalize text-amber-600">"{statusConfirmVoucher.currentStatus}"</strong> to{" "}
-                  <strong className="capitalize text-indigo-600">"{statusConfirmVoucher.nextStatus}"</strong>?
+                  Are you sure you want to change the status of this voucher
+                  from{" "}
+                  <strong className="capitalize text-amber-600">
+                    "{statusConfirmVoucher.currentStatus}"
+                  </strong>{" "}
+                  to{" "}
+                  <strong className="capitalize text-indigo-600">
+                    "{statusConfirmVoucher.nextStatus}"
+                  </strong>
+                  ?
                 </p>
               </div>
             </div>

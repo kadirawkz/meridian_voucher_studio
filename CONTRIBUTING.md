@@ -11,6 +11,7 @@ Please read through this guide to understand our development workflow, coding st
 To maintain a clean and consistent codebase, we enforce strict linting, formatting, and type-checking rules.
 
 ### 1. Linting & Formatting
+
 We use **ESLint** for static analysis and **Prettier** for code formatting. Before proposing any changes, verify that your code adheres to our style guidelines:
 
 - **Run Linting**: Checks for code quality issues.
@@ -23,7 +24,9 @@ We use **ESLint** for static analysis and **Prettier** for code formatting. Befo
   ```
 
 ### 2. Static Type Verification
+
 All source files are written in **TypeScript**. Make sure there are no compiler errors:
+
 ```bash
 npm run typecheck
 ```
@@ -35,19 +38,24 @@ npm run typecheck
 To ensure smooth collaboration, we follow a feature-branch workflow.
 
 ### 1. Branch Naming Conventions
+
 Create descriptive branch names prefixed with the type of work being performed:
+
 - `feature/short-description` (for new features)
 - `bugfix/short-description` (for bug fixes)
 - `docs/short-description` (for documentation updates)
 - `refactor/short-description` (for code restructuring)
 
 Example:
+
 ```bash
 git checkout -b feature/dynamic-invoice-rates
 ```
 
 ### 2. Local Verification
+
 Before committing code, verify the local builds run perfectly. Follow the build sequence:
+
 ```bash
 # Verify clean install
 npm ci
@@ -57,6 +65,7 @@ npm run build
 ```
 
 ### 3. Commit Guidelines
+
 - Write clear, concise commit messages.
 - Keep commits atomic (one logical change per commit).
 - **CRITICAL**: Never commit credentials, private keys, or `.env` files. Check your staged changes before committing.

@@ -383,7 +383,10 @@ export function useVoucherForm({
     setActionState("saving");
     try {
       const result = await window.meridian.saveVoucher(values);
-      addNotice(`Draft voucher for "${values.tourName || "unnamed tour"}" saved successfully.`, "success");
+      addNotice(
+        `Draft voucher for "${values.tourName || "unnamed tour"}" saved successfully.`,
+        "success",
+      );
       resetForm({ ...values, id: result.id });
       await refreshVoucherRevisions(result.id);
       await refreshVoucherRegister();

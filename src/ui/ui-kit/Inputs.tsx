@@ -92,13 +92,13 @@ export const Select = forwardRef<
     };
   }, [isOpen]);
 
-    useEffect(() => {
-      if (!portalRef.current) return;
+  useEffect(() => {
+    if (!portalRef.current) return;
 
-      portalRef.current.style.top = `${coords.top}px`;
-      portalRef.current.style.left = `${coords.left}px`;
-      portalRef.current.style.width = `${coords.width}px`;
-    }, [coords]);
+    portalRef.current.style.top = `${coords.top}px`;
+    portalRef.current.style.left = `${coords.left}px`;
+    portalRef.current.style.width = `${coords.width}px`;
+  }, [coords]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -159,10 +159,12 @@ export const Select = forwardRef<
 
   const classList = className.split(" ");
   const widthClasses = classList.filter(
-    (c) => c.startsWith("w-") || c.startsWith("max-w-") || c.startsWith("min-w-")
+    (c) =>
+      c.startsWith("w-") || c.startsWith("max-w-") || c.startsWith("min-w-"),
   );
   const otherClasses = classList.filter(
-    (c) => !c.startsWith("w-") && !c.startsWith("max-w-") && !c.startsWith("min-w-")
+    (c) =>
+      !c.startsWith("w-") && !c.startsWith("max-w-") && !c.startsWith("min-w-"),
   );
 
   const wrapperClass = ["relative", widthClasses.join(" ") || "w-full"]

@@ -295,203 +295,195 @@ export function VoucherEntryScreen({
       onSubmit={form.handleSubmit(handleSave)}
     >
       <div className="mb-8 flex max-w-full flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          disabled={actionState !== "idle"}
+          onClick={handleClearForm}
+          variant="secondary"
+          className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
+        >
+          <RotateCcw size={17} /> Clear Form
+        </Button>
+        <Button
+          type="submit"
+          disabled={
+            actionState !== "idle" || (!!form.watch("id") && !hasChanges)
+          }
+          onClick={handleTriggerShake}
+          variant="primary"
+          className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
+        >
+          <Save size={17} />{" "}
+          {actionState === "saving" ? "Saving..." : "Save Voucher"}
+        </Button>
+        {/* DOCX Generate Split Button */}
+        <div className="relative inline-flex rounded-md shadow-sm shrink-0 group">
+          <Button
+            type="button"
+            disabled={actionState !== "idle" || !form.watch("id") || hasChanges}
+            onClick={() => {
+              handleTriggerShake();
+              form.handleSubmit((values) => handleGenerateDocx(values))();
+            }}
+            variant="secondary"
+            className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none group-hover:border-steel"
+            title={
+              !form.watch("id")
+                ? "Save draft before generating documents"
+                : hasChanges
+                  ? "Save changes before generating"
+                  : "Generate DOCX"
+            }
+          >
+            <FileText size={17} />{" "}
+            {actionState === "generating-docx"
+              ? "Generating..."
+              : "Generate DOCX"}
+          </Button>
+          <button
+            type="button"
+            disabled={actionState !== "idle" || !form.watch("id") || hasChanges}
+            onClick={() => setDocxDropdownOpen((prev) => !prev)}
+            className="h-10 bg-surface hover:bg-cloud border border-line border-l-0 text-steel hover:text-navy px-2 rounded-r-md rounded-l-none flex items-center justify-center transition shrink-0 group-hover:border-steel disabled:opacity-60 disabled:cursor-not-allowed"
+            title={
+              !form.watch("id")
+                ? "Save draft before generating documents"
+                : hasChanges
+                  ? "Save changes before generating"
+                  : "More DOCX Options"
+            }
+          >
+            <ChevronDown size={14} />
+          </button>
+          {docxDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setDocxDropdownOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 w-full bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setDocxDropdownOpen(false);
+                    if (!window.meridian?.selectFolder) return;
+                    const customDir = await window.meridian.selectFolder({
+                      title: "Select Folder to Save DOCX",
+                    });
+                    if (customDir) {
+                      handleTriggerShake();
+                      void form.handleSubmit((values) =>
+                        handleGenerateDocx(values, customDir),
+                      )();
+                    }
+                  }}
+                  className="w-full text-center px-3 py-2 hover:bg-cloud rounded text-navy transition"
+                >
+                  Generate As
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* PDF Generate Split Button */}
+        <div className="relative inline-flex rounded-md shadow-sm shrink-0 group">
+          <Button
+            type="button"
+            disabled={actionState !== "idle" || !form.watch("id") || hasChanges}
+            onClick={() => {
+              handleTriggerShake();
+              form.handleSubmit((values) => handleGeneratePdf(values))();
+            }}
+            variant="secondary"
+            className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none group-hover:border-steel"
+            title={
+              !form.watch("id")
+                ? "Save draft before generating documents"
+                : hasChanges
+                  ? "Save changes before generating"
+                  : "Generate PDF"
+            }
+          >
+            <FileDown size={17} />{" "}
+            {actionState === "generating-pdf"
+              ? "Generating..."
+              : "Generate PDF"}
+          </Button>
+          <button
+            type="button"
+            disabled={actionState !== "idle" || !form.watch("id") || hasChanges}
+            onClick={() => setPdfDropdownOpen((prev) => !prev)}
+            className="h-10 bg-surface hover:bg-cloud border border-line border-l-0 text-steel hover:text-navy px-2 rounded-r-md rounded-l-none flex items-center justify-center transition shrink-0 group-hover:border-steel disabled:opacity-60 disabled:cursor-not-allowed"
+            title={
+              !form.watch("id")
+                ? "Save draft before generating documents"
+                : hasChanges
+                  ? "Save changes before generating"
+                  : "More PDF Options"
+            }
+          >
+            <ChevronDown size={14} />
+          </button>
+          {pdfDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setPdfDropdownOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-1 w-full bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setPdfDropdownOpen(false);
+                    if (!window.meridian?.selectFolder) return;
+                    const customDir = await window.meridian.selectFolder({
+                      title: "Select Folder to Save PDF",
+                    });
+                    if (customDir) {
+                      handleTriggerShake();
+                      void form.handleSubmit((values) =>
+                        handleGeneratePdf(values, customDir),
+                      )();
+                    }
+                  }}
+                  className="w-full text-center px-3 py-2 hover:bg-cloud rounded text-navy transition"
+                >
+                  Generate As
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Email dispatch button */}
+        {(voucherStatus === "generated" || voucherStatus === "sent") && (
           <Button
             type="button"
             disabled={actionState !== "idle"}
-            onClick={handleClearForm}
-            variant="secondary"
-            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
-          >
-            <RotateCcw size={17} /> Clear Form
-          </Button>
-          <Button
-            type="submit"
-            disabled={
-              actionState !== "idle" || (!!form.watch("id") && !hasChanges)
+            onClick={() => {
+              const id = form.getValues("id");
+              if (id) {
+                handleSendEmail(id);
+              }
+            }}
+            variant={voucherStatus === "sent" ? "secondary" : "primary"}
+            className={
+              voucherStatus === "sent"
+                ? "h-10 shrink-0 whitespace-nowrap px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-600 shadow-panel transition-colors rounded-app"
+                : "h-10 shrink-0 whitespace-nowrap px-4 font-bold"
             }
-            onClick={handleTriggerShake}
-            variant="primary"
-            className="h-10 shrink-0 whitespace-nowrap px-4 w-40"
+            title={
+              voucherStatus === "sent"
+                ? "Voucher emailed. Click to resend."
+                : "Email PDF voucher to hotel"
+            }
           >
-            <Save size={17} />{" "}
-            {actionState === "saving" ? "Saving..." : "Save Voucher"}
+            <Mail size={17} />{" "}
+            {voucherStatus === "sent" ? "Email Sent" : "Send Email"}
           </Button>
-          {/* DOCX Generate Split Button */}
-          <div className="relative inline-flex rounded-md shadow-sm shrink-0 group">
-            <Button
-              type="button"
-              disabled={
-                actionState !== "idle" || !form.watch("id") || hasChanges
-              }
-              onClick={() => {
-                handleTriggerShake();
-                form.handleSubmit((values) => handleGenerateDocx(values))();
-              }}
-              variant="secondary"
-              className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none group-hover:border-steel"
-              title={
-                !form.watch("id")
-                  ? "Save draft before generating documents"
-                  : hasChanges
-                    ? "Save changes before generating"
-                    : "Generate DOCX"
-              }
-            >
-              <FileText size={17} />{" "}
-              {actionState === "generating-docx"
-                ? "Generating..."
-                : "Generate DOCX"}
-            </Button>
-            <button
-              type="button"
-              disabled={
-                actionState !== "idle" || !form.watch("id") || hasChanges
-              }
-              onClick={() => setDocxDropdownOpen((prev) => !prev)}
-              className="h-10 bg-surface hover:bg-cloud border border-line border-l-0 text-steel hover:text-navy px-2 rounded-r-md rounded-l-none flex items-center justify-center transition shrink-0 group-hover:border-steel disabled:opacity-60 disabled:cursor-not-allowed"
-              title={
-                !form.watch("id")
-                  ? "Save draft before generating documents"
-                  : hasChanges
-                    ? "Save changes before generating"
-                    : "More DOCX Options"
-              }
-            >
-              <ChevronDown size={14} />
-            </button>
-            {docxDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setDocxDropdownOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 w-full bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setDocxDropdownOpen(false);
-                      if (!window.meridian?.selectFolder) return;
-                      const customDir = await window.meridian.selectFolder({
-                        title: "Select Folder to Save DOCX",
-                      });
-                      if (customDir) {
-                        handleTriggerShake();
-                        void form.handleSubmit((values) =>
-                          handleGenerateDocx(values, customDir),
-                        )();
-                      }
-                    }}
-                    className="w-full text-center px-3 py-2 hover:bg-cloud rounded text-navy transition"
-                  >
-                    Generate As
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* PDF Generate Split Button */}
-          <div className="relative inline-flex rounded-md shadow-sm shrink-0 group">
-            <Button
-              type="button"
-              disabled={
-                actionState !== "idle" || !form.watch("id") || hasChanges
-              }
-              onClick={() => {
-                handleTriggerShake();
-                form.handleSubmit((values) => handleGeneratePdf(values))();
-              }}
-              variant="secondary"
-              className="h-10 shrink-0 whitespace-nowrap px-3 w-32 rounded-r-none group-hover:border-steel"
-              title={
-                !form.watch("id")
-                  ? "Save draft before generating documents"
-                  : hasChanges
-                    ? "Save changes before generating"
-                    : "Generate PDF"
-              }
-            >
-              <FileDown size={17} />{" "}
-              {actionState === "generating-pdf"
-                ? "Generating..."
-                : "Generate PDF"}
-            </Button>
-            <button
-              type="button"
-              disabled={
-                actionState !== "idle" || !form.watch("id") || hasChanges
-              }
-              onClick={() => setPdfDropdownOpen((prev) => !prev)}
-              className="h-10 bg-surface hover:bg-cloud border border-line border-l-0 text-steel hover:text-navy px-2 rounded-r-md rounded-l-none flex items-center justify-center transition shrink-0 group-hover:border-steel disabled:opacity-60 disabled:cursor-not-allowed"
-              title={
-                !form.watch("id")
-                  ? "Save draft before generating documents"
-                  : hasChanges
-                    ? "Save changes before generating"
-                    : "More PDF Options"
-              }
-            >
-              <ChevronDown size={14} />
-            </button>
-            {pdfDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setPdfDropdownOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 w-full bg-surface border border-line rounded-lg shadow-md z-50 p-1 space-y-0.5 text-xs text-ink font-semibold">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setPdfDropdownOpen(false);
-                      if (!window.meridian?.selectFolder) return;
-                      const customDir = await window.meridian.selectFolder({
-                        title: "Select Folder to Save PDF",
-                      });
-                      if (customDir) {
-                        handleTriggerShake();
-                        void form.handleSubmit((values) =>
-                          handleGeneratePdf(values, customDir),
-                        )();
-                      }
-                    }}
-                    className="w-full text-center px-3 py-2 hover:bg-cloud rounded text-navy transition"
-                  >
-                    Generate As
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Email dispatch button */}
-          {(voucherStatus === "generated" || voucherStatus === "sent") && (
-            <Button
-              type="button"
-              disabled={actionState !== "idle"}
-              onClick={() => {
-                const id = form.getValues("id");
-                if (id) {
-                  handleSendEmail(id);
-                }
-              }}
-              variant={voucherStatus === "sent" ? "secondary" : "primary"}
-              className={
-                voucherStatus === "sent"
-                  ? "h-10 shrink-0 whitespace-nowrap px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-600 shadow-panel transition-colors rounded-app"
-                  : "h-10 shrink-0 whitespace-nowrap px-4 font-bold"
-              }
-              title={
-                voucherStatus === "sent"
-                  ? "Voucher emailed. Click to resend."
-                  : "Email PDF voucher to hotel"
-              }
-            >
-              <Mail size={17} />{" "}
-              {voucherStatus === "sent" ? "Email Sent" : "Send Email"}
-            </Button>
-          )}
-        </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-6">
         {/* Top Section: Side-by-Side Configuration and Booking Info */}
@@ -906,9 +898,20 @@ export function VoucherEntryScreen({
           surchargeText={form.watch("surchargeText") || ""}
           eventSupplementText={form.watch("eventSupplementText") || ""}
           totalPax={lineItems.reduce((sum, li) => {
-            const adults = Number(li.singleRooms || 0) + Number(li.doubleRooms || 0) * 2 + Number(li.twinRooms || 0) * 2 + Number(li.tripleRooms || 0) * 3;
-            const children = Number(li.child2_5 || 0) + Number(li.child2_5Sharing || 0) + Number(li.child2_5Bed || 0) + Number(li.child2_5OwnRoom || 0) +
-                             Number(li.child6_11 || 0) + Number(li.child6_11Sharing || 0) + Number(li.child6_11Bed || 0) + Number(li.child6_11OwnRoom || 0);
+            const adults =
+              Number(li.singleRooms || 0) +
+              Number(li.doubleRooms || 0) * 2 +
+              Number(li.twinRooms || 0) * 2 +
+              Number(li.tripleRooms || 0) * 3;
+            const children =
+              Number(li.child2_5 || 0) +
+              Number(li.child2_5Sharing || 0) +
+              Number(li.child2_5Bed || 0) +
+              Number(li.child2_5OwnRoom || 0) +
+              Number(li.child6_11 || 0) +
+              Number(li.child6_11Sharing || 0) +
+              Number(li.child6_11Bed || 0) +
+              Number(li.child6_11OwnRoom || 0);
             return sum + adults + children;
           }, 0)}
         />

@@ -804,7 +804,8 @@ export function HotelRateMasterScreen({
       setSaveNotice((prev) => (prev === "Cleared" ? "" : prev));
     }, 2000);
     if (onClear) onClear();
-    if (addNotice) addNotice("Rate sheet form cleared and reset to defaults.", "info");
+    if (addNotice)
+      addNotice("Rate sheet form cleared and reset to defaults.", "info");
   }
 
   function sectionStatus(sectionName: string, isEmpty: boolean): SectionStatus {

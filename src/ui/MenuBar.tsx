@@ -287,7 +287,10 @@ export function MenuBar({
 
       {/* Loading / Buffering Icon */}
       {isLoading && (
-        <div className="flex items-center justify-center ml-2 text-navy animate-spin no-drag" title="Loading state...">
+        <div
+          className="flex items-center justify-center ml-2 text-navy animate-spin no-drag"
+          title="Loading state..."
+        >
           <Loader2 size={16} />
         </div>
       )}

@@ -226,7 +226,9 @@ export async function createVoucherServer(): Promise<{
       response
         .status(500)
         .send(
-          error instanceof Error ? error.message : "Unable to render voucher HTML",
+          error instanceof Error
+            ? error.message
+            : "Unable to render voucher HTML",
         );
     }
   });
@@ -258,7 +260,9 @@ export async function createVoucherServer(): Promise<{
       response
         .status(500)
         .send(
-          error instanceof Error ? error.message : "Unable to download document",
+          error instanceof Error
+            ? error.message
+            : "Unable to download document",
         );
     }
   });

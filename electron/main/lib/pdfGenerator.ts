@@ -39,7 +39,8 @@ export function renderHtmlTemplate(
 
   // Auto-fix legacy HTML templates that use line item variables but lack a {#lineItems} loop
   if (isRoot && !processedHtml.includes("{#lineItems}")) {
-    const trRegex = /<tr[^>]*>(?:(?!<\/tr>)[\s\S])*?\{(?:required_date|requiredDate|RequiredDate|requiredDateDisplay)\}[\s\S]*?<\/tr>/gi;
+    const trRegex =
+      /<tr[^>]*>(?:(?!<\/tr>)[\s\S])*?\{(?:required_date|requiredDate|RequiredDate|requiredDateDisplay)\}[\s\S]*?<\/tr>/gi;
     processedHtml = processedHtml.replace(trRegex, (match) => {
       return `{#lineItems}${match}{/lineItems}`;
     });
@@ -86,7 +87,11 @@ export async function generatePdf(
       const puppeteer = await import("puppeteer-core");
       const browser = await puppeteer.launch({
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+        ],
       });
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: "load" });
@@ -101,7 +106,7 @@ export async function generatePdf(
     } catch (err) {
       console.error("Puppeteer PDF generation failed:", err);
       throw new Error(
-        `PDF conversion failed: ${err instanceof Error ? err.message : String(err)}`
+        `PDF conversion failed: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
