@@ -34,11 +34,12 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
       .finally(() => setIsCheckingAuth(false));
   }, []);
 
-  // Automatically sync profile/role changes from database in the background every 5 seconds
+  // Automatically sync profile/role changes from database in the background every 60 seconds (only when active/focused)
   useEffect(() => {
     if (!accountProfile || !window.meridian?.getAccountProfile) return;
 
     const interval = setInterval(() => {
+      if (!document.hasFocus()) return; // Skip background checks if app is minimized or inactive
       void window.meridian
         .getAccountProfile()
         .then((latestProfile) => {
@@ -55,7 +56,7 @@ export function useAppAuth({ onAuthLoaded, addNotice }: UseAppAuthProps) {
           }
         })
         .catch((err) => console.error("Error auto-syncing profile:", err));
-    }, 5000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [accountProfile]);

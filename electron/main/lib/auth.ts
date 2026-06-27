@@ -38,8 +38,10 @@ let isSessionRestored = false;
 
 let cachedUser: User | null = null;
 let cachedEmployeeProfile: AccountProfile | null = null;
+let cachedAuthState: AuthState | null = null;
 let lastUserFetchTime = 0;
 let lastProfileFetchTime = 0;
+let lastAuthStateFetchTime = 0;
 const CACHE_TTL_MS = 10000; // 10 seconds cache to group parallel requests
 
 function getSessionPath(): string {
@@ -242,10 +244,14 @@ export async function signIn(credentials: AuthCredentials): Promise<AuthState> {
   lastUserFetchTime = Date.now();
   lastProfileFetchTime = Date.now();
 
-  return {
+  const state = {
     isAuthenticated: Boolean(data.session),
     profile,
   };
+  cachedAuthState = state;
+  lastAuthStateFetchTime = Date.now();
+
+  return state;
 }
 
 export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
@@ -283,13 +289,17 @@ export async function signUp(credentials: AuthCredentials): Promise<AuthState> {
   lastUserFetchTime = Date.now();
   lastProfileFetchTime = Date.now();
 
-  return {
+  const state = {
     isAuthenticated: Boolean(data.session),
     profile,
     message: data.session
       ? "Account created"
       : "Account created. Check email if confirmation is enabled.",
   };
+  cachedAuthState = state;
+  lastAuthStateFetchTime = Date.now();
+
+  return state;
 }
 
 export async function signOut(): Promise<AuthState> {
@@ -302,8 +312,10 @@ export async function signOut(): Promise<AuthState> {
 
   cachedUser = null;
   cachedEmployeeProfile = null;
+  cachedAuthState = null;
   lastUserFetchTime = 0;
   lastProfileFetchTime = 0;
+  lastAuthStateFetchTime = 0;
 
   return {
     isAuthenticated: false,
@@ -342,13 +354,22 @@ export async function getAuthState(): Promise<AuthState> {
     };
   }
 
+  const now = Date.now();
+  if (cachedAuthState && (now - lastAuthStateFetchTime < CACHE_TTL_MS)) {
+    return cachedAuthState;
+  }
+
   await ensureRememberedSessionRestored(client);
   const { data } = await client.auth.getUser();
 
-  return {
+  const state = {
     isAuthenticated: Boolean(data.user),
     profile: data.user ? await getEmployeeProfile(client, data.user) : null,
   };
+
+  cachedAuthState = state;
+  lastAuthStateFetchTime = now;
+  return state;
 }
 
 export async function getAccountProfile(): Promise<AccountProfile> {
@@ -445,6 +466,11 @@ export async function updateProfile(updates: {
   const profile = profileFromRow(data);
   cachedEmployeeProfile = profile;
   lastProfileFetchTime = Date.now();
+
+  if (cachedAuthState) {
+    cachedAuthState.profile = profile;
+    lastAuthStateFetchTime = Date.now();
+  }
 
   return profile;
 }

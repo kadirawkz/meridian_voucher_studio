@@ -34,7 +34,16 @@ try {
 
 
 export function getOutputDirectory(): string {
-  return path.join(app.getPath("documents"), "Meridian Voucher Studio");
+  const settings = readSettings();
+  const dir = settings.exportDirectory || path.join(app.getPath("documents"), "Meridian Voucher Studio");
+  if (!fs.existsSync(dir)) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (e) {
+      console.error("Failed to create export directory:", dir, e);
+    }
+  }
+  return dir;
 }
 
 /* ---------- Tours folder persistence ---------- */
@@ -112,7 +121,14 @@ export function resolveVoucherOutputDirectory(
 }
 
 export function getAllSettings(): AppSettings {
-  return readSettings();
+  const settings = readSettings();
+  if (!settings.exportDirectory) {
+    return {
+      ...settings,
+      exportDirectory: getOutputDirectory(),
+    };
+  }
+  return settings;
 }
 
 export function updateSettings(updates: Partial<AppSettings>): AppSettings {

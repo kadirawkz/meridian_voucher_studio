@@ -14,6 +14,90 @@ import {
   getCurrentEmployeeProfile,
   getCurrentUser,
 } from "./auth.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+
+// Safe import of Electron to support standalone server mode
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let app: any;
+try {
+  const electron = await import("electron");
+  app = electron.app;
+} catch {
+  app = {
+    getPath: (name: string) => {
+      if (name === "userData") {
+        return path.join(process.cwd(), "data");
+      }
+      return os.tmpdir();
+    },
+  };
+}
+
+function getTemplateCachePath(name: string): string {
+  return path.join(app.getPath("userData"), "templates_cache", `${name}.json`);
+}
+
+async function writeTemplateToCache(
+  name: string,
+  data: { name: string; docx_data: string; html_data: string; updated_at?: string },
+): Promise<void> {
+  try {
+    const cachePath = getTemplateCachePath(name);
+    await fs.mkdir(path.dirname(cachePath), { recursive: true });
+    await fs.writeFile(cachePath, JSON.stringify(data), "utf8");
+  } catch (err) {
+    console.warn(`Failed to write template '${name}' to local cache:`, err);
+  }
+}
+
+async function readTemplateFromCache(
+  name: string,
+): Promise<{ name: string; docx_data: string; html_data: string; updated_at?: string } | null> {
+  try {
+    const cachePath = getTemplateCachePath(name);
+    const rawData = await fs.readFile(cachePath, "utf8");
+    return JSON.parse(rawData);
+  } catch {
+    return null;
+  }
+}
+
+async function deleteTemplateFromCache(name: string): Promise<void> {
+  try {
+    const cachePath = getTemplateCachePath(name);
+    await fs.rm(cachePath, { force: true });
+  } catch (err) {
+    console.warn(`Failed to delete template '${name}' from local cache:`, err);
+  }
+}
+
+async function getCachedTemplatesList(): Promise<
+  Array<{ id: string; name: string; created_at: string; updated_at: string }>
+> {
+  try {
+    const cacheDir = path.join(app.getPath("userData"), "templates_cache");
+    const files = await fs.readdir(cacheDir);
+    const templates = [];
+    for (const file of files) {
+      if (file.endsWith(".json")) {
+        const name = path.basename(file, ".json");
+        const cachePath = path.join(cacheDir, file);
+        const stats = await fs.stat(cachePath);
+        templates.push({
+          id: name,
+          name,
+          created_at: stats.birthtime.toISOString(),
+          updated_at: stats.mtime.toISOString(),
+        });
+      }
+    }
+    return templates;
+  } catch {
+    return [];
+  }
+}
 
 /* ---------- Helpers ---------- */
 
@@ -806,28 +890,95 @@ export async function searchWorkspace(
   return { vouchers, documents };
 }
 
+const templateMemoryCache = new Map<string, { name: string; docx_data: string; html_data: string }>();
+
+export function clearTemplateMemoryCache(name?: string) {
+  if (name) {
+    templateMemoryCache.delete(name);
+  } else {
+    templateMemoryCache.clear();
+  }
+}
+
 export async function getVoucherTemplate(
   name: string,
-): Promise<{ name: string; docx_data: string; html_data: string } | null> {
-  const supabase = await getActiveSupabaseClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("voucher_templates")
-    .select("name, docx_data, html_data")
-    .eq("name", name)
-    .maybeSingle();
-
-  if (error) {
-    if (error.code === "42P01") {
-      throw new Error(
-        "Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.",
-      );
-    }
-    throw error;
+): Promise<{ name: string; docx_data: string; html_data: string; updated_at?: string } | null> {
+  if (templateMemoryCache.has(name)) {
+    return templateMemoryCache.get(name)!;
   }
 
-  return data;
+  const cached = await readTemplateFromCache(name);
+
+  let isOnline = false;
+  let supabase = null;
+  try {
+    supabase = await getActiveSupabaseClient();
+    if (supabase) {
+      isOnline = true;
+    }
+  } catch (err) {
+    console.warn("Could not connect to Supabase or retrieve authenticated client:", err);
+  }
+
+  if (isOnline && supabase) {
+    try {
+      // If we have a cached version, perform a lightweight check first
+      if (cached && cached.updated_at) {
+        const { data: dbMeta, error: metaError } = await supabase
+          .from("voucher_templates")
+          .select("updated_at")
+          .eq("name", name)
+          .maybeSingle();
+
+        if (!metaError && dbMeta && dbMeta.updated_at === cached.updated_at) {
+          templateMemoryCache.set(name, cached);
+          return cached;
+        }
+      }
+
+      // Otherwise fetch the full template data including base64 blobs
+      const { data, error } = await supabase
+        .from("voucher_templates")
+        .select("name, docx_data, html_data, updated_at")
+        .eq("name", name)
+        .maybeSingle();
+
+      if (error) {
+        if (error.code === "42P01") {
+          throw new Error(
+            "Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.",
+          );
+        }
+        throw error;
+      }
+
+      if (data) {
+        void writeTemplateToCache(name, data);
+        templateMemoryCache.set(name, data);
+        return data;
+      } else {
+        throw new Error("TEMPLATE_NOT_FOUND_IN_DB");
+      }
+    } catch (err) {
+      const errMsg = (err as Error).message;
+      if (errMsg === "TEMPLATE_NOT_FOUND_IN_DB" || errMsg.includes("missing in the database")) {
+        throw err;
+      }
+      console.warn(`Database query error fetching template '${name}', attempting local cache fallback:`, err);
+    }
+  }
+
+  // Fallback to cache if database fetch fails or is skipped
+  if (cached) {
+    templateMemoryCache.set(name, cached);
+    return cached;
+  }
+
+  if (isOnline) {
+    throw new Error("TEMPLATE_INCOMPLETE_OR_MISSING");
+  } else {
+    throw new Error("OFFLINE_AND_NOT_CACHED");
+  }
 }
 
 export async function upsertVoucherTemplate(
@@ -835,8 +986,15 @@ export async function upsertVoucherTemplate(
   docxData: string,
   htmlData: string,
 ): Promise<void> {
+  const templateData = { name, docx_data: docxData, html_data: htmlData };
+  await writeTemplateToCache(name, templateData);
+  templateMemoryCache.set(name, templateData);
+
   const supabase = await getActiveSupabaseClient();
-  if (!supabase) throw new Error("Supabase is not configured");
+  if (!supabase) {
+    console.warn("Supabase is not configured. Template saved to local cache only.");
+    return;
+  }
 
   const userId = await requireCurrentUserId("Please log in first.");
 
@@ -860,29 +1018,38 @@ export async function upsertVoucherTemplate(
 export async function listVoucherTemplates(): Promise<
   Array<{ id: string; name: string; created_at: string; updated_at: string }>
 > {
-  const supabase = await getActiveSupabaseClient();
-  if (!supabase) return [];
-
-  const { data, error } = await supabase
-    .from("voucher_templates")
-    .select("id, name, created_at, updated_at")
-    .order("name");
-
-  if (error) {
-    if (error.code === "42P01") {
-      throw new Error(
-        "Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.",
-      );
+  try {
+    const supabase = await getActiveSupabaseClient();
+    if (!supabase) {
+      return getCachedTemplatesList();
     }
-    throw error;
-  }
 
-  return data || [];
+    const { data, error } = await supabase
+      .from("voucher_templates")
+      .select("id, name, created_at, updated_at")
+      .order("name");
+
+    if (error) {
+      if (error.code === "42P01") {
+        throw new Error(
+          "Voucher templates table is missing in the database. Please run the SQL database migration script in your Supabase console.",
+        );
+      }
+      throw error;
+    }
+
+    return data || [];
+  } catch (err) {
+    console.warn("Database error listing templates, attempting local cache fallback:", err);
+    return getCachedTemplatesList();
+  }
 }
 
 export async function deleteVoucherTemplate(name: string): Promise<void> {
+  await deleteTemplateFromCache(name);
+
   const supabase = await getActiveSupabaseClient();
-  if (!supabase) throw new Error("Supabase is not configured");
+  if (!supabase) return;
 
   const { error } = await supabase
     .from("voucher_templates")

@@ -33,10 +33,12 @@ const VOUCHER_EXTENSIONS = new Set([".docx", ".pdf"]);
 export async function selectToursFolder(
   parentWindow: BrowserWindowType | null,
 ): Promise<{ path: string } | null> {
+  const currentRoot = getToursFolderRoot();
   const result = await dialog.showOpenDialog(
     parentWindow ?? BrowserWindow.getFocusedWindow()!,
     {
       title: "Select or Create Tours Root Folder",
+      defaultPath: currentRoot || undefined,
       properties: ["openDirectory", "createDirectory"],
       buttonLabel: "Select Folder",
     },

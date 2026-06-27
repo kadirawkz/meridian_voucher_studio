@@ -329,6 +329,7 @@ export function SettingsScreen({
     try {
       const result = await window.meridian.selectFolder({
         title: "Select Tours Folder",
+        defaultPath: settings.toursFolderRoot,
       });
       if (result) {
         setSettings({ ...settings, toursFolderRoot: result });
@@ -741,17 +742,34 @@ export function SettingsScreen({
                   title="Active Company Template"
                   value={settings.activeTemplateName || ""}
                   disabled={!isAdminOrManager}
-                  onChange={(e) =>
-                    setSettings({
+                  onChange={async (e) => {
+                    const nextSettings = {
                       ...settings,
                       activeTemplateName: e.target.value,
-                    })
-                  }
+                    };
+                    setSettings(nextSettings);
+                    try {
+                      await window.meridian.saveSettings(nextSettings as Record<string, unknown>);
+                      if (addNotice) {
+                        addNotice("Active company template updated successfully.", "success");
+                      }
+                    } catch (err) {
+                      console.error("Failed to auto-save active template name:", err);
+                      if (addNotice) {
+                        addNotice("Failed to save active template choice.", "error");
+                      }
+                    }
+                  }}
                   className="w-full md:w-1/2 rounded-app border border-line bg-surface px-3 py-2 text-sm font-semibold text-navy outline-none focus:border-navy disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   <option value="">
                     -- Select a Template --
                   </option>
+                  {settings.activeTemplateName && !dbTemplates.some((t) => t.name === settings.activeTemplateName) && (
+                    <option value={settings.activeTemplateName}>
+                      {settings.activeTemplateName} (Not loaded / Offline)
+                    </option>
+                  )}
                   {dbTemplates.map((t) => (
                     <option key={t.id} value={t.name}>
                       {t.name} (Uploaded{" "}

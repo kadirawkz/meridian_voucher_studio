@@ -45,6 +45,7 @@ import {
   upsertVoucherTemplate,
   listVoucherTemplates,
   deleteVoucherTemplate,
+  clearTemplateMemoryCache,
 } from "./lib/supabase.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -277,19 +278,248 @@ app.whenReady().then(async () => {
     },
   );
 
+function renderFallbackPageHtml(
+  title: string,
+  message: string,
+  subMessage: string,
+  iconSvg: string,
+  badgeText: string,
+  statusType: "info" | "warning" | "error"
+): string {
+  const borderColors = {
+    info: "#e2e8f0",
+    warning: "#fef3c7",
+    error: "#fee2e2",
+  };
+  const titleColors = {
+    info: "#0f172a",
+    warning: "#b45309",
+    error: "#991b1b",
+  };
+  const badgeClasses = {
+    info: "info",
+    warning: "warning",
+    error: "error",
+  };
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f6f8fb;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #ffffff;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 40px 32px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      border: 1px solid ${borderColors[statusType]};
+    }
+    .icon-container {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px auto;
+    }
+    .icon-container.info { background-color: #f1f5f9; }
+    .icon-container.warning { background-color: #fffbeb; }
+    .icon-container.error { background-color: #fef2f2; }
+    
+    h2 {
+      margin: 0 0 12px 0;
+      color: ${titleColors[statusType]};
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    p {
+      margin: 0 0 24px 0;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    strong {
+      color: #0f172a;
+    }
+    .sub-text {
+      font-size: 12px;
+      margin-top: -16px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .badge.info {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .badge.warning {
+      background-color: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fef3c7;
+    }
+    .badge.error {
+      background-color: #fef2f2;
+      color: #ef4444;
+      border: 1px solid #fee2e2;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1c2537;
+        color: #94a3b8;
+      }
+      .card {
+        background: #131926;
+        border-color: ${statusType === "info" ? "#25354e" : statusType === "warning" ? "#78350f" : "#991b1b"};
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 16px -6px rgba(0, 0, 0, 0.4);
+      }
+      .icon-container.info { background-color: rgba(241, 245, 249, 0.05); }
+      .icon-container.warning { background-color: rgba(217, 119, 6, 0.1); }
+      .icon-container.error { background-color: rgba(239, 68, 68, 0.15); }
+      
+      h2 {
+        color: ${statusType === "info" ? "#f8fafc" : statusType === "warning" ? "#fbbf24" : "#f87171"};
+      }
+      p {
+        color: #94a3b8;
+      }
+      strong {
+        color: #f1f5f9;
+      }
+      .sub-text {
+        color: #64748b;
+      }
+      .badge.info {
+        background-color: rgba(241, 245, 249, 0.05);
+        color: #94a3b8;
+        border-color: #1f2937;
+      }
+      .badge.warning {
+        background-color: rgba(217, 119, 6, 0.1);
+        color: #fbbf24;
+        border-color: #78350f;
+      }
+      .badge.error {
+        background-color: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border-color: #991b1b;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-container ${badgeClasses[statusType]}">
+      ${iconSvg}
+    </div>
+    <h2>${title}</h2>
+    <p>${message}</p>
+    ${subMessage ? `<p class="sub-text">${subMessage}</p>` : ""}
+    <div class="badge ${badgeClasses[statusType]}">${badgeText}</div>
+  </div>
+</body>
+</html>`;
+}
+
   ipcMain.handle(
     "voucher:render-html",
     async (_event, voucher: VoucherPayload) => {
       const settings = getAllSettings();
       if (!settings.activeTemplateName) {
-        return "";
+        return renderFallbackPageHtml(
+          "No Template Selected",
+          "Please select an active voucher template in Settings to generate documents and view live previews.",
+          "",
+          `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>`,
+          "Configuration Required",
+          "info"
+        );
       }
-      const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
-      if (!dbTemplate || !dbTemplate.html_data) {
-        return "";
+      try {
+        const dbTemplate = await getVoucherTemplate(settings.activeTemplateName);
+        if (!dbTemplate || !dbTemplate.html_data) {
+          throw new Error("TEMPLATE_INCOMPLETE_OR_MISSING");
+        }
+        const data = buildTemplateData(voucher);
+        return renderHtmlTemplate(dbTemplate.html_data, data);
+      } catch (err) {
+        const errMsg = (err as Error).message;
+        if (errMsg === "TEMPLATE_NOT_FOUND_IN_DB") {
+          return renderFallbackPageHtml(
+            "Template Not Found",
+            `The active template <strong>${settings.activeTemplateName}</strong> could not be found.`,
+            "Please check the name or select a different active template in Settings.",
+            `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+              <line x1="9" y1="19" x2="13" y2="19"></line>
+            </svg>`,
+            "Template Missing",
+            "error"
+          );
+        }
+
+        if (errMsg === "OFFLINE_AND_NOT_CACHED") {
+          return renderFallbackPageHtml(
+            "Template Not Cached",
+            `The active template <strong>${settings.activeTemplateName}</strong> is not available offline.`,
+            "Please connect to the internet to load and automatically cache this template.",
+            `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>`,
+            "Offline Limit",
+            "warning"
+          );
+        }
+
+        // General error
+        return renderFallbackPageHtml(
+          "Failed to Load Template",
+          errMsg.includes("missing in the database") ? errMsg : `An error occurred while loading active template '${settings.activeTemplateName}'.`,
+          "",
+          `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>`,
+          "Error Details",
+          "error"
+        );
       }
-      const data = buildTemplateData(voucher);
-      return renderHtmlTemplate(dbTemplate.html_data, data);
     }
   );
 
@@ -771,9 +1001,18 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     "settings:set",
     async (_event, settings: Record<string, unknown>) => {
+      if (settings.activeTemplateName !== undefined) {
+        clearTemplateMemoryCache();
+      }
       const result = updateSettings(settings);
       if (settings.toursFolderRoot !== undefined) {
         setupToursFolderWatcher();
+      }
+      if (settings.activeTemplateName) {
+        // Pre-cache the template file for offline support
+        getVoucherTemplate(settings.activeTemplateName as string).catch((err) => {
+          console.warn(`Failed to pre-cache active template '${settings.activeTemplateName}':`, err);
+        });
       }
       return result;
     },

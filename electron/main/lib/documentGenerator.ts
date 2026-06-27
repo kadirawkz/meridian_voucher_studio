@@ -625,18 +625,22 @@ export async function generateDocuments(
     .filter(Boolean)
     .join("-");
 
-  const docxPath = path.join(outputDirectory, `${fileBase}.docx`);
-
-  try {
-    await fs.access(docxPath);
-    throw new Error(
-      `A document with the name "${fileBase}.docx" has already been generated and exists in the output folder.`,
-    );
-  } catch (err) {
-    if ((err as { code?: string }).code !== "ENOENT") {
-      throw err;
+  let uniqueFileBase = fileBase;
+  let counter = 1;
+  while (true) {
+    const checkPath = path.join(outputDirectory, `${uniqueFileBase}.docx`);
+    try {
+      await fs.access(checkPath);
+      uniqueFileBase = `${fileBase} (${counter})`;
+      counter++;
+    } catch {
+      break;
     }
   }
+
+  const docxPath = path.join(outputDirectory, `${uniqueFileBase}.docx`);
+
+
 
   await fs.writeFile(
     docxPath,

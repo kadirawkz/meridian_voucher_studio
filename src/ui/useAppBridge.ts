@@ -63,13 +63,14 @@ export function useAppBridge() {
 
   // Basic layout state
   const [activeView, setActiveView] = useState<ActiveView>(() => {
-    const saved = localStorage.getItem("activeView");
+    // sessionStorage persists across page reloads/refreshes, but resets on new application startup
+    const saved = sessionStorage.getItem("activeView");
     return (saved as ActiveView) || "dashboard";
   });
 
   // Sync view history to browser history to enable mouse back/forward button navigation
   useEffect(() => {
-    const initialView = localStorage.getItem("activeView") || "dashboard";
+    const initialView = sessionStorage.getItem("activeView") || "dashboard";
     window.history.replaceState(initialView, "");
 
     const handlePopState = (e: PopStateEvent) => {
@@ -85,7 +86,7 @@ export function useAppBridge() {
     if (window.history.state !== activeView) {
       window.history.pushState(activeView, "");
     }
-    localStorage.setItem("activeView", activeView);
+    sessionStorage.setItem("activeView", activeView);
   }, [activeView]);
 
   const [previewMode, setPreviewMode] = useState<

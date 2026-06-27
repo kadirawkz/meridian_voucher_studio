@@ -1,4 +1,5 @@
 import React from "react";
+import { RefreshCw } from "lucide-react";
 import logo from "../assets/logo.png";
 
 interface LoadingScreenProps {
@@ -17,7 +18,7 @@ export function LoadingScreen({ themeClass }: LoadingScreenProps) {
               className="h-full w-full object-contain"
             />
           </div>
-          <div className="app-loading-spinner" />
+          <RefreshCw className="animate-spin text-navy my-4" size={32} />
           <p className="app-loading-text">Meridian Voucher Studio</p>
           <p className="app-loading-subtext">Initializing workspace…</p>
         </div>
