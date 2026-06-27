@@ -168,6 +168,8 @@ const api: AppApi = {
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (settings: Record<string, any>) =>
     ipcRenderer.invoke("settings:set", settings),
+  checkPathExists: (folderPath: string) =>
+    ipcRenderer.invoke("dialog:check-path", folderPath),
   selectFolder: (options: { title?: string; defaultPath?: string }) =>
     ipcRenderer.invoke("dialog:select-folder", options),
   selectFile: (options: {

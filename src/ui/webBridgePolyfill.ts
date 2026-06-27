@@ -433,6 +433,7 @@ if (typeof window !== "undefined" && !window.meridian) {
         "_blank",
       );
     },
+    checkPathExists: () => Promise.resolve(true),
     selectFolder: () => Promise.resolve(null),
     selectFile: () => Promise.resolve(null),
 

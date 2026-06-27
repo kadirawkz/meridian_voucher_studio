@@ -448,6 +448,7 @@ export interface AppApi {
   saveSettings: (
     settings: Record<string, unknown>,
   ) => Promise<Record<string, unknown>>;
+  checkPathExists: (folderPath: string) => Promise<boolean>;
   selectFolder: (options: {
     title?: string;
     defaultPath?: string;

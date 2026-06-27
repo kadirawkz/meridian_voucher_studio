@@ -62,6 +62,10 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
     return "Your employee account is inactive. Contact an administrator.";
   }
 
+  if (normalizedMessage.includes("template_not_found_in_db")) {
+    return "Active template not found in settings.";
+  }
+
   if (normalizedMessage.includes("please log in first")) {
     return "Please log in first.";
   }
@@ -90,9 +94,9 @@ export function friendlyErrorMessage(error: unknown, fallback: string): string {
     normalizedMessage.includes("tours root folder does not exist");
 
   if (isSystemError) {
-    return fallback;
+    return `${fallback}: ${message}`;
   }
 
   // Return fallback for any unrecognized error in production to guarantee clean UI
-  return fallback;
+  return message ? `${fallback}: ${message}` : fallback;
 }

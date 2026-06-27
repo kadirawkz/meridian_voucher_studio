@@ -14,6 +14,7 @@ import {
   Upload,
   Download,
   FileText,
+  Check,
 } from "lucide-react";
 import type {
   TourTypeRef,
@@ -52,10 +53,13 @@ export function SettingsScreen({
   addNotice,
 }: SettingsScreenProps) {
   const [settings, setSettings] = useState<AppSettings>({ theme: activeTheme });
+  const [initialSettings, setInitialSettings] = useState<AppSettings>({ theme: activeTheme });
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(
     propAccountProfile,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [toursFolderExists, setToursFolderExists] = useState<boolean | null>(null);
+  const [exportDirectoryExists, setExportDirectoryExists] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (propAccountProfile) {
@@ -126,16 +130,42 @@ export function SettingsScreen({
     setSettings((prev) => ({ ...prev, theme: activeTheme }));
   }, [activeTheme]);
 
+  useEffect(() => {
+    let active = true;
+    async function checkPaths() {
+      if (window.meridian.checkPathExists) {
+        const toursRoot = settings.toursFolderRoot || "";
+        const exportDir = settings.exportDirectory || "";
+
+        const [toursOk, exportOk] = await Promise.all([
+          toursRoot ? window.meridian.checkPathExists(toursRoot) : Promise.resolve(false),
+          exportDir ? window.meridian.checkPathExists(exportDir) : Promise.resolve(false),
+        ]);
+
+        if (active) {
+          setToursFolderExists(toursRoot ? toursOk : null);
+          setExportDirectoryExists(exportDir ? exportOk : null);
+        }
+      }
+    }
+    checkPaths();
+    return () => {
+      active = false;
+    };
+  }, [settings.toursFolderRoot, settings.exportDirectory]);
+
   async function loadSettingsAndProfile() {
     try {
       const [settingsResult, profileResult] = await Promise.all([
         window.meridian.getSettings() as Promise<AppSettings>,
         window.meridian.getAccountProfile() as Promise<AccountProfile>,
       ]);
-      setSettings({
+      const merged = {
         ...settingsResult,
         theme: activeTheme,
-      });
+      };
+      setSettings(merged);
+      setInitialSettings(merged);
       setAccountProfile(profileResult);
       if (onProfileUpdated) {
         onProfileUpdated(profileResult);
@@ -318,6 +348,7 @@ export function SettingsScreen({
     try {
       setIsSaving(true);
       await window.meridian.saveSettings(settings as Record<string, unknown>);
+      setInitialSettings(settings);
       if (addNotice) {
         addNotice(
           "System configuration settings saved successfully.",
@@ -538,6 +569,8 @@ export function SettingsScreen({
     }
   }
 
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-8">
       {/* Main Tab Navigation */}
@@ -593,9 +626,15 @@ export function SettingsScreen({
                   </p>
                 </label>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
-                    {settings.toursFolderRoot || "Not set"}
-                  </div>
+                  <input
+                    type="text"
+                    value={settings.toursFolderRoot || ""}
+                    onChange={(e) =>
+                      setSettings({ ...settings, toursFolderRoot: e.target.value })
+                    }
+                    placeholder="Not set"
+                    className="flex-1 min-w-0 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-ink focus:border-navy focus:bg-surface focus:outline-none"
+                  />
                   <button
                     type="button"
                     onClick={selectToursFolder}
@@ -604,6 +643,16 @@ export function SettingsScreen({
                     <FolderOpen size={16} /> Select
                   </button>
                 </div>
+                {settings.toursFolderRoot && toursFolderExists === false && (
+                  <p className="mt-2 text-xs text-rose-500 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <span>⚠️</span> The specified directory does not exist or is inaccessible.
+                  </p>
+                )}
+                {settings.toursFolderRoot && toursFolderExists === true && (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <span>✓</span> Directory verified.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -614,10 +663,15 @@ export function SettingsScreen({
                   </p>
                 </label>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0 truncate rounded-app border border-line bg-cloud px-3 py-2 text-sm text-steel">
-                    {settings.exportDirectory ||
-                      "Documents/Meridian Voucher Studio"}
-                  </div>
+                  <input
+                    type="text"
+                    value={settings.exportDirectory || ""}
+                    onChange={(e) =>
+                      setSettings({ ...settings, exportDirectory: e.target.value })
+                    }
+                    placeholder="Documents/Meridian Voucher Studio"
+                    className="flex-1 min-w-0 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-ink focus:border-navy focus:bg-surface focus:outline-none"
+                  />
                   <button
                     type="button"
                     onClick={selectExportDirectory}
@@ -626,6 +680,16 @@ export function SettingsScreen({
                     <FolderOpen size={16} /> Select
                   </button>
                 </div>
+                {settings.exportDirectory && exportDirectoryExists === false && (
+                  <p className="mt-2 text-xs text-amber-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <span>ℹ️</span> Directory does not exist. It will be created automatically on export.
+                  </p>
+                )}
+                {settings.exportDirectory && exportDirectoryExists === true && (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <span>✓</span> Directory verified.
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -685,6 +749,7 @@ export function SettingsScreen({
                             await window.meridian.saveSettings(
                               nextSettings as Record<string, unknown>,
                             );
+                            setInitialSettings(nextSettings);
                           } catch (err) {
                             console.error(
                               "Failed to auto-save theme settings:",
@@ -721,17 +786,30 @@ export function SettingsScreen({
             <button
               type="button"
               onClick={loadSettingsAndProfile}
-              className="app-button-secondary w-40"
+              disabled={!isDirty || isSaving}
+              className={`app-button-secondary w-40 transition-all ${!isDirty ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <RotateCcw size={16} /> Reset
             </button>
             <button
               type="button"
               onClick={saveSettings}
-              disabled={isSaving}
-              className="app-button-primary w-40"
+              disabled={!isDirty || isSaving}
+              className={`app-button-primary w-40 transition-all ${!isDirty ? "opacity-60 cursor-not-allowed" : ""}`}
             >
-              <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
+              {isSaving ? (
+                <>
+                  <RotateCw size={16} className="animate-spin" /> Saving...
+                </>
+              ) : isDirty ? (
+                <>
+                  <Save size={16} /> Save Settings
+                </>
+              ) : (
+                <>
+                  <Check size={16} /> Saved
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -843,12 +921,24 @@ export function SettingsScreen({
                             !selectedDocxPath ||
                             !selectedHtmlPath
                           }
-                          className="app-button-primary w-full py-2 text-sm font-semibold flex items-center justify-center gap-1.5"
+                          className={`app-button-primary w-full py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                            uploadingTemplate ||
+                            !newTemplateName.trim() ||
+                            !selectedDocxPath ||
+                            !selectedHtmlPath
+                              ? "opacity-60 cursor-not-allowed"
+                              : ""
+                          }`}
                         >
-                          <Upload size={16} />
-                          {uploadingTemplate
-                            ? "Uploading..."
-                            : "Upload Template"}
+                          {uploadingTemplate ? (
+                            <>
+                              <RotateCw size={16} className="animate-spin" /> Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={16} /> Upload Template
+                            </>
+                          )}
                         </button>
                       </div>
 
@@ -1012,24 +1102,6 @@ export function SettingsScreen({
             </div>
           </section>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3 justify-end">
-            <button
-              type="button"
-              onClick={loadSettingsAndProfile}
-              className="app-button-secondary w-40"
-            >
-              <RotateCcw size={16} /> Reset
-            </button>
-            <button
-              type="button"
-              onClick={saveSettings}
-              disabled={isSaving}
-              className="app-button-primary w-40"
-            >
-              <Save size={16} /> {isSaving ? "Saving..." : "Save Settings"}
-            </button>
-          </div>
         </div>
       )}
 
