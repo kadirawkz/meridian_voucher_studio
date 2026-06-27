@@ -294,11 +294,10 @@ if (typeof window !== "undefined" && !window.meridian) {
 
     // Templates DB
     listDatabaseTemplates: () => Promise.resolve([]),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     uploadDatabaseTemplate: (
-      name: string,
-      docxPath: string,
-      htmlPath: string,
+      _name: string,
+      _docxPath: string,
+      _htmlPath: string,
     ) => Promise.resolve(),
     downloadDatabaseTemplate: () => Promise.resolve(false),
     deleteDatabaseTemplate: () => Promise.resolve(),

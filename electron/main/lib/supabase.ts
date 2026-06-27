@@ -685,7 +685,8 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
     billingInstructions: (v.billing_instructions ?? "") as string,
     remarks: (v.remarks ?? "") as string,
     matchedHotelRateId: (v.matched_hotel_rate_id ?? undefined) as
-      string | undefined,
+      | string
+      | undefined,
     rateApplicableText: (v.rate_applicable_text ?? "") as string,
     guideText: (v.guide_text ?? "") as string,
     surchargeText: (v.surcharge_text ?? "") as string,
@@ -695,7 +696,8 @@ export async function getVoucher(voucherId: string): Promise<VoucherPayload> {
       (li) => ({
         requiredDate: (li.required_date ?? "") as string,
         roomCategoryId: (li.room_category_id ?? undefined) as
-          string | undefined,
+          | string
+          | undefined,
         roomCategory: ((li.room_categories as Record<string, unknown> | null)
           ?.name ?? "") as string,
         basis: (li.basis ?? "") as string,
