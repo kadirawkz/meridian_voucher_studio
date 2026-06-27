@@ -1,4 +1,3 @@
-
 # Meridian Voucher Studio
 
 <p align="center">
@@ -21,8 +20,8 @@
 
 The software operates in two primary modes:
 
-1. **Desktop Client (Electron)**: A native application providing local, high-performance HTML-to-PDF rendering alongside local DOCX template assembly.
-2. **Web Service (Docker)**: A lightweight, containerized multi-service deployment with an Nginx reverse proxy and an Express API bridge, enabling teams to access voucher management in standard browser environments.
+1. **Desktop Client (Electron)**: A native application providing local, high-performance HTML-to-PDF rendering, system email client triggers, and local file explorer integration.
+2. **Web Service (Docker)**: A containerized multi-service deployment with an Nginx reverse proxy and an Express API. It supports full web-native PDF generation (via Puppeteer/Chromium), a virtualized/local Tour Explorer (using the browser's File System Access API), and browser-native email dispatch client handlers.
 
 ---
 
@@ -47,7 +46,9 @@ graph TD
         E -->|Static Files| E_React[Vite React UI]
         E -->|Proxy /api/*| F[Express API Bridge / Port 5000]
         F -->|Server-side Engine| G[docxtemplater + pizzip]
-        G -->|Outputs| H[DOCX Document Generation]
+        F -->|Headless Puppeteer| G_PDF[HTML to PDF Rendering]
+        G -->|Outputs| H[DOCX & PDF Document Generation]
+        G_PDF -->|Outputs| H
     end
 
     subgraph Data ["Cloud Persistence"]

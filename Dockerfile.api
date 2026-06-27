@@ -28,6 +28,15 @@ RUN npm prune --omit=dev
 # Production Stage
 FROM node:24-alpine AS runner
 
+# Install Chromium and required fonts/libraries for PDF generation
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./
@@ -38,6 +47,8 @@ COPY templates ./templates
 ENV NODE_ENV=production
 ENV VOUCHER_API_PORT=5000
 ENV VOUCHER_API_HOST=0.0.0.0
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 EXPOSE 5000
 

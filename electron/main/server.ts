@@ -246,6 +246,23 @@ export async function createVoucherServer(): Promise<{
     }
   });
 
+  app.get("/api/documents/download", async (request, response) => {
+    try {
+      const filePath = request.query.path as string;
+      if (!filePath) {
+        response.status(400).send("Path parameter is required");
+        return;
+      }
+      response.download(filePath);
+    } catch (error) {
+      response
+        .status(500)
+        .send(
+          error instanceof Error ? error.message : "Unable to download document",
+        );
+    }
+  });
+
   app.get("/api/vouchers", async (request, response) => {
     try {
       const filters: VoucherListFilters = {

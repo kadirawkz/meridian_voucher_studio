@@ -100,11 +100,10 @@ docker compose down -v
 
 ---
 
-## ⚠️ Notes & Limitations
+## 📝 Web-Bridge Compatibility Features
 
-> [!WARNING]
-> **PDF Generation Restriction in Docker**
->
-> The desktop version of Meridian Voucher Studio relies on Electron's off-screen rendering engine to export HTML templates into crisp, printed PDF files. 
-> - **DOCX Templating**: Functions perfectly inside the container environment since it uses pure JavaScript engines (`docxtemplater` & `pizzip`).
-> - **PDF Export**: In containerized headless environments, Electron is unavailable. Triggering PDF generation via the browser interface will fall back to exporting a standard Word document (`.docx`) or prompt a status warning advising the user to use the desktop client for PDF exports.
+The containerized environment supports all key features of the application, utilizing browser-native and containerized service fallbacks:
+
+- **PDF Generation**: Runs headlessly inside the `meridian-api` container via Chromium and `puppeteer-core`.
+- **Tour Explorer**: Enabled in the browser using the **File System Access API** (`window.showDirectoryPicker()`). This lets users select a local directory and saves generated documents directly onto their local hard drive.
+- **Email client integration**: Launches your default mail handler natively from the browser using a `mailto:` link, and automatically downloads the generated PDF so you can attach it with a simple drag-and-drop.

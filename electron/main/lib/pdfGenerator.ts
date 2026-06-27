@@ -82,7 +82,28 @@ export async function generatePdf(
   const htmlContent = renderHtmlTemplate(htmlTemplate, data);
 
   if (!BrowserWindow) {
-    throw new Error("Electron BrowserWindow is unavailable in this runtime.");
+    try {
+      const puppeteer = await import("puppeteer-core");
+      const browser = await puppeteer.launch({
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      });
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: "load" });
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        landscape: false,
+      });
+      await browser.close();
+      await fs.writeFile(outputPath, pdfBuffer);
+      return;
+    } catch (err) {
+      console.error("Puppeteer PDF generation failed:", err);
+      throw new Error(
+        `PDF conversion failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   const win = new BrowserWindow({

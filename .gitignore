@@ -108,5 +108,6 @@ test-out.pdf
 # Local Session Data & Persistent Storage
 # ------------------------------------------------------------------------------
 data/
+documents/
 
 
