@@ -53,13 +53,19 @@ export function SettingsScreen({
   addNotice,
 }: SettingsScreenProps) {
   const [settings, setSettings] = useState<AppSettings>({ theme: activeTheme });
-  const [initialSettings, setInitialSettings] = useState<AppSettings>({ theme: activeTheme });
+  const [initialSettings, setInitialSettings] = useState<AppSettings>({
+    theme: activeTheme,
+  });
   const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(
     propAccountProfile,
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [toursFolderExists, setToursFolderExists] = useState<boolean | null>(null);
-  const [exportDirectoryExists, setExportDirectoryExists] = useState<boolean | null>(null);
+  const [toursFolderExists, setToursFolderExists] = useState<boolean | null>(
+    null,
+  );
+  const [exportDirectoryExists, setExportDirectoryExists] = useState<
+    boolean | null
+  >(null);
 
   useEffect(() => {
     if (propAccountProfile) {
@@ -138,8 +144,12 @@ export function SettingsScreen({
         const exportDir = settings.exportDirectory || "";
 
         const [toursOk, exportOk] = await Promise.all([
-          toursRoot ? window.meridian.checkPathExists(toursRoot) : Promise.resolve(false),
-          exportDir ? window.meridian.checkPathExists(exportDir) : Promise.resolve(false),
+          toursRoot
+            ? window.meridian.checkPathExists(toursRoot)
+            : Promise.resolve(false),
+          exportDir
+            ? window.meridian.checkPathExists(exportDir)
+            : Promise.resolve(false),
         ]);
 
         if (active) {
@@ -630,7 +640,10 @@ export function SettingsScreen({
                     type="text"
                     value={settings.toursFolderRoot || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, toursFolderRoot: e.target.value })
+                      setSettings({
+                        ...settings,
+                        toursFolderRoot: e.target.value,
+                      })
                     }
                     placeholder="Not set"
                     className="flex-1 min-w-0 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-ink focus:border-navy focus:bg-surface focus:outline-none"
@@ -645,7 +658,8 @@ export function SettingsScreen({
                 </div>
                 {settings.toursFolderRoot && toursFolderExists === false && (
                   <p className="mt-2 text-xs text-rose-500 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
-                    <span>⚠️</span> The specified directory does not exist or is inaccessible.
+                    <span>⚠️</span> The specified directory does not exist or is
+                    inaccessible.
                   </p>
                 )}
                 {settings.toursFolderRoot && toursFolderExists === true && (
@@ -667,7 +681,10 @@ export function SettingsScreen({
                     type="text"
                     value={settings.exportDirectory || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, exportDirectory: e.target.value })
+                      setSettings({
+                        ...settings,
+                        exportDirectory: e.target.value,
+                      })
                     }
                     placeholder="Documents/Meridian Voucher Studio"
                     className="flex-1 min-w-0 rounded-app border border-line bg-cloud px-3 py-2 text-sm text-ink focus:border-navy focus:bg-surface focus:outline-none"
@@ -680,11 +697,13 @@ export function SettingsScreen({
                     <FolderOpen size={16} /> Select
                   </button>
                 </div>
-                {settings.exportDirectory && exportDirectoryExists === false && (
-                  <p className="mt-2 text-xs text-amber-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
-                    <span>ℹ️</span> Directory does not exist. It will be created automatically on export.
-                  </p>
-                )}
+                {settings.exportDirectory &&
+                  exportDirectoryExists === false && (
+                    <p className="mt-2 text-xs text-amber-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                      <span>ℹ️</span> Directory does not exist. It will be
+                      created automatically on export.
+                    </p>
+                  )}
                 {settings.exportDirectory && exportDirectoryExists === true && (
                   <p className="mt-2 text-xs text-emerald-600 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
                     <span>✓</span> Directory verified.
@@ -932,7 +951,8 @@ export function SettingsScreen({
                         >
                           {uploadingTemplate ? (
                             <>
-                              <RotateCw size={16} className="animate-spin" /> Uploading...
+                              <RotateCw size={16} className="animate-spin" />{" "}
+                              Uploading...
                             </>
                           ) : (
                             <>
@@ -1101,7 +1121,6 @@ export function SettingsScreen({
               </div>
             </div>
           </section>
-
         </div>
       )}
 

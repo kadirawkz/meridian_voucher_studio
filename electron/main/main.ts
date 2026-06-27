@@ -1032,18 +1032,15 @@ app.whenReady().then(async () => {
     },
   );
 
-  ipcMain.handle(
-    "dialog:check-path",
-    async (_event, folderPath: string) => {
-      if (!folderPath) return false;
-      try {
-        const stats = await fs.promises.stat(folderPath);
-        return stats.isDirectory();
-      } catch {
-        return false;
-      }
-    },
-  );
+  ipcMain.handle("dialog:check-path", async (_event, folderPath: string) => {
+    if (!folderPath) return false;
+    try {
+      const stats = await fs.promises.stat(folderPath);
+      return stats.isDirectory();
+    } catch {
+      return false;
+    }
+  });
 
   ipcMain.handle(
     "dialog:select-folder",
