@@ -126,8 +126,9 @@ export const Select = forwardRef<
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const displayValue = value !== undefined ? String(value) : selectedValue;
   const selectedOption =
-    options.find((opt) => opt.value === selectedValue) || options[0];
+    options.find((opt) => opt.value === displayValue) || options[0];
   const displayLabel = selectedOption ? selectedOption.label : "Select";
 
   const handleSelectOption = (optValue: string) => {
@@ -156,15 +157,31 @@ export const Select = forwardRef<
     }
   };
 
+  const classList = className.split(" ");
+  const widthClasses = classList.filter(
+    (c) => c.startsWith("w-") || c.startsWith("max-w-") || c.startsWith("min-w-")
+  );
+  const otherClasses = classList.filter(
+    (c) => !c.startsWith("w-") && !c.startsWith("max-w-") && !c.startsWith("min-w-")
+  );
+
+  const wrapperClass = ["relative", widthClasses.join(" ") || "w-full"]
+    .filter(Boolean)
+    .join(" ");
+
+  const shellClass = ["app-select-shell w-full", widthClasses.join(" ")]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className={wrapperClass} ref={containerRef}>
       <select
         ref={(node) => {
           selectRef.current = node;
           if (typeof ref === "function") ref(node);
           else if (ref) ref.current = node;
         }}
-        value={selectedValue}
+        value={displayValue}
         onChange={(e) => {
           setSelectedValue(e.target.value);
           if (onChange) onChange(e);
@@ -175,7 +192,7 @@ export const Select = forwardRef<
         {children}
       </select>
 
-      <div className="app-select-shell w-full" data-open={isOpen}>
+      <div className={shellClass} data-open={isOpen}>
         <button
           type="button"
           disabled={props.disabled}
@@ -188,7 +205,7 @@ export const Select = forwardRef<
             props.disabled
               ? "opacity-50 cursor-not-allowed"
               : "hover:border-steel",
-            className,
+            otherClasses.join(" "),
           ]
             .filter(Boolean)
             .join(" ")}
@@ -216,7 +233,7 @@ export const Select = forwardRef<
               </div>
             ) : (
               options.map((opt) => {
-                const isSelected = opt.value === selectedValue;
+                const isSelected = opt.value === displayValue;
                 return (
                   <button
                     type="button"
