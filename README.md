@@ -111,7 +111,6 @@ Ensure you have the following installed on your development machine:
    ```bash
    npm ci
    ```
-
 2. **Configure Environment Variables**
    Copy the template environment file:
 
@@ -126,7 +125,6 @@ Ensure you have the following installed on your development machine:
    SUPABASE_ANON_KEY=your-anon-public-key
    VOUCHER_API_PORT=5183
    ```
-
 3. **Synchronize Public Configuration**
    Generate the public runtime config used by Electron builds:
 
@@ -136,6 +134,7 @@ Ensure you have the following installed on your development machine:
 
    > [!NOTE]
    > This generates `build-resources/config.json` from `.env`. This file is git-ignored to prevent exposing sensitive environment settings.
+   >
 
 ---
 
@@ -163,18 +162,18 @@ For deep dive instructions on the containerized environment, consult the [DOCKER
 
 ## 🛠️ CLI Script Index
 
-| Command                      | Description                                                                                 |
-| :--------------------------- | :------------------------------------------------------------------------------------------ |
+| Command                        | Description                                                                                 |
+| :----------------------------- | :------------------------------------------------------------------------------------------ |
 | `npm run dev`                | Starts the concurrent React Vite development server and Electron shell.                     |
 | `npm run build`              | Syncs config, cleans old builds, typechecks TypeScript, and compiles Vite/Electron sources. |
 | `npm run dist`               | Packages the application into local distribution installers without signing.                |
 | `npm run dist:signed`        | Builds and signs the final production desktop installers.                                   |
-| `npm run sync:public-config` | Transforms current`.env` properties into `build-resources/config.json`.                     |
-| `npm run start:api`          | Starts the standalone server bridge API locally (`dist-electron/main/standalone.js`).       |
+| `npm run sync:public-config` | Transforms current`.env` properties into `build-resources/config.json`.                 |
+| `npm run start:api`          | Starts the standalone server bridge API locally (`dist-electron/main/standalone.js`).     |
 | `npm run typecheck`          | Validates both React UI and Electron main process TypeScript source code.                   |
 | `npm run lint`               | Runs static analysis checks using ESLint rules.                                             |
 | `npm run format`             | Enforces unified styling via Prettier across all supported extensions.                      |
-| `npm run clean`              | Deletes build output folders (`dist/` and `dist-electron/`).                                |
+| `npm run clean`              | Deletes build output folders (`dist/` and `dist-electron/`).                            |
 
 ---
 
